@@ -1,0 +1,7 @@
+[workspace]
+members = [
+  "appstore",
+  "appstore_api",
+  "portal",
+  "portal_api",
+]

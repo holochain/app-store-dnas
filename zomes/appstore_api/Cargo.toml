@@ -1,0 +1,19 @@
+[package]
+name = "appstore_api"
+version = "0.1.0"
+authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
+edition = "2018"
+
+[lib]
+name = "appstore_api"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+appstore = {path = "../appstore"}
+hc_crud_ceps = "0.68.0"
+hc_utils = {path = "../../hc_utils"}
+hdk = "0.0.160"
+hex = "0"
+serde = "1"
+serde_yaml = "0.8.17"
+thiserror = "1"

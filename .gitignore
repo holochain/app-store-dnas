@@ -1,0 +1,6 @@
+.cargo
+target
+tests/node_modules
+zomes/*.wasm
+bundled/*.dna
+*.happ

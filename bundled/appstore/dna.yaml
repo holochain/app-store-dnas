@@ -1,0 +1,23 @@
+manifest_version: "1"
+name: appstore
+# properties:
+#   key: value
+integrity:
+  uuid: 00000000-0000-0000-0000-000000000000
+  properties: ~
+  origin_time: 2022-11-22T00:00:00.000000Z
+  zomes:
+    - name: appstore
+      bundled: ../../zomes/appstore.wasm
+    - name: portal
+      bundled: ../../zomes/portal.wasm
+coordinator:
+  zomes:
+    - name: appstore_api
+      bundled: ../../zomes/appstore_api.wasm
+      dependencies:
+        - name: appstore
+    - name: portal_api
+      bundled: ../../zomes/portal_api.wasm
+      dependencies:
+        - name: portal

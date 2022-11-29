@@ -1,0 +1,10 @@
+manifest_version: "1"
+name: Appstore
+description: The official Holochain App Store used by Launcher
+roles:
+  - id: appstore
+    provisioning:
+      strategy: create
+      deferred: false
+    dna:
+      bundled: ./appstore.dna
