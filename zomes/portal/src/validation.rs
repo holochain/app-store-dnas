@@ -5,119 +5,61 @@ use crate::{
     HostEntry,
 
     EntryTypes,
-    LinkTypes,
+    // LinkTypes,
 };
 
-
-enum RecordEntryRef<'a> {
-    Present(&'a Entry),
-    Hidden,
-    NotApplicable,
-    NotStored,
-}
-
-impl<'a> From<&'a RecordEntry> for RecordEntryRef<'a> {
-    fn from(r: &'a RecordEntry) -> Self {
-        match r {
-            RecordEntry::Present(e) => RecordEntryRef::Present(e),
-            RecordEntry::Hidden => RecordEntryRef::Hidden,
-            RecordEntry::NotApplicable => RecordEntryRef::NotApplicable,
-            RecordEntry::NotStored => RecordEntryRef::NotStored,
-        }
-    }
-}
-
-fn get_unit_entry_type<ET>(
-    zome_id: ZomeId,
-    entry_def_index: EntryDefIndex,
-) -> Result<Option<<ET as UnitEnum>::Unit>, WasmError>
-where
-    ET: UnitEnum,
-    <ET as UnitEnum>::Unit: Into<ZomeEntryTypesKey>,
-{
-    let entries = zome_info()?.zome_types.entries;
-    let unit = entries.find(
-        <ET as UnitEnum>::unit_iter(),
-        ScopedEntryDefIndex {
-            zome_id,
-            zome_type: entry_def_index,
-        },
-    );
-
-    Ok(unit)
-}
 
 
 #[hdk_extern]
 fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    debug!("Processing Op: {:?}", op );
+    debug!("Op::{} => Validation", op.action_type() );
 
-    if let Op::StoreRecord(StoreRecord { record }) = op.clone() {
-	let entry_ref : RecordEntryRef = (&record.entry).into();
-
-	if let Action::Create(Create {
-	    entry_type,
-	    entry_hash,
-	    ..
-	}) = record.action() {
-	    debug!("Captured Action::Create entry_hash: {:?}", entry_hash );
-	    debug!("Captured Action::Create entry_type: {:?}", entry_type );
-
-            if let EntryType::App(AppEntryType {
-                zome_id,
-                id: entry_def_index,
-                ..
-            }) = entry_type {
-		let unit = get_unit_entry_type::<EntryTypes>(*zome_id, *entry_def_index)?;
-		debug!("Captured Action::Create entry_unit: {:?}", unit );
+    match op.clone() {
+	// When any entry is being posted to the DHT
+	Op::StoreEntry( store_entry ) => {
+	    if let Some( entry_type ) = hc_utils::store_entry_deconstruct( &store_entry )? {
+		debug!("Running create validation for: {:?}", entry_type );
+		return match entry_type {
+		    EntryTypes::Host(content) => validate_host_create( &op, content ),
+		};
 	    }
+	},
 
-	    if let RecordEntryRef::Present(entry) = entry_ref {
-		debug!("Captured Action::Create entry: {:?}", entry );
-		if let hdi::prelude::Entry::CapGrant(ZomeCallCapGrant { .. }) = entry {
-		    debug!("Allowing Action::Create CapGrant");
-		    return Ok(ValidateCallbackResult::Valid);
-		}
+	// When the created entry is an update
+	Op::RegisterUpdate( register_update ) => {
+	    if let Some( entry_type ) = hc_utils::register_update_deconstruct( &register_update )? {
+		debug!("Running update validation for: {:?}", entry_type );
+		return match entry_type {
+		    EntryTypes::Host(content) => {
+			let original_entry : HostEntry = register_update.original_entry.unwrap().try_into()?;
+			validate_host_update( &op, content, original_entry )
+		    },
+		};
 	    }
-	}
-    }
+	},
 
-    if let Op::StoreEntry(StoreEntry { action, entry }) = op.clone() {
-	debug!("Captured StoreEntry Action: {:?}", action );
-	debug!("Captured StoreEntry Entry: {:?}", entry );
+	// When deleting an entry creation
+	Op::RegisterDelete( register_delete ) => {
+	    if let Some( entry_type ) = hc_utils::register_delete_deconstruct( &register_delete )? {
+		debug!("Running delete validation for: {:?}", entry_type );
+		return match entry_type {
+		    EntryTypes::Host(original_entry) => validate_host_delete( &op, original_entry ),
+		};
+	    }
+	},
 
-	if let hdi::prelude::Entry::CapGrant(ZomeCallCapGrant { .. }) = entry {
-	    debug!("Allowing Action::Create CapGrant");
+	// Ignore the rest
+	//  - StoreRecord
+	//  - RegisterAgentActivity
+	//  - RegisterCreateLink
+	//  - RegisterDeleteLink
+	_ => {
+	    debug!("Op::{} => No validation", op.action_type() );
 	    return Ok(ValidateCallbackResult::Valid);
 	}
     }
 
-    match op.to_type::<EntryTypes, LinkTypes>()? {
-	OpType::StoreRecord( op_record ) => {
-	    match op_record {
-		OpRecord::CreateEntry { entry_type, .. } => {
-		    debug!("Running create validation for: {:?}", entry_type );
-		    match entry_type {
-			EntryTypes::Host(entry) => validate_host_create( &op, entry ),
-		    }
-		},
-		OpRecord::UpdateEntry { entry_type, original_entry_hash, .. } => {
-		    debug!("Running create validation for: {:?}", entry_type );
-		    match entry_type {
-			EntryTypes::Host(entry) => validate_host_update( &op, entry, &original_entry_hash ),
-		    }
-		},
-		_ => {
-		    debug!("Ignoring OpRecord: {:?}", op_record );
-		    Ok(ValidateCallbackResult::Valid)
-		},
-	    }
-	},
-	_ => {
-	    debug!("Ignoring Op event");
-	    Ok(ValidateCallbackResult::Valid)
-	},
-    }
+    Ok(ValidateCallbackResult::Valid)
 }
 
 
@@ -165,12 +107,14 @@ fn validate_host_create(op: &Op, entry: HostEntry) -> ExternResult<ValidateCallb
     Ok(ValidateCallbackResult::Valid)
 }
 
-fn validate_host_update(op: &Op, entry: HostEntry, original_entry_hash: &EntryHash) -> ExternResult<ValidateCallbackResult> {
-    let prev_entry : HostEntry = must_get_entry( original_entry_hash.to_owned() )?.try_into()?;
-
+fn validate_host_update(op: &Op, entry: HostEntry, prev_entry: HostEntry) -> ExternResult<ValidateCallbackResult> {
     if let Err(error) = validate_common_fields_update(op, &entry, &prev_entry) {
 	Err(error)?
     }
 
+    Ok(ValidateCallbackResult::Valid)
+}
+
+fn validate_host_delete(_op: &Op, _entry: HostEntry) -> ExternResult<ValidateCallbackResult> {
     Ok(ValidateCallbackResult::Valid)
 }

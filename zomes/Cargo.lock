@@ -43,6 +43,7 @@ version = "0.1.0"
 dependencies = [
  "essence_payloads",
  "hc_crud_ceps",
+ "hc_utils",
  "hdi",
  "hdk",
  "serde",
@@ -1215,6 +1216,7 @@ version = "0.1.0"
 dependencies = [
  "essence_payloads",
  "hc_crud_ceps",
+ "hc_utils",
  "hdi",
  "hdk",
  "rmpv",
