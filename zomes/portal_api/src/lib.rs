@@ -1,15 +1,18 @@
 mod constants;
-// mod host;
+mod host;
 
 use rand::seq::SliceRandom;
 use hdk::prelude::*;
+use hc_crud::{
+    get_entity,
+    Entity,
+};
 pub use portal::{
     LinkTypes,
     EntryTypes,
 
-    // HostEntry,
+    HostEntry,
 
-    // GetEntityInput, EntityId,
     AppResult, Response, EntityResponse,
     composition, catch,
 
@@ -19,7 +22,6 @@ pub use constants::{
     ENTITY_MD,
     VALUE_MD,
 
-    // ANCHOR_AGENTS,
     ANCHOR_HOSTS,
 };
 
@@ -56,7 +58,7 @@ where
     F: Into<FunctionName>,
     I: Serialize + core::fmt::Debug,
 {
-    pub agents: Vec<AgentPubKey>,
+    pub dna: String,
     pub zome: Z,
     pub function: F,
     pub payload: I,
@@ -69,6 +71,7 @@ where
     F: Into<FunctionName>,
     P: Serialize + core::fmt::Debug,
 {
+    pub dna: String,
     pub zome: Z,
     pub function: F,
     pub payload: P,
@@ -81,15 +84,24 @@ type BridgeCallInput = BridgeCallDetails<String, String, Payload>;
 
 
 fn handler_remote_call(input: RemoteCallInput) -> AppResult<rmpv::Value> {
-    let agent = input.agents.choose(&mut rand::thread_rng())
-	.ok_or("There is no Host for this call".to_string())?;
+    let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
+	&input.dna,
+	&input.zome,
+	&input.function,
+    ]);
+    let links = get_links( pathhash, LinkTypes::Host, None )?;
+    let entity_id : EntryHash = links.choose(&mut rand::thread_rng())
+	.ok_or("There is no Host for this call".to_string())?
+	.target.clone().into();
+    let host_entry : Entity<HostEntry> = get_entity( &entity_id )?;
 
     let response = call_remote(
-	agent.clone(),
+	host_entry.content.author,
 	"portal_api",
 	"bridge_call".into(),
 	None,
 	BridgeCallDetails {
+	    dna: input.dna,
 	    zome: input.zome,
 	    function: input.function,
 	    payload: input.payload,
@@ -128,9 +140,9 @@ fn bridge_call(input: BridgeCallInput) -> ExternResult<rmpv::Value> {
 
 
 
-// #[hdk_extern]
-// fn register_host(input: host::CreateInput) -> ExternResult<EntityResponse<HostEntry>> {
-//     let entity = catch!( host::create( input ) );
+#[hdk_extern]
+fn register_host(input: host::CreateInput) -> ExternResult<EntityResponse<HostEntry>> {
+    let entity = catch!( host::create( input ) );
 
-//     Ok(composition( entity, ENTITY_MD ))
-// }
+    Ok(composition( entity, ENTITY_MD ))
+}

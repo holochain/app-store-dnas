@@ -80,7 +80,7 @@ function publisher_tests () {
 
     it("should get publisher profile via remote call", async function () {
 	const input			= {
-	    "agents": [ clients.alice._agent ],
+	    "dna": "devhub",
 	    "zome": "appstore_api",
 	    "function": "get_publisher",
 	    "payload": {
@@ -94,18 +94,20 @@ function publisher_tests () {
 
 }
 
-// function host_tests () {
-//     let host_1;
+function host_tests () {
+    let host_1;
 
-//     it("should register host", async function () {
-// 	const host			= await clients.bobby.call("appstore", "portal_api", "register_host", {
-// 	    "dna": "devhub",
-// 	    "zome": "dna_library",
-// 	    "function": "get_webhapp_package",
-// 	});
-//     });
+    it("should register host", async function () {
+	const host			= await clients.bobby.call("appstore", "portal_api", "register_host", {
+	    "dna": "devhub",
+	    "zome": "appstore_api",
+	    "function": "get_publisher",
+	    // "zome": "dna_library",
+	    // "function": "get_webhapp_package",
+	});
+    });
 
-// }
+}
 
 
 function errors_tests () {
@@ -151,8 +153,8 @@ describe("DNArepo", () => {
 	}
     });
 
+    describe("Host", host_tests.bind( this, holochain ) );
     describe("Publisher", publisher_tests.bind( this, holochain ) );
-    // describe("Host", host_tests.bind( this, holochain ) );
     describe("Errors", errors_tests.bind( this, holochain ) );
 
     after(async () => {
