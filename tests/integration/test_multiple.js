@@ -152,9 +152,13 @@ let app;
 function download_tests () {
 
     it("should download DevHub webapp package", async function () {
-	let happ		= await clients.alice.call( "appstore", "appstore", "get_app_package", {
+	this.timeout( 60_000 );
+
+	let bytes		= await clients.alice.call( "appstore", "appstore_api", "get_app_package", {
 	    "id": app.$id,
 	});
+
+	console.log( bytes );
     });
 
 }

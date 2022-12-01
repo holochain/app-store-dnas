@@ -15,6 +15,7 @@ use appstore::{
 };
 use crate::{
     AppResult,
+    Response,
 
     ANCHOR_AGENTS,
     ANCHOR_PUBLISHERS,
@@ -108,36 +109,48 @@ pub fn get(input: GetEntityInput) -> AppResult<Entity<AppEntry>> {
 }
 
 
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct GetWebHappPackageInput {
-//     pub name: String,
-//     pub happ_release_id: EntryHash,
-//     pub gui_release_id: EntryHash,
-// }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetWebHappPackageInput {
+    pub name: String,
+    pub happ_release_id: EntryHash,
+    pub gui_release_id: EntryHash,
+}
 
-// pub fn get_package(input: GetEntityInput) -> AppResult<Vec<u8>> { // rmpv::Value
-//     let entity = get( input )?;
+impl Into<rmpv::Value> for GetWebHappPackageInput {
+    fn into(self) -> rmpv::Value {
+	let serialized = rmp_serde::to_vec( &self ).unwrap();
+	rmp_serde::from_slice( &serialized ).unwrap()
+    }
+}
 
-//     let response = call(
-// 	CallTargetCell::Local,
-// 	"portal_api",
-// 	"remote_call".into(),
-// 	None,
-// 	portal_api::RemoteCallInput {
-// 	    dna: entity.content.devhub_address.dna,
-// 	    zome: "happ_library".to_string(),
-// 	    function: "get_webhapp_package".to_string(),
-// 	    payload: rmp_serde::encode::to_vec( &GetWebHappPackageInput {
-// 		name: entity.content.name,
-// 		happ_release_id: entity.content.devhub_address.happ,
-// 		gui_release_id: entity.content.devhub_address.gui,
-// 	    }).unwrap().into(),
-// 	}
-//     )?;
-//     let result = hc_utils::zome_call_response_as_result( response )?;
+pub fn get_package(input: GetEntityInput) -> AppResult<Vec<u8>> {
+    let entity = get( input )?;
 
-//     Ok( result.decode()? )
-// }
+    let response = call(
+	CallTargetCell::OtherRole("portal".into()),
+	"portal_api",
+	"remote_call".into(),
+	None,
+	portal_types::RemoteCallInput {
+	    dna: entity.content.devhub_address.dna,
+	    zome: "happ_library".to_string(),
+	    function: "get_webhapp_package".to_string(),
+	    payload: GetWebHappPackageInput {
+		name: entity.content.name,
+		happ_release_id: entity.content.devhub_address.happ,
+		gui_release_id: entity.content.devhub_address.gui,
+	    }.into(),
+	}
+    )?;
+
+    debug!("Completed remote call");
+    let result = hc_utils::zome_call_response_as_result( response )?;
+
+    let essence_resp : Response<Vec<u8>> = result.decode()?;
+
+    debug!("Decoding result");
+    Ok( essence_resp.as_result()? )
+}
 
 
 #[derive(Debug, Deserialize, Clone)]

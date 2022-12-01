@@ -1,5 +1,4 @@
 mod errors;
-mod types;
 mod validation;
 
 use hdi::prelude::*;
@@ -9,11 +8,17 @@ pub use hc_crud::{
     Entity, EntryModel, EntityType,
 };
 
-pub use types::{
+pub use portal_types::{
     CommonFields,
     EntityId,
 
     HostEntry,
+
+    RemoteCallDetails,
+    BridgeCallDetails,
+    Payload,
+    RemoteCallInput,
+    BridgeCallInput,
 };
 
 

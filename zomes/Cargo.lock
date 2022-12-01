@@ -41,6 +41,7 @@ dependencies = [
 name = "appstore"
 version = "0.1.0"
 dependencies = [
+ "appstore_types",
  "essence_payloads",
  "hc_crud_ceps",
  "hc_utils",
@@ -60,8 +61,21 @@ dependencies = [
  "hc_utils",
  "hdk",
  "hex",
- "portal_api",
+ "portal_types",
  "rmp-serde 1.1.1",
+ "rmpv",
+ "serde",
+ "serde_yaml",
+ "thiserror",
+]
+
+[[package]]
+name = "appstore_types"
+version = "0.1.0"
+dependencies = [
+ "essence_payloads",
+ "hc_crud_ceps",
+ "hdi",
  "rmpv",
  "serde",
  "serde_yaml",
@@ -1222,6 +1236,7 @@ dependencies = [
  "hc_utils",
  "hdi",
  "hdk",
+ "portal_types",
  "rmpv",
  "serde",
  "thiserror",
@@ -1239,6 +1254,18 @@ dependencies = [
  "rand",
  "rmpv",
  "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "portal_types"
+version = "0.1.0"
+dependencies = [
+ "hc_crud_ceps",
+ "hdi",
+ "rmpv",
+ "serde",
+ "serde_yaml",
  "thiserror",
 ]
 

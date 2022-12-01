@@ -9,6 +9,7 @@ name = "appstore"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+appstore_types = {path = "../../appstore_types"}
 essence_payloads = "0.1"
 hc_crud_ceps = "0.68.0"
 hc_utils = {path = "../../hc_utils"}

@@ -14,6 +14,7 @@ hc_crud_ceps = "0.68.0"
 hc_utils = {path = "../../hc_utils"}
 hdi = "0.1.8"
 hdk = "0.0.160"
+portal_types = {path = "../../portal_types"}
 serde = "1"
 rmpv = { version = "1.0.0", features = ["with-serde"] }
 thiserror = "1"

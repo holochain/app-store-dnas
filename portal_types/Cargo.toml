@@ -1,21 +1,16 @@
 [package]
-name = "appstore_api"
+name = "portal_types"
 version = "0.1.0"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2018"
 
 [lib]
-name = "appstore_api"
+name = "portal_types"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-appstore = {path = "../appstore"}
 hc_crud_ceps = "0.68.0"
-hc_utils = {path = "../../hc_utils"}
-hdk = "0.0.160"
-hex = "0"
-portal_types = {path = "../../portal_types"}
-rmp-serde = "1.1.1"
+hdi = "0.1.8"
 rmpv = { version = "1.0.0", features = ["with-serde"] }
 serde = "1"
 serde_yaml = "0.8.17"

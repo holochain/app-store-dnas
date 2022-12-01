@@ -77,12 +77,12 @@ fn get_app(input: GetEntityInput) -> ExternResult<EntityResponse<AppEntry>> {
     Ok(composition( entity, ENTITY_MD ))
 }
 
-// #[hdk_extern]
-// fn get_app_package(input: GetEntityInput) -> ExternResult<Response<Vec<u8>>> {
-//     let bytes = catch!( app::get_package( input ) );
+#[hdk_extern]
+fn get_app_package(input: GetEntityInput) -> ExternResult<Response<Vec<u8>>> {
+    let bytes = catch!( app::get_package( input ) );
 
-//     Ok(composition( bytes, VALUE_MD ))
-// }
+    Ok(composition( bytes, VALUE_MD ))
+}
 
 #[hdk_extern]
 fn update_app(input: app::UpdateInput) -> ExternResult<EntityResponse<AppEntry>> {
