@@ -1,6 +1,7 @@
 .cargo
 target
 tests/node_modules
+tests/*.dna
 zomes/*.wasm
 bundled/*.dna
 *.happ

@@ -14,6 +14,9 @@ hc_crud_ceps = "0.68.0"
 hc_utils = {path = "../../hc_utils"}
 hdk = "0.0.160"
 hex = "0"
+portal_api = {path = "../portal_api"}
+rmp-serde = "1.1.1"
+rmpv = { version = "1.0.0", features = ["with-serde"] }
 serde = "1"
 serde_yaml = "0.8.17"
 thiserror = "1"

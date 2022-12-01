@@ -5,3 +5,4 @@ pub const VALUE_MD : &'static str = "value";
 // Built-in Filter Anchors
 pub const ANCHOR_AGENTS : &'static str = "agents";
 pub const ANCHOR_PUBLISHERS : &'static str = "publishers";
+pub const ANCHOR_APPS : &'static str = "apps";

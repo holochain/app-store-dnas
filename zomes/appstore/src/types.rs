@@ -10,10 +10,12 @@ pub type EntityId = EntryHash;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HolochainResourceLocation {
     pub dna: DnaHash,
-    pub entry: EntryHash,
+    // pub entry: EntryHash,
+    pub happ: EntryHash,
+    pub gui: EntryHash,
 
-    // optional
-    pub action: Option<ActionHash>,
+    // // optional
+    // pub action: Option<ActionHash>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

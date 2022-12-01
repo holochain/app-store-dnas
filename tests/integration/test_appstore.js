@@ -22,6 +22,7 @@ const { backdrop }			= require('./setup.js');
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 
 const APPSTORE_DNA_PATH			= path.join( __dirname, "../../bundled/appstore.dna" );
+const TEST_DNA_HASH			= "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5";
 
 let clients;
 
@@ -46,15 +47,16 @@ function createPublisherInput ( overrides ) {
 };
 
 
+let publisher_1;
+
 function publisher_tests () {
-    let publisher_1;
 
     it("should create publisher profile", async function () {
 	this.timeout( 10_000 );
 
 	const publisher = publisher_1	= await clients.alice.call("appstore", "appstore_api", "create_publisher", createPublisherInput() );
 
-	console.log( json.debug( publisher ) );
+	log.debug( json.debug( publisher ) );
 
 	expect( publisher.editors	).to.have.length( 2 );
     });
@@ -78,33 +80,46 @@ function publisher_tests () {
 	expect( publisher.name		).to.equal( "Holo Inc" );
     });
 
-    it("should get publisher profile via remote call", async function () {
-	const input			= {
-	    "dna": "devhub",
-	    "zome": "appstore_api",
-	    "function": "get_publisher",
-	    "payload": {
-		"id": publisher_1.$id,
-	    },
-	};
-	const publisher			= await clients.bobby.call("appstore", "portal_api", "remote_call", input );
-
-	expect( publisher.$id		).to.deep.equal( publisher_1.$id );
-    });
-
 }
 
-function host_tests () {
-    let host_1;
 
-    it("should register host", async function () {
-	const host			= await clients.bobby.call("appstore", "portal_api", "register_host", {
-	    "dna": "devhub",
-	    "zome": "appstore_api",
-	    "function": "get_publisher",
-	    // "zome": "dna_library",
-	    // "function": "get_webhapp_package",
+function createAppInput ( overrides ) {
+    return Object.assign({
+	"name": "Chess",
+	"description": "The boardgame known as Chess",
+	"icon": new EntryHash( crypto.randomBytes(32) ),
+	"publisher": publisher_1.$id,
+	"devhub_address": {
+	    "dna": TEST_DNA_HASH,
+	    "happ": publisher_1.$addr,
+	    "gui": publisher_1.$addr,
+	},
+	"editors": [
+	    new AgentPubKey( crypto.randomBytes(32) )
+	],
+    }, overrides );
+};
+
+
+function app_tests () {
+    let app_1;
+
+    it("should create app profile", async function () {
+	this.timeout( 10_000 );
+
+	const app = app_1		= await clients.alice.call("appstore", "appstore_api", "create_app", createAppInput() );
+
+	log.debug( json.debug( app ) );
+
+	expect( app.editors		).to.have.length( 2 );
+    });
+
+    it("should get app profile", async function () {
+	const app			= await clients.alice.call("appstore", "appstore_api", "get_app", {
+	    "id": app_1.$id,
 	});
+
+	expect( app.$id			).to.deep.equal( app_1.$id );
     });
 
 }
@@ -130,7 +145,7 @@ function errors_tests () {
 
 }
 
-describe("DNArepo", () => {
+describe("Appstore", () => {
 
     const holochain			= new Holochain({
 	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
@@ -143,7 +158,6 @@ describe("DNArepo", () => {
 	    "appstore": APPSTORE_DNA_PATH,
 	}, [
 	    "alice",
-	    "bobby",
 	]);
 
 	// Must call whoami on each cell to ensure that init has finished.
@@ -153,8 +167,8 @@ describe("DNArepo", () => {
 	}
     });
 
-    describe("Host", host_tests.bind( this, holochain ) );
     describe("Publisher", publisher_tests.bind( this, holochain ) );
+    describe("App", app_tests.bind( this, holochain ) );
     describe("Errors", errors_tests.bind( this, holochain ) );
 
     after(async () => {

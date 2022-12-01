@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use hdk::prelude::*;
+use holo_hash::DnaHash;
 use hc_crud::{
     now, create_entity,// get_entity, update_entity,
     Entity,
@@ -19,7 +20,7 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct CreateInput {
-    pub dna: String,
+    pub dna: DnaHash,
     pub zome: String,
     pub function: String,
 
@@ -53,7 +54,7 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
 
     { // Path via Agent's Hosts
 	let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
-	    input.dna,
+	    input.dna.to_string(),
 	    input.zome,
 	    input.function,
 	]);

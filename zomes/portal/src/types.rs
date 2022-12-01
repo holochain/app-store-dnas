@@ -24,7 +24,7 @@ pub trait CommonFields<'a> {
 #[derive(Clone)]
 pub struct HostEntry {
     // pub dna: DnaHash,
-    pub dna: String,
+    pub dna: DnaHash,
     pub zome: ZomeName,
     pub function: FunctionName,
     // pub capabilities: ZomeCallCapGrant,

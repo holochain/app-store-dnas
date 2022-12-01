@@ -1,5 +1,6 @@
 mod constants;
 mod publisher;
+mod app;
 
 use hdk::prelude::*;
 pub use appstore::{
@@ -21,6 +22,7 @@ pub use constants::{
 
     ANCHOR_AGENTS,
     ANCHOR_PUBLISHERS,
+    ANCHOR_APPS,
 };
 
 
@@ -55,6 +57,36 @@ fn get_publisher(input: GetEntityInput) -> ExternResult<EntityResponse<Publisher
 #[hdk_extern]
 fn update_publisher(input: publisher::UpdateInput) -> ExternResult<EntityResponse<PublisherEntry>> {
     let entity = catch!( publisher::update( input ) );
+
+    Ok(composition( entity, ENTITY_MD ))
+}
+
+
+// App
+#[hdk_extern]
+fn create_app(input: app::CreateInput) -> ExternResult<EntityResponse<AppEntry>> {
+    let entity = catch!( app::create( input ) );
+
+    Ok(composition( entity, ENTITY_MD ))
+}
+
+#[hdk_extern]
+fn get_app(input: GetEntityInput) -> ExternResult<EntityResponse<AppEntry>> {
+    let entity = catch!( app::get( input ) );
+
+    Ok(composition( entity, ENTITY_MD ))
+}
+
+// #[hdk_extern]
+// fn get_app_package(input: GetEntityInput) -> ExternResult<Response<Vec<u8>>> {
+//     let bytes = catch!( app::get_package( input ) );
+
+//     Ok(composition( bytes, VALUE_MD ))
+// }
+
+#[hdk_extern]
+fn update_app(input: app::UpdateInput) -> ExternResult<EntityResponse<AppEntry>> {
+    let entity = catch!( app::update( input ) );
 
     Ok(composition( entity, ENTITY_MD ))
 }

@@ -12,24 +12,26 @@ use crate::{
 
 #[hdk_extern]
 fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    debug!("Op::{} => Validation", op.action_type() );
-
     match op.clone() {
 	// When any entry is being posted to the DHT
 	Op::StoreEntry( store_entry ) => {
 	    if let Some( entry_type ) = hc_utils::store_entry_deconstruct( &store_entry )? {
-		debug!("Running create validation for: {:?}", entry_type );
+		debug!("Op::{} => Running validation for: {:?}", op.action_type(), entry_type );
 		return match entry_type {
 		    EntryTypes::Publisher(content) => validate_publisher_create( &op, content ),
 		    EntryTypes::App(content) => validate_app_create( &op, content ),
 		};
+	    } else {
+		if let Entry::CapGrant(_) = store_entry.entry {
+		    return Ok(ValidateCallbackResult::Valid);
+		}
 	    }
 	},
 
 	// When the created entry is an update
 	Op::RegisterUpdate( register_update ) => {
 	    if let Some( entry_type ) = hc_utils::register_update_deconstruct( &register_update )? {
-		debug!("Running update validation for: {:?}", entry_type );
+		debug!("Op::{} => Running validation for: {:?}", op.action_type(), entry_type );
 		return match entry_type {
 		    EntryTypes::Publisher(content) => {
 			let original_entry : PublisherEntry = register_update.original_entry.unwrap().try_into()?;
@@ -46,7 +48,7 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 	// When deleting an entry creation
 	Op::RegisterDelete( register_delete ) => {
 	    if let Some( entry_type ) = hc_utils::register_delete_deconstruct( &register_delete )? {
-		debug!("Running delete validation for: {:?}", entry_type );
+		debug!("Op::{} => Running validation for: {:?}", op.action_type(), entry_type );
 		return match entry_type {
 		    EntryTypes::Publisher(original_entry) => validate_publisher_delete( &op, original_entry ),
 		    EntryTypes::App(original_entry) => validate_app_delete( &op, original_entry ),
@@ -60,11 +62,12 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 	//  - RegisterCreateLink
 	//  - RegisterDeleteLink
 	_ => {
-	    debug!("Op::{} => No validation", op.action_type() );
+	    debug!("Op::{} => No validation handler", op.action_type() );
 	    return Ok(ValidateCallbackResult::Valid);
 	}
     }
 
+    debug!("Op::{} => Validation fall-through: {:#?}", op.action_type(), op );
     Ok(ValidateCallbackResult::Valid)
 }
 

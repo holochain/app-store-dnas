@@ -3,6 +3,7 @@ mod host;
 
 use rand::seq::SliceRandom;
 use hdk::prelude::*;
+use holo_hash::DnaHash;
 use hc_crud::{
     get_entity,
     Entity,
@@ -58,7 +59,7 @@ where
     F: Into<FunctionName>,
     I: Serialize + core::fmt::Debug,
 {
-    pub dna: String,
+    pub dna: DnaHash,
     pub zome: Z,
     pub function: F,
     pub payload: I,
@@ -71,21 +72,21 @@ where
     F: Into<FunctionName>,
     P: Serialize + core::fmt::Debug,
 {
-    pub dna: String,
+    pub dna: DnaHash,
     pub zome: Z,
     pub function: F,
     pub payload: P,
 }
 
 type Payload = rmpv::Value;
-type RemoteCallInput = RemoteCallDetails<String, String, Payload>;
-type BridgeCallInput = BridgeCallDetails<String, String, Payload>;
+pub type RemoteCallInput = RemoteCallDetails<String, String, Payload>;
+pub type BridgeCallInput = BridgeCallDetails<String, String, Payload>;
 
 
 
 fn handler_remote_call(input: RemoteCallInput) -> AppResult<rmpv::Value> {
     let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
-	&input.dna,
+	&input.dna.to_string(),
 	&input.zome,
 	&input.function,
     ]);
@@ -121,8 +122,11 @@ fn remote_call(input: RemoteCallInput) -> ExternResult<rmpv::Value> {
 
 
 fn handler_bridge_call(input: BridgeCallInput) -> AppResult<rmpv::Value> {
+    let agent_info = agent_info()?;
+    let cell_id = CellId::new( input.dna, agent_info.agent_initial_pubkey );
+
     let response = call(
-	CallTargetCell::Local,
+	CallTargetCell::OtherCell( cell_id ),
 	input.zome,
 	input.function.into(),
 	None,

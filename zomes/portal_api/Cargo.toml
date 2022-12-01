@@ -9,12 +9,12 @@ name = "portal_api"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-portal = {path = "../portal"}
 hc_crud_ceps = "0.68.0"
 hc_utils = {path = "../../hc_utils"}
 hdk = "0.0.160"
 hex = "0"
-serde = "1"
+portal = {path = "../portal"}
 rand = "0.8.5"
 rmpv = { version = "1.0.0", features = ["with-serde"] }
+serde = "1"
 thiserror = "1"

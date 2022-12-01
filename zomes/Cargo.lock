@@ -60,6 +60,9 @@ dependencies = [
  "hc_utils",
  "hdk",
  "hex",
+ "portal_api",
+ "rmp-serde 1.1.1",
+ "rmpv",
  "serde",
  "serde_yaml",
  "thiserror",
@@ -797,7 +800,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9805b3e01e7b5c144782a0823db4dc895fec18a9ccd45a492ce7c7bf157a9e38"
 dependencies = [
  "holochain_serialized_bytes_derive",
- "rmp-serde",
+ "rmp-serde 0.15.5",
  "serde",
  "serde-transcode",
  "serde_bytes",
@@ -1451,6 +1454,17 @@ name = "rmp-serde"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "723ecff9ad04f4ad92fe1c8ca6c20d2196d9286e9c60727c4cb5511629260e9d"
+dependencies = [
+ "byteorder",
+ "rmp",
+ "serde",
+]
+
+[[package]]
+name = "rmp-serde"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
 dependencies = [
  "byteorder",
  "rmp",

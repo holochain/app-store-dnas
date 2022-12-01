@@ -4,6 +4,7 @@ SHELL			= bash
 NAME			= appstore
 APPSTORE_HAPP		= ${NAME}.happ
 APPSTORE_DNA		= bundled/appstore.dna
+PORTAL_DNA		= bundled/portal.dna
 TARGET			= release
 
 # Zomes (WASM)
@@ -33,7 +34,7 @@ clean:
 	    target \
 	    zomes/target \
 	    $(APPSTORE_HAPP) \
-	    $(APPSTORE_DNA) \
+	    $(APPSTORE_DNA) $(PORTAL_DNA) \
 	    $(APPSTORE_ZOME) $(APPSTORE_API_ZOME) \
 	    $(PORTAL_ZOME) $(PORTAL_API_ZOME)
 
@@ -41,10 +42,11 @@ rebuild:			clean build
 build:				$(APPSTORE_HAPP) $(PORTAL_HAPP)
 
 
-$(APPSTORE_HAPP):		$(APPSTORE_DNA) bundled/happ.yaml
+$(APPSTORE_HAPP):		$(APPSTORE_DNA) $(PORTAL_DNA) bundled/happ.yaml
 	hc app pack -o $@ ./bundled/
 
-$(APPSTORE_DNA):		$(APPSTORE_ZOME) $(APPSTORE_API_ZOME) $(PORTAL_ZOME) $(PORTAL_API_ZOME)
+$(APPSTORE_DNA):		$(APPSTORE_ZOME) $(APPSTORE_API_ZOME)
+$(PORTAL_DNA):			$(PORTAL_ZOME) $(PORTAL_API_ZOME)
 
 bundled/%.dna:			bundled/%/dna.yaml
 	@echo "Packaging '$*': $@"
@@ -86,14 +88,22 @@ tests/test.gz:
 # DNAs
 test-setup:			tests/node_modules
 
-test-dnas:			test-setup test-appstore
-test-dnas-debug:		test-setup test-appstore-debug
+test-dnas:			test-setup test-appstore	test-portal		test-multi
+test-dnas-debug:		test-setup test-appstore-debug	test-portal-debug	test-multi-debug
 
 
 test-appstore:			test-setup $(APPSTORE_DNA)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_appstore.js
 test-appstore-debug:		test-setup $(APPSTORE_DNA)
 	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_appstore.js
+test-portal:			test-setup $(PORTAL_DNA)
+	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_portal.js
+test-portal-debug:		test-setup $(PORTAL_DNA)
+	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_portal.js
+test-multi:			test-setup $(APPSTORE_DNA) $(PORTAL_DNA)
+	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_multiple.js
+test-multi-debug:		test-setup $(APPSTORE_DNA) $(PORTAL_DNA)
+	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_multiple.js
 
 
 
