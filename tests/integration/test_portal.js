@@ -8,7 +8,7 @@ const fs				= require('fs');
 const crypto				= require('crypto');
 const expect				= require('chai').expect;
 const msgpack				= require('@msgpack/msgpack');
-const { EntryHash, AgentPubKey,
+const { ActionHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { Holochain }			= require('@whi/holochain-backdrop');
 const json				= require('@whi/json');
@@ -16,8 +16,8 @@ const json				= require('@whi/json');
 const { ConductorError,
 	...hc_client }			= require('@whi/holochain-client');
 
-const { expect_reject }			= require('./utils.js');
-const { backdrop }			= require('./setup.js');
+const { expect_reject }			= require('../utils.js');
+const { backdrop }			= require('../setup.js');
 
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 

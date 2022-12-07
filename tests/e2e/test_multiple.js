@@ -8,7 +8,7 @@ const fs				= require('fs');
 const crypto				= require('crypto');
 const expect				= require('chai').expect;
 const msgpack				= require('@msgpack/msgpack');
-const { EntryHash, AgentPubKey,
+const { ActionHash, EntryHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { Holochain }			= require('@whi/holochain-backdrop');
 const json				= require('@whi/json');
@@ -16,8 +16,8 @@ const json				= require('@whi/json');
 const { ConductorError,
 	...hc_client }			= require('@whi/holochain-client');
 
-const { expect_reject }			= require('./utils.js');
-const { backdrop }			= require('./setup.js');
+const { expect_reject }			= require('../utils.js');
+const { backdrop }			= require('../setup.js');
 
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 
@@ -132,13 +132,13 @@ async function setup () {
 	    "url": "https://github.com/holochain",
 	    "context": "github",
 	},
-	"icon": new EntryHash( crypto.randomBytes(32) ),
+	"icon": new ActionHash( crypto.randomBytes(32) ),
     });
 
     app				= await clients.alice.call("appstore", "appstore_api", "create_app", {
 	"name": "Chess",
 	"description": "The boardgame known as Chess",
-	"icon": new EntryHash( crypto.randomBytes(32) ),
+	"icon": new ActionHash( crypto.randomBytes(32) ),
 	"publisher": publisher.$id,
 	"devhub_address": {
 	    "dna": HAPPS_DNA_HASH,
@@ -163,7 +163,7 @@ function download_tests () {
 
 }
 
-describe("DNArepo", () => {
+describe("App Store + DevHub", () => {
 
     const holochain			= new Holochain({
 	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use hdi::prelude::*;
 
 
-pub type EntityId = EntryHash;
+pub type EntityId = ActionHash;
 
 //
 // General-use Structs

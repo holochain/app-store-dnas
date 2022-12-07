@@ -64,7 +64,7 @@ fn handler_remote_call(input: RemoteCallInput) -> AppResult<rmpv::Value> {
 	&input.function,
     ]);
     let links = get_links( pathhash, LinkTypes::Host, None )?;
-    let entity_id : EntryHash = links.choose(&mut rand::thread_rng())
+    let entity_id : ActionHash = links.choose(&mut rand::thread_rng())
 	.ok_or("There is no Host for this call".to_string())?
 	.target.clone().into();
     let host_entry : Entity<HostEntry> = get_entity( &entity_id )?;

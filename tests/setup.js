@@ -27,7 +27,9 @@ async function backdrop ( holochain, dnas, actors, client_options ) {
     const clients			= {};
 
     log.debug("Waiting for DNAs and actors to be set up...");
-    const agents			= await holochain.backdrop( app_id, app_port, dnas, actors );
+    const agents			= await holochain.backdrop( app_id, app_port, dnas, actors, {
+	"timeout": 60_000,
+    });
     const crux_config			= new CruxConfig();
 
     log.debug("Creating clients actors: %s", actors.join(", ") );

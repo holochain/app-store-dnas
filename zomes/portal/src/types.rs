@@ -5,7 +5,7 @@ use hdi::prelude::*;
 //
 // General-use Structs
 //
-pub type EntityId = EntryHash;
+pub type EntityId = ActionHash;
 
 
 // Trait for common fields

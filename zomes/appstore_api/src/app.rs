@@ -81,20 +81,20 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
 	    hc_utils::agentid()?,
 	    ANCHOR_APPS.to_string(),
 	]);
-	entity.link_from( &pathhash, LinkTypes::App, None )?;
+	entity.link_from( &pathhash.into(), LinkTypes::App, None )?;
     }
     { // Path via Publisher's Apps
 	let (_, pathhash) = hc_utils::path( ANCHOR_PUBLISHERS, vec![
 	    input.publisher.to_string(),
 	    ANCHOR_APPS.to_string(),
 	]);
-	entity.link_from( &pathhash, LinkTypes::App, None )?;
+	entity.link_from( &pathhash.into(), LinkTypes::App, None )?;
     }
     { // Path via All Apps
 	let (_, pathhash) = hc_utils::path( ANCHOR_APPS, vec![
 	    entity.id.clone(),
 	]);
-	entity.link_from( &pathhash, LinkTypes::App, None )?;
+	entity.link_from( &pathhash.into(), LinkTypes::App, None )?;
     }
 
     Ok( entity )
@@ -167,12 +167,12 @@ pub struct UpdateProperties {
 pub type UpdateInput = UpdateEntityInput<UpdateProperties>;
 
 pub fn update(input: UpdateInput) -> AppResult<Entity<AppEntry>> {
-    debug!("Updating App: {}", input.action );
+    debug!("Updating App: {}", input.base );
     let props = input.properties.clone();
     let mut previous : Option<AppEntry> = None;
 
     let entity = update_entity(
-	&input.action,
+	&input.base,
 	|mut current : AppEntry, _| {
 	    previous = Some(current.clone());
 

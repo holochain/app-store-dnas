@@ -52,7 +52,7 @@ impl<'a> CommonFields<'a> for HostEntry {
 
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RemoteCallDetails<Z,F,I>
 where
     Z: Into<ZomeName>,
@@ -65,7 +65,7 @@ where
     pub payload: I,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BridgeCallDetails<Z,F,P>
 where
     Z: Into<ZomeName>,

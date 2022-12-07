@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 appstore = {path = "../appstore"}
-hc_crud_ceps = "0.68.0"
+hc_crud_caps = "0.1.0"
 hc_utils = {path = "../../hc_utils"}
 hdk = "0.0.160"
 hex = "0"

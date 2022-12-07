@@ -9,7 +9,7 @@ name = "portal_types"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-hc_crud_ceps = "0.68.0"
+hc_crud_caps = "0.1.0"
 hdi = "0.1.8"
 rmpv = { version = "1.0.0", features = ["with-serde"] }
 serde = "1"

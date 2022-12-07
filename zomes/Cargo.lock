@@ -43,7 +43,7 @@ version = "0.1.0"
 dependencies = [
  "appstore_types",
  "essence_payloads",
- "hc_crud_ceps",
+ "hc_crud_caps",
  "hc_utils",
  "hdi",
  "hdk",
@@ -57,7 +57,7 @@ name = "appstore_api"
 version = "0.1.0"
 dependencies = [
  "appstore",
- "hc_crud_ceps",
+ "hc_crud_caps",
  "hc_utils",
  "hdk",
  "hex",
@@ -74,7 +74,7 @@ name = "appstore_types"
 version = "0.1.0"
 dependencies = [
  "essence_payloads",
- "hc_crud_ceps",
+ "hc_crud_caps",
  "hdi",
  "rmpv",
  "serde",
@@ -676,10 +676,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "hc_crud_ceps"
-version = "0.68.0"
+name = "hc_crud_caps"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e730e40e81ddbd91e614e864e4592168e45d5894081e11f588927c52a99de78"
+checksum = "2f7903709f9b5a7cabae3f86c4702c84d0125a4b74be5e5f107047a7278aa6bc"
 dependencies = [
  "hdk",
  "holo_hash",
@@ -692,7 +692,7 @@ name = "hc_utils"
 version = "0.1.0"
 dependencies = [
  "essence_payloads",
- "hc_crud_ceps",
+ "hc_crud_caps",
  "hdi",
  "hdk",
  "serde",
@@ -1232,7 +1232,7 @@ name = "portal"
 version = "0.1.0"
 dependencies = [
  "essence_payloads",
- "hc_crud_ceps",
+ "hc_crud_caps",
  "hc_utils",
  "hdi",
  "hdk",
@@ -1246,7 +1246,7 @@ dependencies = [
 name = "portal_api"
 version = "0.1.0"
 dependencies = [
- "hc_crud_ceps",
+ "hc_crud_caps",
  "hc_utils",
  "hdk",
  "hex",
@@ -1261,7 +1261,7 @@ dependencies = [
 name = "portal_types"
 version = "0.1.0"
 dependencies = [
- "hc_crud_ceps",
+ "hc_crud_caps",
  "hdi",
  "rmpv",
  "serde",

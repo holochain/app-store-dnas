@@ -73,8 +73,8 @@ zomes/%/Cargo.lock:
 #
 # Testing
 #
-test:				test-unit test-dnas
-test-debug:			test-unit test-dnas-debug
+test:				test-unit test-integration		test-e2e
+test-debug:			test-unit test-integration-debug	test-e2e-debug
 
 test-unit:			test-unit test-unit-appstore
 test-unit-%:
@@ -88,9 +88,8 @@ tests/test.gz:
 # DNAs
 test-setup:			tests/node_modules
 
-test-dnas:			test-setup test-appstore	test-portal		test-multi
-test-dnas-debug:		test-setup test-appstore-debug	test-portal-debug	test-multi-debug
-
+test-integration:		test-setup test-appstore	test-portal
+test-integration-debug:		test-setup test-appstore-debug	test-portal-debug
 
 test-appstore:			test-setup $(APPSTORE_DNA)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_appstore.js
@@ -100,10 +99,14 @@ test-portal:			test-setup $(PORTAL_DNA)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_portal.js
 test-portal-debug:		test-setup $(PORTAL_DNA)
 	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_portal.js
+
+test-e2e:			test-setup test-multi
+test-e2e-debug:			test-setup test-multi-debug
+
 test-multi:			test-setup $(APPSTORE_DNA) $(PORTAL_DNA)
-	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_multiple.js
+	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha e2e/test_multiple.js
 test-multi-debug:		test-setup $(APPSTORE_DNA) $(PORTAL_DNA)
-	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_multiple.js
+	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha e2e/test_multiple.js
 
 
 
@@ -127,13 +130,13 @@ NEW_HDK_VERSION = "0.0.160"
 PRE_HDI_VERSION = "0.1.1"
 NEW_HDI_VERSION = "0.1.8"
 
-PRE_CRUD_VERSION = "0.59.0"
-NEW_CRUD_VERSION = "0.68.0"
+PRE_CRUD_VERSION = "0.68.0"
+NEW_CRUD_VERSION = "0.1.0"
 
 PRE_MM_VERSION = "0.51.0"
 NEW_MM_VERSION = "0.60.0"
 
-GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/
+GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ hc_utils
 
 update-hdk-version:
 	git grep -l $(PRE_HDK_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDK_VERSION)/$(NEW_HDK_VERSION)/g'

@@ -5,7 +5,9 @@ use hdi::prelude::*;
 use serde::de::{ Deserializer, Error };
 use essence::{ EssenceResponse };
 pub use hc_crud::{
-    Entity, EntryModel, EntityType,
+    Entity,
+    GetEntityInput, UpdateEntityInput,
+    entry_model,
 };
 
 pub use portal_types::{
@@ -48,6 +50,7 @@ pub enum EntryTypes {
     Host(HostEntry),
 }
 
+entry_model!( EntryTypes::Host( HostEntry ) );
 
 #[hdk_link_types]
 pub enum LinkTypes {
@@ -73,18 +76,6 @@ impl<'de> Deserialize<'de> for LinkTypes {
 
 	    value => Err(D::Error::custom(format!("No LinkTypes value matching '{}'", value ))),
 	}
-    }
-}
-
-
-
-impl EntryModel<EntryTypes> for HostEntry {
-    fn name() -> &'static str { "Host" }
-    fn get_type(&self) -> EntityType {
-	EntityType::new( "host", "entry" )
-    }
-    fn to_input(&self) -> EntryTypes {
-	EntryTypes::Host(self.clone())
     }
 }
 

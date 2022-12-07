@@ -8,7 +8,7 @@ const fs				= require('fs');
 const crypto				= require('crypto');
 const expect				= require('chai').expect;
 const msgpack				= require('@msgpack/msgpack');
-const { EntryHash, AgentPubKey,
+const { ActionHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { Holochain }			= require('@whi/holochain-backdrop');
 const json				= require('@whi/json');
@@ -16,8 +16,8 @@ const json				= require('@whi/json');
 const { ConductorError,
 	...hc_client }			= require('@whi/holochain-client');
 
-const { expect_reject }			= require('./utils.js');
-const { backdrop }			= require('./setup.js');
+const { expect_reject }			= require('../utils.js');
+const { backdrop }			= require('../setup.js');
 
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 
@@ -38,7 +38,7 @@ function createPublisherInput ( overrides ) {
 	    "url": "https://github.com/holo-host",
 	    "context": "github",
 	},
-	"icon": new EntryHash( crypto.randomBytes(32) ),
+	"icon": new ActionHash( crypto.randomBytes(32) ),
 	"email": "techservices@holo.host",
 	"editors": [
 	    new AgentPubKey( crypto.randomBytes(32) )
@@ -71,7 +71,7 @@ function publisher_tests () {
 
     it("should update publisher profile", async function () {
 	const publisher = publisher_1	= await clients.alice.call("appstore", "appstore_api", "update_publisher", {
-	    "action": publisher_1.$action,
+	    "base": publisher_1.$action,
 	    "properties": {
 		"name": "Holo Inc",
 	    },
@@ -87,7 +87,7 @@ function createAppInput ( overrides ) {
     return Object.assign({
 	"name": "Chess",
 	"description": "The boardgame known as Chess",
-	"icon": new EntryHash( crypto.randomBytes(32) ),
+	"icon": new ActionHash( crypto.randomBytes(32) ),
 	"publisher": publisher_1.$id,
 	"devhub_address": {
 	    "dna": TEST_DNA_HASH,

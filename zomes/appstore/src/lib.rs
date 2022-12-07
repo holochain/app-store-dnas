@@ -6,7 +6,9 @@ use hdi::prelude::*;
 use serde::de::{ Deserializer, Error };
 use essence::{ EssenceResponse };
 pub use hc_crud::{
-    Entity, EntryModel, EntityType,
+    Entity,
+    GetEntityInput, UpdateEntityInput,
+    entry_model,
 };
 
 pub use types::{
@@ -26,16 +28,6 @@ pub use types::{
 pub use errors::{ ErrorKinds, AppError, UserError };
 pub type AppResult<T> = Result<T, ErrorKinds>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetEntityInput {
-    pub id: EntityId,
-}
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UpdateEntityInput<T> {
-    pub id: Option<EntityId>,
-    pub action: ActionHash,
-    pub properties: T,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Metadata {
@@ -60,6 +52,9 @@ pub enum EntryTypes {
     #[entry_def]
     App(AppEntry),
 }
+
+entry_model!( EntryTypes::Publisher( PublisherEntry ) );
+entry_model!( EntryTypes::App( AppEntry ) );
 
 
 #[hdk_link_types]
@@ -91,27 +86,6 @@ impl<'de> Deserialize<'de> for LinkTypes {
     }
 }
 
-
-
-impl EntryModel<EntryTypes> for PublisherEntry {
-    fn name() -> &'static str { "Publisher" }
-    fn get_type(&self) -> EntityType {
-	EntityType::new( "publisher", "entry" )
-    }
-    fn to_input(&self) -> EntryTypes {
-	EntryTypes::Publisher(self.clone())
-    }
-}
-
-impl EntryModel<EntryTypes> for AppEntry {
-    fn name() -> &'static str { "App" }
-    fn get_type(&self) -> EntityType {
-	EntityType::new( "app", "entry" )
-    }
-    fn to_input(&self) -> EntryTypes {
-	EntryTypes::App(self.clone())
-    }
-}
 
 
 #[macro_export]
