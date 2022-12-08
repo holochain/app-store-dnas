@@ -14,6 +14,7 @@ const { Holochain }			= require('@whi/holochain-backdrop');
 const json				= require('@whi/json');
 // const why				= require('why-is-node-running');
 const { ConductorError,
+	AgentClient, AdminClient,
 	...hc_client }			= require('@whi/holochain-client');
 
 const { expect_reject }			= require('../utils.js');
@@ -163,6 +164,19 @@ function download_tests () {
 
 }
 
+let admin;
+function errors_tests () {
+    it("should fail because all hosts were unreachable", async function () {
+	await admin.disableApp("test-bobby");
+
+	await expect_reject( async () => {
+	    await clients.alice.call( "appstore", "appstore_api", "get_app_package", {
+		"id": app.$id,
+	    });
+	}, "WasmError", "All hosts were unreachable" );
+    });
+}
+
 describe("App Store + DevHub", () => {
 
     const holochain			= new Holochain({
@@ -181,6 +195,7 @@ describe("App Store + DevHub", () => {
 	}, [
 	    "alice",
 	    "bobby",
+	    "carol",
 	]);
 
 	DNAREPO_DNA_HASH		= clients.alice._app_schema._dnas.dnarepo._hash;
@@ -194,9 +209,15 @@ describe("App Store + DevHub", () => {
 	}
 
 	await setup();
+
+	const port			= holochain.adminPorts()[0];
+	admin				= new AdminClient( port );
+
+	await admin.disableApp("test-carol");
    });
 
     describe("Download", download_tests.bind( this, holochain ) );
+    describe("Errors", errors_tests.bind( this, holochain ) );
 
     after(async () => {
 	await holochain.destroy();

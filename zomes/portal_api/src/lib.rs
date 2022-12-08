@@ -63,27 +63,47 @@ fn handler_remote_call(input: RemoteCallInput) -> AppResult<rmpv::Value> {
 	&input.zome,
 	&input.function,
     ]);
-    let links = get_links( pathhash, LinkTypes::Host, None )?;
-    let entity_id : ActionHash = links.choose(&mut rand::thread_rng())
-	.ok_or("There is no Host for this call".to_string())?
-	.target.clone().into();
-    let host_entry : Entity<HostEntry> = get_entity( &entity_id )?;
+    let mut links = get_links( pathhash, LinkTypes::Host, None )?;
 
-    let response = call_remote(
-	host_entry.content.author,
-	"portal_api",
-	"bridge_call".into(),
-	None,
-	BridgeCallDetails {
-	    dna: input.dna,
-	    zome: input.zome,
-	    function: input.function,
-	    payload: input.payload,
+    if links.len() == 0 {
+	return Err("There is no Host for this call".to_string())?;
+    }
+
+    links.shuffle(&mut rand::thread_rng());
+
+    let host_targets : Vec<AnyLinkableHash> = links.into_iter()
+	.map(|link| link.target)
+	.collect();
+    let call_details = BridgeCallDetails {
+	dna: input.dna,
+	zome: input.zome,
+	function: input.function,
+	payload: input.payload,
+    };
+
+    for host_addr in host_targets {
+	let host_entry : Entity<HostEntry> = get_entity( &host_addr.clone().into() )?;
+	let response = call_remote(
+	    host_entry.content.author,
+	    "portal_api",
+	    "bridge_call".into(),
+	    None,
+	    call_details.clone(),
+	)?;
+
+	if let ZomeCallResponse::NetworkError(message) = response.clone() {
+	    if message.contains("agent is likely offline") {
+		debug!("Host {} is offline, trying next host", host_addr );
+		continue;
+	    }
 	}
-    )?;
-    let result = hc_utils::zome_call_response_as_result( response )?;
 
-    Ok( result.decode()? )
+	let result = hc_utils::zome_call_response_as_result( response )?;
+
+	return Ok( result.decode()? );
+    }
+
+    Err("All hosts were unreachable".to_string())?
 }
 
 #[hdk_extern]
