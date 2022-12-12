@@ -73,6 +73,9 @@ where
     })
 }
 
+pub fn path_base( base: &str ) -> (Path, EntryHash) {
+    path( base, Vec::<String>::new() )
+}
 pub fn path<T>( base: &str, segments: T ) -> (Path, EntryHash)
 where
     T: IntoIterator,
@@ -97,8 +100,12 @@ where
 }
 
 
+pub fn agentpubkey () -> ExternResult<AgentPubKey> {
+    Ok( agent_info()?.agent_initial_pubkey )
+}
+
 pub fn agentid () -> UtilResult<String> {
-    Ok( format!("{}", agent_info()?.agent_initial_pubkey ) )
+    Ok( format!("{}", agentpubkey()? ) )
 }
 
 

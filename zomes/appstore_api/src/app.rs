@@ -79,11 +79,14 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
     let entity = create_entity( &app )?;
 
     { // Path via Agent's Apps
-	let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
-	    hc_utils::agentid()?,
-	    ANCHOR_APPS.to_string(),
-	]);
-	entity.link_from( &pathhash, LinkTypes::App, None )?;
+	for agent in entity.content.editors.iter() {
+	    let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
+		// hc_utils::agentid()?,
+		agent.to_string(),
+		ANCHOR_APPS.to_string(),
+	    ]);
+	    entity.link_from( &pathhash, LinkTypes::App, None )?;
+	}
     }
     { // Path via Publisher's Apps
 	let (_, pathhash) = hc_utils::path( ANCHOR_PUBLISHERS, vec![
@@ -93,9 +96,7 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
 	entity.link_from( &pathhash, LinkTypes::App, None )?;
     }
     { // Path via All Apps
-	let (_, pathhash) = hc_utils::path( ANCHOR_APPS, vec![
-	    entity.id.clone(),
-	]);
+	let (_, pathhash) = hc_utils::path_base( ANCHOR_APPS );
 	entity.link_from( &pathhash, LinkTypes::App, None )?;
     }
 

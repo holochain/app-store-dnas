@@ -77,6 +77,12 @@ function publisher_tests () {
 	expect( publishers		).to.have.length( 1 );
     });
 
+    it("should get my publishers", async function () {
+	const publishers		= await clients.alice.call("appstore", "appstore_api", "get_my_publishers");
+
+	expect( publishers		).to.have.length( 1 );
+    });
+
     it("should update publisher profile", async function () {
 	const publisher = publisher_1	= await clients.alice.call("appstore", "appstore_api", "update_publisher", {
 	    "base": publisher_1.$action,
@@ -86,6 +92,12 @@ function publisher_tests () {
 	});
 
 	expect( publisher.name		).to.equal( "Holo Inc" );
+    });
+
+    it("should get all publishers", async function () {
+	const publishers		= await clients.alice.call("appstore", "appstore_api", "get_all_publishers");
+
+	expect( publishers		).to.have.length( 1 );
     });
 
 }
@@ -128,6 +140,26 @@ function app_tests () {
 	});
 
 	expect( app.$id			).to.deep.equal( app_1.$id );
+    });
+
+    it("should get apps for an agent", async function () {
+	const apps		= await clients.alice.call("appstore", "appstore_api", "get_apps_for_agent", {
+	    "for_agent": clients.alice._agent,
+	});
+
+	expect( apps		).to.have.length( 1 );
+    });
+
+    it("should get my apps", async function () {
+	const apps		= await clients.alice.call("appstore", "appstore_api", "get_my_apps");
+
+	expect( apps		).to.have.length( 1 );
+    });
+
+    it("should get all apps", async function () {
+	const apps		= await clients.alice.call("appstore", "appstore_api", "get_all_apps");
+
+	expect( apps		).to.have.length( 1 );
     });
 
 }

@@ -88,9 +88,7 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<PublisherEntry>> {
 	}
     }
     { // Path via All Publishers
-	let (_, pathhash) = hc_utils::path( ANCHOR_PUBLISHERS, vec![
-	    entity.id.clone(),
-	]);
+	let (_, pathhash) = hc_utils::path_base( ANCHOR_PUBLISHERS );
 	entity.link_from( &pathhash, LinkTypes::Publisher, None )?;
     }
 
