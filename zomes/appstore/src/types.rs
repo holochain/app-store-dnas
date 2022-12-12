@@ -60,7 +60,7 @@ pub struct PublisherEntry {
     pub name: String,
     pub location: LocationTriplet,
     pub website: WebAddress,
-    pub icon: EntityId,
+    pub icon: EntryHash,
     pub editors: Vec<AgentPubKey>,
 
     // common fields
@@ -99,7 +99,7 @@ impl<'a> CommonFields<'a> for PublisherEntry {
 pub struct AppEntry {
     pub name: String,
     pub description: String,
-    pub icon: EntityId,
+    pub icon: EntryHash,
     pub publisher: EntityId,
     pub devhub_address: HolochainResourceLocation,
     pub editors: Vec<AgentPubKey>,

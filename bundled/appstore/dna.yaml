@@ -9,9 +9,15 @@ integrity:
   zomes:
     - name: appstore
       bundled: ../../zomes/appstore.wasm
+    - name: mere_memory
+      bundled: ../../zomes/mere_memory.wasm
 coordinator:
   zomes:
     - name: appstore_api
       bundled: ../../zomes/appstore_api.wasm
       dependencies:
         - name: appstore
+    - name: mere_memory_api
+      bundled: ../../zomes/mere_memory_api.wasm
+      dependencies:
+        - name: mere_memory

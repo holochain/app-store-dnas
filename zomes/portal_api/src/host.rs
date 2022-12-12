@@ -58,7 +58,7 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
 	    input.zome,
 	    input.function,
 	]);
-	entity.link_from( &pathhash.into(), LinkTypes::Host, None )?;
+	entity.link_from( &pathhash, LinkTypes::Host, None )?;
     }
 
     Ok( entity )

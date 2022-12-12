@@ -28,7 +28,7 @@ use crate::{
 pub struct CreateInput {
     pub name: String,
     pub description: String,
-    pub icon: EntityId,
+    pub icon: SerializedBytes,
     pub publisher: EntityId,
     pub devhub_address: HolochainResourceLocation,
 
@@ -53,10 +53,12 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
 	}
     }
 
+    let icon_addr = crate::save_bytes( input.icon.bytes() )?;
+
     let app = AppEntry {
 	name: input.name,
 	description: input.description,
-	icon: input.icon,
+	icon: icon_addr,
 	publisher: input.publisher.clone(),
 	devhub_address: input.devhub_address,
 
@@ -81,20 +83,20 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
 	    hc_utils::agentid()?,
 	    ANCHOR_APPS.to_string(),
 	]);
-	entity.link_from( &pathhash.into(), LinkTypes::App, None )?;
+	entity.link_from( &pathhash, LinkTypes::App, None )?;
     }
     { // Path via Publisher's Apps
 	let (_, pathhash) = hc_utils::path( ANCHOR_PUBLISHERS, vec![
 	    input.publisher.to_string(),
 	    ANCHOR_APPS.to_string(),
 	]);
-	entity.link_from( &pathhash.into(), LinkTypes::App, None )?;
+	entity.link_from( &pathhash, LinkTypes::App, None )?;
     }
     { // Path via All Apps
 	let (_, pathhash) = hc_utils::path( ANCHOR_APPS, vec![
 	    entity.id.clone(),
 	]);
-	entity.link_from( &pathhash.into(), LinkTypes::App, None )?;
+	entity.link_from( &pathhash, LinkTypes::App, None )?;
     }
 
     Ok( entity )
@@ -130,7 +132,7 @@ pub fn get_package(input: GetEntityInput) -> AppResult<Vec<u8>> {
 	CallTargetCell::OtherRole("portal".into()),
 	"portal_api",
 	"remote_call".into(),
-	None,
+	None, // CapSecret
 	portal_types::RemoteCallInput {
 	    dna: entity.content.devhub_address.dna,
 	    zome: "happ_library".to_string(),
@@ -142,13 +144,9 @@ pub fn get_package(input: GetEntityInput) -> AppResult<Vec<u8>> {
 	    }.into(),
 	}
     )?;
-
-    debug!("Completed remote call");
     let result = hc_utils::zome_call_response_as_result( response )?;
-
     let essence_resp : Response<Vec<u8>> = result.decode()?;
 
-    debug!("Decoding result");
     Ok( essence_resp.as_result()? )
 }
 

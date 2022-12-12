@@ -28,7 +28,7 @@ pub struct CreateInput {
     pub name: String,
     pub location: LocationTriplet,
     pub website: WebAddress,
-    pub icon: EntityId,
+    pub icon: SerializedBytes,
 
     // optional
     pub email: Option<String>,
@@ -52,11 +52,13 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<PublisherEntry>> {
 	}
     }
 
+    let icon_addr = crate::save_bytes( input.icon.bytes() )?;
+
     let publisher = PublisherEntry {
 	name: input.name,
 	location: input.location,
 	website: input.website,
-	icon: input.icon,
+	icon: icon_addr,
 
 	editors: input.editors
 	    .unwrap_or( default_editors ),
@@ -76,17 +78,20 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<PublisherEntry>> {
     let entity = create_entity( &publisher )?;
 
     { // Path via Agent's Publishers
-	let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
-	    hc_utils::agentid()?,
-	    ANCHOR_PUBLISHERS.to_string(),
-	]);
-	entity.link_from( &pathhash.into(), LinkTypes::Publisher, None )?;
+	for agent in entity.content.editors.iter() {
+	    let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
+		// hc_utils::agentid()?,
+		agent.to_string(),
+		ANCHOR_PUBLISHERS.to_string(),
+	    ]);
+	    entity.link_from( &pathhash, LinkTypes::Publisher, None )?;
+	}
     }
     { // Path via All Publishers
 	let (_, pathhash) = hc_utils::path( ANCHOR_PUBLISHERS, vec![
 	    entity.id.clone(),
 	]);
-	entity.link_from( &pathhash.into(), LinkTypes::Publisher, None )?;
+	entity.link_from( &pathhash, LinkTypes::Publisher, None )?;
     }
 
     Ok( entity )

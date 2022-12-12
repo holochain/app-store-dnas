@@ -14,8 +14,8 @@ PORTAL_ZOME		= zomes/portal.wasm
 PORTAL_API_ZOME		= zomes/portal_api.wasm
 
 # External Zomes (WASM)
-MERE_MEMORY_WASM	= zomes/mere_memory.wasm
-MERE_MEMORY_CORE_WASM	= zomes/mere_memory_core.wasm
+MERE_MEMORY_ZOME	= zomes/mere_memory.wasm
+MERE_MEMORY_API_ZOME	= zomes/mere_memory_api.wasm
 
 
 #
@@ -36,6 +36,7 @@ clean:
 	    $(APPSTORE_HAPP) \
 	    $(APPSTORE_DNA) $(PORTAL_DNA) \
 	    $(APPSTORE_ZOME) $(APPSTORE_API_ZOME) \
+	    $(MERE_MEMORY_ZOME) $(MERE_MEMORY_API_ZOME) \
 	    $(PORTAL_ZOME) $(PORTAL_API_ZOME)
 
 rebuild:			clean build
@@ -45,7 +46,7 @@ build:				$(APPSTORE_HAPP) $(PORTAL_HAPP)
 $(APPSTORE_HAPP):		$(APPSTORE_DNA) $(PORTAL_DNA) bundled/happ.yaml
 	hc app pack -o $@ ./bundled/
 
-$(APPSTORE_DNA):		$(APPSTORE_ZOME) $(APPSTORE_API_ZOME)
+$(APPSTORE_DNA):		$(APPSTORE_ZOME) $(APPSTORE_API_ZOME) $(MERE_MEMORY_ZOME) $(MERE_MEMORY_API_ZOME)
 $(PORTAL_DNA):			$(PORTAL_ZOME) $(PORTAL_API_ZOME)
 
 bundled/%.dna:			bundled/%/dna.yaml
@@ -63,10 +64,10 @@ zomes/target/wasm32-unknown-unknown/release/%.wasm:	Makefile zomes/%/src/*.rs zo
 zomes/%/Cargo.lock:
 	touch $@
 
-# $(MERE_MEMORY_WASM):
-# 	curl --fail -L 'https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v0.60.1/mere_memory.wasm' --output $@
-# $(MERE_MEMORY_CORE_WASM):
-# 	curl --fail -L 'https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v0.60.1/mere_memory_core.wasm' --output $@
+$(MERE_MEMORY_ZOME):
+	curl --fail -L 'https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v0.60.1/mere_memory_core.wasm' --output $@
+$(MERE_MEMORY_API_ZOME):
+	curl --fail -L 'https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v0.60.1/mere_memory.wasm' --output $@
 
 
 
@@ -130,11 +131,11 @@ NEW_HDK_VERSION = "0.0.160"
 PRE_HDI_VERSION = "0.1.1"
 NEW_HDI_VERSION = "0.1.8"
 
-PRE_CRUD_VERSION = "0.68.0"
-NEW_CRUD_VERSION = "0.1.0"
+PRE_CRUD_VERSION = "0.1.0"
+NEW_CRUD_VERSION = "0.1.1"
 
-PRE_MM_VERSION = "0.51.0"
-NEW_MM_VERSION = "0.60.0"
+PRE_MM_VERSION = "0.60.0"
+NEW_MM_VERSION = "0.60.1"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ hc_utils
 
@@ -144,5 +145,6 @@ update-hdi-version:
 	git grep -l $(PRE_HDI_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDI_VERSION)/$(NEW_HDI_VERSION)/g'
 update-crud-version:
 	git grep -l $(PRE_CRUD_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_CRUD_VERSION)/$(NEW_CRUD_VERSION)/g'
-# update-mere-memory-version:
-# 	git grep -l $(PRE_MM_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_MM_VERSION)/$(NEW_MM_VERSION)/g'
+update-mere-memory-version:
+	git grep -l $(PRE_MM_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_MM_VERSION)/$(NEW_MM_VERSION)/g'
+	rm -f zomes/mere_memory*.wasm

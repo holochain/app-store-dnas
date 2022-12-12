@@ -38,7 +38,7 @@ function createPublisherInput ( overrides ) {
 	    "url": "https://github.com/holo-host",
 	    "context": "github",
 	},
-	"icon": new ActionHash( crypto.randomBytes(32) ),
+	"icon": crypto.randomBytes(1_000),
 	"email": "techservices@holo.host",
 	"editors": [
 	    new AgentPubKey( crypto.randomBytes(32) )
@@ -69,6 +69,14 @@ function publisher_tests () {
 	expect( publisher.$id		).to.deep.equal( publisher_1.$id );
     });
 
+    it("should get publishers for an agent", async function () {
+	const publishers		= await clients.alice.call("appstore", "appstore_api", "get_publishers_for_agent", {
+	    "for_agent": clients.alice._agent,
+	});
+
+	expect( publishers		).to.have.length( 1 );
+    });
+
     it("should update publisher profile", async function () {
 	const publisher = publisher_1	= await clients.alice.call("appstore", "appstore_api", "update_publisher", {
 	    "base": publisher_1.$action,
@@ -87,7 +95,7 @@ function createAppInput ( overrides ) {
     return Object.assign({
 	"name": "Chess",
 	"description": "The boardgame known as Chess",
-	"icon": new ActionHash( crypto.randomBytes(32) ),
+	"icon": crypto.randomBytes(1_000),
 	"publisher": publisher_1.$id,
 	"devhub_address": {
 	    "dna": TEST_DNA_HASH,

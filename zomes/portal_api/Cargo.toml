@@ -1,6 +1,6 @@
 [package]
 name = "portal_api"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2018"
 
@@ -9,7 +9,7 @@ name = "portal_api"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-hc_crud_caps = "0.1.0"
+hc_crud_caps = "0.1.1"
 hc_utils = {path = "../../hc_utils"}
 hdk = "0.0.160"
 hex = "0"

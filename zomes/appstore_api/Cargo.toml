@@ -1,6 +1,6 @@
 [package]
 name = "appstore_api"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2018"
 
@@ -10,10 +10,11 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 appstore = {path = "../appstore"}
-hc_crud_caps = "0.1.0"
+hc_crud_caps = "0.1.1"
 hc_utils = {path = "../../hc_utils"}
 hdk = "0.0.160"
 hex = "0"
+mere_memory_types = "0.60.1"
 portal_types = {path = "../../portal_types"}
 rmp-serde = "1.1.1"
 rmpv = { version = "1.0.0", features = ["with-serde"] }
