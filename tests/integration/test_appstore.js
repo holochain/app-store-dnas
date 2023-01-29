@@ -7,24 +7,26 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
 const fs				= require('fs');
 const crypto				= require('crypto');
 const expect				= require('chai').expect;
+// const why				= require('why-is-node-running');
+
 const msgpack				= require('@msgpack/msgpack');
+const json				= require('@whi/json');
 const { ActionHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { Holochain }			= require('@whi/holochain-backdrop');
-const json				= require('@whi/json');
-// const why				= require('why-is-node-running');
+const { CruxConfig }			= require('@whi/crux-payload-parser');
 const { ConductorError,
 	...hc_client }			= require('@whi/holochain-client');
 
 const { expect_reject }			= require('../utils.js');
-const { backdrop }			= require('../setup.js');
 
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 
 const APPSTORE_DNA_PATH			= path.join( __dirname, "../../bundled/appstore.dna" );
 const TEST_DNA_HASH			= "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5";
 
-let clients;
+const clients				= {};
+
 
 function createPublisherInput ( overrides ) {
     return Object.assign({
@@ -71,7 +73,7 @@ function publisher_tests () {
 
     it("should get publishers for an agent", async function () {
 	const publishers		= await clients.alice.call("appstore", "appstore_api", "get_publishers_for_agent", {
-	    "for_agent": clients.alice._agent,
+	    "for_agent": clients.alice.cellAgent(),
 	});
 
 	expect( publishers		).to.have.length( 1 );
@@ -144,7 +146,7 @@ function app_tests () {
 
     it("should get apps for an agent", async function () {
 	const apps		= await clients.alice.call("appstore", "appstore_api", "get_apps_for_agent", {
-	    "for_agent": clients.alice._agent,
+	    "for_agent": clients.alice.cellAgent(),
 	});
 
 	expect( apps		).to.have.length( 1 );
@@ -186,19 +188,29 @@ function errors_tests () {
 }
 
 describe("Appstore", () => {
-
+    const crux				= new CruxConfig();
     const holochain			= new Holochain({
+	"timeout": 60_000,
 	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
     });
 
     before(async function () {
 	this.timeout( 60_000 );
 
-	clients				= await backdrop( holochain, {
-	    "appstore": APPSTORE_DNA_PATH,
-	}, [
-	    "alice",
-	]);
+	const actors			= await holochain.backdrop({
+	    "test_happ": {
+		"appstore":	APPSTORE_DNA_PATH,
+	    },
+	});
+
+	for ( let name in actors ) {
+	    for ( let app_prefix in actors[ name ] ) {
+		log.info("Upgrade client for %s => %s", name, app_prefix );
+		const client		= clients[ name ]	= actors[ name ][ app_prefix ].client;
+
+		crux.upgrade( client );
+	    }
+	}
 
 	// Must call whoami on each cell to ensure that init has finished.
 	{

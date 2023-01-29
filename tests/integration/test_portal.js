@@ -7,23 +7,25 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
 const fs				= require('fs');
 const crypto				= require('crypto');
 const expect				= require('chai').expect;
+// const why				= require('why-is-node-running');
+
 const msgpack				= require('@msgpack/msgpack');
+const json				= require('@whi/json');
 const { ActionHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { Holochain }			= require('@whi/holochain-backdrop');
-const json				= require('@whi/json');
-// const why				= require('why-is-node-running');
+const { CruxConfig }			= require('@whi/crux-payload-parser');
 const { ConductorError,
 	...hc_client }			= require('@whi/holochain-client');
 
 const { expect_reject }			= require('../utils.js');
-const { backdrop }			= require('../setup.js');
 
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 
 const PORTAL_DNA_PATH			= path.join( __dirname, "../../bundled/portal.dna" );
 
-let clients;
+const clients				= {};
+
 
 function host_tests () {
     let host_1;
@@ -59,7 +61,7 @@ function errors_tests () {
 }
 
 describe("Portal", () => {
-
+    const crux				= new CruxConfig();
     const holochain			= new Holochain({
 	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
     });
@@ -67,11 +69,20 @@ describe("Portal", () => {
     before(async function () {
 	this.timeout( 60_000 );
 
-	clients				= await backdrop( holochain, {
-	    "portal": PORTAL_DNA_PATH,
-	}, [
-	    "alice",
-	]);
+	const actors			= await holochain.backdrop({
+	    "test_happ": {
+		"portal":	PORTAL_DNA_PATH,
+	    },
+	});
+
+	for ( let name in actors ) {
+	    for ( let app_prefix in actors[ name ] ) {
+		log.info("Upgrade client for %s => %s", name, app_prefix );
+		const client		= clients[ name ]	= actors[ name ][ app_prefix ].client;
+
+		crux.upgrade( client );
+	    }
+	}
 
 	// Must call whoami on each cell to ensure that init has finished.
 	{

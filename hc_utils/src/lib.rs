@@ -12,14 +12,14 @@ where
     ET: EntryTypesHelper,
     WasmError: From<<ET as EntryTypesHelper>::Error>,
 {
-    Ok(match store_entry.action.hashed.content.app_entry_type() {
-	Some(AppEntryType {
-	    zome_id,
-	    id,
+    Ok(match store_entry.action.hashed.content.entry_type() {
+	EntryType::App(AppEntryDef {
+	    zome_index,
+	    entry_index,
 	    ..
 	}) => {
 	    Some(
-		ET::deserialize_from_type( *zome_id, *id, &store_entry.entry )?
+		ET::deserialize_from_type( *zome_index, *entry_index, &store_entry.entry )?
 		    .ok_or( guest_err("No entry type matched for:".to_string()) )?
 	    )
 	},
@@ -32,16 +32,16 @@ where
     ET: EntryTypesHelper,
     WasmError: From<<ET as EntryTypesHelper>::Error>,
 {
-    Ok(match register_update.original_action.app_entry_type() {
-	Some(AppEntryType {
-	    zome_id,
-	    id,
+    Ok(match register_update.original_action.entry_type() {
+	EntryType::App(AppEntryDef {
+	    zome_index,
+	    entry_index,
 	    visibility,
 	}) => {
 	    Some(match &register_update.new_entry {
 		None => Err( guest_err(format!("New entry is None meaning visibility is Private: {:?}", visibility )) )?,
 		Some(entry) => {
-		    ET::deserialize_from_type( *zome_id, *id, &entry )?
+		    ET::deserialize_from_type( *zome_index, *entry_index, &entry )?
 			.ok_or( guest_err("No entry type matched for:".to_string()) )?
 		},
 	    })
@@ -55,16 +55,16 @@ where
     ET: EntryTypesHelper,
     WasmError: From<<ET as EntryTypesHelper>::Error>,
 {
-    Ok(match register_delete.original_action.app_entry_type() {
-	Some(AppEntryType {
-	    zome_id,
-	    id,
+    Ok(match register_delete.original_action.entry_type() {
+	EntryType::App(AppEntryDef {
+	    zome_index,
+	    entry_index,
 	    visibility,
 	}) => {
 	    Some(match &register_delete.original_entry {
 		None => Err( guest_err(format!("Original entry is None meaning visibility is Private: {:?}", visibility )) )?,
 		Some(entry) => {
-		    ET::deserialize_from_type( *zome_id, *id, &entry )?
+		    ET::deserialize_from_type( *zome_index, *entry_index, &entry )?
 			.ok_or( guest_err("No entry type matched for:".to_string()) )?
 		},
 	    })
@@ -113,8 +113,8 @@ pub fn zome_call_response_as_result(response: ZomeCallResponse) -> UtilResult<zo
     Ok( match response {
 	ZomeCallResponse::Ok(bytes)
 	    => Ok(bytes),
-	ZomeCallResponse::Unauthorized(cell_id, zome, func, agent)
-	    => Err(format!("UnauthorizedError( {}, {}, {}, {} )", cell_id, zome, func, agent )),
+	ZomeCallResponse::Unauthorized(zome_call_auth, cell_id, zome, func, agent)
+	    => Err(format!("UnauthorizedError( {}, {}, {}, {}, {} )", zome_call_auth, cell_id, zome, func, agent )),
 	ZomeCallResponse::NetworkError(message)
 	    => Err(format!("NetworkError( {} )", message )),
 	ZomeCallResponse::CountersigningSession(message)

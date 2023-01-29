@@ -129,6 +129,7 @@ impl Into<rmpv::Value> for GetWebHappPackageInput {
 pub fn get_package(input: GetEntityInput) -> AppResult<Vec<u8>> {
     let entity = get( input )?;
 
+    debug!("Call portal->remote_call# happ_library.get_webhapp_package()");
     let response = call(
 	CallTargetCell::OtherRole("portal".into()),
 	"portal_api",

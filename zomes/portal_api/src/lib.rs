@@ -43,7 +43,7 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     create_cap_grant( CapGrantEntry {
 	tag: String::from("Public Functions"),
 	access: CapAccess::Unrestricted,
-	functions: anonymous_caps,
+	functions: GrantedFunctions::Listed( anonymous_caps ),
     })?;
 
     Ok(InitCallbackResult::Pass)
@@ -81,8 +81,11 @@ fn handler_remote_call(input: RemoteCallInput) -> AppResult<rmpv::Value> {
 	payload: input.payload,
     };
 
+    debug!("{} registered host(s)", host_targets.len() );
     for host_addr in host_targets {
 	let host_entry : Entity<HostEntry> = get_entity( &host_addr.clone().into() )?;
+
+	debug!("Attempting to remote call host: {}", host_entry.content.author );
 	let response = call_remote(
 	    host_entry.content.author,
 	    "portal_api",
@@ -118,6 +121,7 @@ fn handler_bridge_call(input: BridgeCallInput) -> AppResult<rmpv::Value> {
     let agent_info = agent_info()?;
     let cell_id = CellId::new( input.dna, agent_info.agent_initial_pubkey );
 
+    debug!("Received remote call to bridge: {}::{}->{}", cell_id, input.zome, input.function );
     let response = call(
 	CallTargetCell::OtherCell( cell_id ),
 	input.zome,

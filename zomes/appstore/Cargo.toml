@@ -1,6 +1,6 @@
 [package]
 name = "appstore"
-version = "0.1.1"
+version = "0.3.0"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2018"
 
@@ -11,10 +11,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 appstore_types = {path = "../../appstore_types"}
 essence_payloads = "0.1"
-hc_crud_caps = "0.1.1"
+hc_crud_caps = "0.3.0"
 hc_utils = {path = "../../hc_utils"}
-hdi = "0.1.8"
-hdk = "0.0.160"
+hdi = "0.2.0"
+hdk = "0.1.0"
 serde = "1"
 serde_yaml = "0.8.17"
 thiserror = "1"
