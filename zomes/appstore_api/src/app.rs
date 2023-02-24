@@ -15,7 +15,6 @@ use appstore::{
 };
 use crate::{
     AppResult,
-    Response,
 
     ANCHOR_AGENTS,
     ANCHOR_PUBLISHERS,
@@ -112,52 +111,11 @@ pub fn get(input: GetEntityInput) -> AppResult<Entity<AppEntry>> {
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetWebHappPackageInput {
-    pub name: String,
-    pub happ_release_id: EntryHash,
-    pub gui_release_id: EntryHash,
-}
-
-impl Into<rmpv::Value> for GetWebHappPackageInput {
-    fn into(self) -> rmpv::Value {
-	let serialized = rmp_serde::to_vec( &self ).unwrap();
-	rmp_serde::from_slice( &serialized ).unwrap()
-    }
-}
-
-pub fn get_package(input: GetEntityInput) -> AppResult<Vec<u8>> {
-    let entity = get( input )?;
-
-    debug!("Call portal->remote_call# happ_library.get_webhapp_package()");
-    let response = call(
-	CallTargetCell::OtherRole("portal".into()),
-	"portal_api",
-	"remote_call".into(),
-	None, // CapSecret
-	portal_types::RemoteCallInput {
-	    dna: entity.content.devhub_address.dna,
-	    zome: "happ_library".to_string(),
-	    function: "get_webhapp_package".to_string(),
-	    payload: GetWebHappPackageInput {
-		name: entity.content.name,
-		happ_release_id: entity.content.devhub_address.happ,
-		gui_release_id: entity.content.devhub_address.gui,
-	    }.into(),
-	}
-    )?;
-    let result = hc_utils::zome_call_response_as_result( response )?;
-    let essence_resp : Response<Vec<u8>> = result.decode()?;
-
-    Ok( essence_resp.as_result()? )
-}
-
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct UpdateProperties {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub icon: Option<EntityId>,
+    pub icon: Option<EntryHash>,
     pub devhub_address: Option<HolochainResourceLocation>,
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
@@ -178,6 +136,18 @@ pub fn update(input: UpdateInput) -> AppResult<Entity<AppEntry>> {
 
 	    current.name = props.name
 		.unwrap_or( current.name );
+	    current.description = props.description
+		.unwrap_or( current.description );
+	    current.devhub_address = props.devhub_address
+		.unwrap_or( current.devhub_address );
+	    current.icon = props.icon
+		.unwrap_or( current.icon );
+	    current.published_at = props.published_at
+		.unwrap_or( current.published_at );
+	    current.last_updated = props.last_updated
+		.unwrap_or( current.last_updated );
+	    current.metadata = props.metadata
+		.unwrap_or( current.metadata );
 
 	    Ok( current )
 	})?;

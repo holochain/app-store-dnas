@@ -9,7 +9,6 @@ use appstore::{
 
     PublisherEntry,
 
-    EntityId,
     GetEntityInput, UpdateEntityInput,
     LocationTriplet,
     WebAddress,
@@ -109,7 +108,7 @@ pub struct UpdateProperties {
     pub name: Option<String>,
     pub location: Option<LocationTriplet>,
     pub website: Option<WebAddress>,
-    pub icon: Option<EntityId>,
+    pub icon: Option<EntryHash>,
     pub email: Option<String>,
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
@@ -130,6 +129,20 @@ pub fn update(input: UpdateInput) -> AppResult<Entity<PublisherEntry>> {
 
 	    current.name = props.name
 		.unwrap_or( current.name );
+	    current.location = props.location
+		.unwrap_or( current.location );
+	    current.website = props.website
+		.unwrap_or( current.website );
+	    current.icon = props.icon
+		.unwrap_or( current.icon );
+	    current.email = props.email
+		.or( current.email );
+	    current.published_at = props.published_at
+		.unwrap_or( current.published_at );
+	    current.last_updated = props.last_updated
+		.unwrap_or( current.last_updated );
+	    current.metadata = props.metadata
+		.unwrap_or( current.metadata );
 
 	    Ok( current )
 	})?;
