@@ -43,8 +43,8 @@ Cons
 ### Ping/Pong Vector Call
 
 App Store would call a vector of "hosts" with a ping/pong (like a heartbeat) to check who is
-available.  Once all hosts have responded, or reached the timeout, App Store can use the an
-available host for the install request.
+available.  Once all hosts have responded, or reached the timeout, App Store can use an available
+host for the install request.
 
 Pros
 
