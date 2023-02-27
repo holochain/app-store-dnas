@@ -55,6 +55,24 @@ Cons
 - The minimum wait time to install an app would be the timeout + time get and install the package
 
 
+### Front-end Async Ping/Pong
+
+The UI requests a list of hosts and implements its own asynchronous array of ping/pong calls.  Once
+the first response is received, the package download can be initialized immediately.  The remaining
+pongs can be queued as alternatives in-case the first fails.  While there can be follow-up for the
+hosts who do not respond at all.
+
+Pros
+
+- Can be implemented quickly without Holochain team
+- Responses would be as quick as possible
+- Preserves information about non-responsive hosts
+
+Cons
+
+- ?
+
+
 ## Decision
 
 TBD
