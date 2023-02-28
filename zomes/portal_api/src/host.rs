@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
+use rand::seq::SliceRandom;
 use hdk::prelude::*;
 use holo_hash::DnaHash;
 use hc_crud::{
-    now, create_entity,// get_entity, update_entity,
+    now, create_entity, get_entity,// update_entity,
     Entity,
 };
 use portal::{
@@ -71,3 +72,39 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
 
 //     Ok(	entity )
 // }
+
+
+#[derive(Debug, Deserialize)]
+pub struct GetInput {
+    pub dna: DnaHash,
+    pub zome: String,
+    pub function: String,
+}
+
+pub fn list (input: GetInput) -> AppResult<Vec<Entity<HostEntry>>> {
+    let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
+	&input.dna.to_string(),
+	&input.zome,
+	&input.function,
+    ]);
+    let mut links = get_links( pathhash, LinkTypes::Host, None )?;
+
+    if links.len() == 0 {
+	return Err("There is no Host for this call".to_string())?;
+    }
+
+    links.shuffle(&mut rand::thread_rng());
+
+    let host_targets : Vec<AnyLinkableHash> = links.into_iter()
+	.map(|link| link.target)
+	.collect();
+
+    let mut hosts : Vec<Entity<HostEntry>> = Vec::new();
+
+    for host_addr in host_targets {
+	let host : Entity<HostEntry> = get_entity( &host_addr.clone().into() )?;
+	hosts.push( host );
+    }
+
+    Ok( hosts )
+}

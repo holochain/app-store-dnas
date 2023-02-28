@@ -30,30 +30,35 @@ const clients				= {};
 function host_tests () {
     let host_1;
 
-    it("should register host", async function () {
+    it("should register hosts", async function () {
 	const host			= await clients.alice.call("portal", "portal_api", "register_host", {
+	    "dna": "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5",
+	    "zome": "testing",
+	    "function": "testing",
+	});
+
+	await clients.bobby.call("portal", "portal_api", "register_host", {
 	    "dna": "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5",
 	    "zome": "testing",
 	    "function": "testing",
 	});
     });
 
-    // it("should get publisher profile via remote call", async function () {
-    // 	this.timeout( 15_000 );
+    it("should get registered hosts", async function () {
+	const hosts			= await clients.alice.call("portal", "portal_api", "get_registered_hosts", {
+	    "dna": "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5",
+	    "zome": "testing",
+	    "function": "testing",
+	});
 
-    // 	const input			= {
-    // 	    "dna": DEVHUB_DNA_HASH,
-    // 	    "zome": "dna_library",
-    // 	    "function": "create_zome",
-    // 	    "payload": {
-    // 		"name": "New Zome",
-    // 		"description": "Testing portal",
-    // 	    },
-    // 	};
-    // 	const zome			= await clients.bobby.call("portal", "portal_api", "remote_call", input );
+	expect( hosts			).to.have.length( 2 );
+    });
 
-    // 	console.log( zome );
-    // });
+    it("should ping host", async function () {
+	const resp			= await clients.alice.call("portal", "portal_api", "ping", clients.bobby.cellAgent() );
+
+	expect( resp			).to.be.true;
+    });
 
 }
 
@@ -73,6 +78,11 @@ describe("Portal", () => {
 	    "test_happ": {
 		"portal":	PORTAL_DNA_PATH,
 	    },
+	}, {
+	    "actors": [
+		"alice",
+		"bobby",
+	    ],
 	});
 
 	for ( let name in actors ) {

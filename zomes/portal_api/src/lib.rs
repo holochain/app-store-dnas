@@ -26,6 +26,7 @@ pub use portal::{
 };
 pub use constants::{
     ENTITY_MD,
+    ENTITY_COLLECTION_MD,
     VALUE_MD,
 
     ANCHOR_HOSTS,
@@ -38,7 +39,8 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
     let mut anonymous_caps = BTreeSet::new();
     let zome_info = zome_info()?;
 
-    anonymous_caps.insert( (zome_info.name, FunctionName::new("bridge_call")) );
+    anonymous_caps.insert( (zome_info.name.to_owned(), FunctionName::new("bridge_call")) );
+    anonymous_caps.insert( (zome_info.name.to_owned(), FunctionName::new("pong")) );
 
     create_cap_grant( CapGrantEntry {
 	tag: String::from("Public Functions"),
@@ -140,10 +142,48 @@ fn bridge_call(input: BridgeCallInput) -> ExternResult<rmpv::Value> {
 }
 
 
+fn handler_ping_call(host: AgentPubKey) -> AppResult<bool> {
+    let response = call_remote(
+	host,
+	"portal_api",
+	"pong".into(),
+	None,
+	(),
+    )?;
+    let result = hc_utils::zome_call_response_as_result( response )?;
+    let _response : String = result.decode()?;
+
+    Ok( true )
+}
+
+#[hdk_extern]
+fn ping(host: AgentPubKey) -> ExternResult<Response<bool>> {
+    debug!("Sending ping to host: {}", host );
+    handler_ping_call( host )?;
+    Ok(composition( true, VALUE_MD ))
+}
+
+
+#[hdk_extern]
+fn pong(_: ()) -> ExternResult<String> {
+    debug!("Responding with pong");
+    Ok( String::from("pong") )
+}
+
+
 
 #[hdk_extern]
 fn register_host(input: host::CreateInput) -> ExternResult<EntityResponse<HostEntry>> {
     let entity = catch!( host::create( input ) );
 
     Ok(composition( entity, ENTITY_MD ))
+}
+
+
+
+#[hdk_extern]
+fn get_registered_hosts(input: host::GetInput) -> ExternResult<Response<Vec<Entity<HostEntry>>>> {
+    let list = catch!( host::list( input ) );
+
+    Ok(composition( list, ENTITY_COLLECTION_MD ))
 }
