@@ -22,8 +22,7 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct CreateInput {
     pub dna: DnaHash,
-    pub zome: String,
-    pub function: String,
+    pub granted_functions: GrantedFunctions,
 
     // optional
     pub published_at: Option<u64>,
@@ -33,14 +32,17 @@ pub struct CreateInput {
 
 
 pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
-    debug!("Creating Host: {}.{}.{}", input.dna, input.zome, input.function );
+    debug!("Creating Host of {}: {:?}", input.dna, input.granted_functions );
     let pubkey = agent_info()?.agent_initial_pubkey;
     let default_now = now()?;
 
     let host = HostEntry {
 	dna: input.dna.clone(),
-	zome: input.zome.clone().into(),
-	function: input.function.clone().into(),
+	capabilities: CapGrantEntry {
+	    tag: String::from(""),
+	    access: CapAccess::Unrestricted,
+	    functions: input.granted_functions,
+	},
 
 	author: pubkey,
 	published_at: input.published_at
@@ -56,8 +58,6 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
     { // Path via Agent's Hosts
 	let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
 	    input.dna.to_string(),
-	    input.zome,
-	    input.function,
 	]);
 	entity.link_from( &pathhash, LinkTypes::Host, None )?;
     }
@@ -77,31 +77,35 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
 #[derive(Debug, Deserialize)]
 pub struct GetInput {
     pub dna: DnaHash,
-    pub zome: String,
-    pub function: String,
+}
+
+pub fn list_links (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
+    let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
+	&input.dna.to_string(),
+    ]);
+    let links = get_links( pathhash, LinkTypes::Host, None )?;
+
+    Ok(
+	links
+	    .into_iter()
+	    .map(|link| link.target)
+	    .collect()
+    )
+}
+
+pub fn list_links_random (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
+    let mut addrs = list_links( input )?;
+
+    addrs.shuffle(&mut rand::thread_rng());
+
+    Ok( addrs )
 }
 
 pub fn list (input: GetInput) -> AppResult<Vec<Entity<HostEntry>>> {
-    let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
-	&input.dna.to_string(),
-	&input.zome,
-	&input.function,
-    ]);
-    let mut links = get_links( pathhash, LinkTypes::Host, None )?;
-
-    if links.len() == 0 {
-	return Err("There is no Host for this call".to_string())?;
-    }
-
-    links.shuffle(&mut rand::thread_rng());
-
-    let host_targets : Vec<AnyLinkableHash> = links.into_iter()
-	.map(|link| link.target)
-	.collect();
-
+    let addrs = list_links( input )?;
     let mut hosts : Vec<Entity<HostEntry>> = Vec::new();
 
-    for host_addr in host_targets {
+    for host_addr in addrs {
 	let host : Entity<HostEntry> = get_entity( &host_addr.clone().into() )?;
 	hosts.push( host );
     }

@@ -33,22 +33,26 @@ function host_tests () {
     it("should register hosts", async function () {
 	const host			= await clients.alice.call("portal", "portal_api", "register_host", {
 	    "dna": "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5",
-	    "zome": "testing",
-	    "function": "testing",
+	    "granted_functions": {
+		"Listed": [
+		    [ "testing", "testing" ],
+		],
+	    },
 	});
 
 	await clients.bobby.call("portal", "portal_api", "register_host", {
 	    "dna": "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5",
-	    "zome": "testing",
-	    "function": "testing",
+	    "granted_functions": {
+		"Listed": [
+		    [ "testing", "testing" ],
+		],
+	    },
 	});
     });
 
     it("should get registered hosts", async function () {
 	const hosts			= await clients.alice.call("portal", "portal_api", "get_registered_hosts", {
 	    "dna": "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5",
-	    "zome": "testing",
-	    "function": "testing",
 	});
 
 	expect( hosts			).to.have.length( 2 );

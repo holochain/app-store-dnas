@@ -54,7 +54,7 @@ bundled/%.dna:			bundled/%/dna.yaml
 	@hc dna pack -o $@ bundled/$*
 zomes/%.wasm:			zomes/target/wasm32-unknown-unknown/release/%.wasm
 	cp $< $@
-zomes/target/wasm32-unknown-unknown/release/%.wasm:	Makefile zomes/%/src/*.rs zomes/%/Cargo.toml zomes/%/Cargo.lock
+zomes/target/wasm32-unknown-unknown/release/%.wasm:	Makefile zomes/%/src/*.rs zomes/%/Cargo.toml zomes/%/Cargo.lock *_types/* *_types/*/*
 	@echo "Building  '$*' WASM: $@"; \
 	cd zomes; \
 	RUST_BACKTRACE=1 CARGO_TARGET_DIR=target cargo build --release \

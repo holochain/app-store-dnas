@@ -1,7 +1,6 @@
 mod constants;
 mod host;
 
-use rand::seq::SliceRandom;
 use hdk::prelude::*;
 use hc_crud::{
     get_entity,
@@ -60,22 +59,10 @@ fn whoami(_: ()) -> ExternResult<Response<AgentInfo>> {
 
 
 fn handler_remote_call(input: RemoteCallInput) -> AppResult<rmpv::Value> {
-    let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
-	&input.dna.to_string(),
-	&input.zome,
-	&input.function,
-    ]);
-    let mut links = get_links( pathhash, LinkTypes::Host, None )?;
+    let host_targets = host::list_links_random( host::GetInput {
+	dna: input.dna.to_owned(),
+    } )?;
 
-    if links.len() == 0 {
-	return Err("There is no Host for this call".to_string())?;
-    }
-
-    links.shuffle(&mut rand::thread_rng());
-
-    let host_targets : Vec<AnyLinkableHash> = links.into_iter()
-	.map(|link| link.target)
-	.collect();
     let call_details = BridgeCallDetails {
 	dna: input.dna,
 	zome: input.zome,
@@ -121,6 +108,8 @@ fn remote_call(input: RemoteCallInput) -> ExternResult<rmpv::Value> {
 
 fn handler_bridge_call(input: BridgeCallInput) -> AppResult<rmpv::Value> {
     let agent_info = agent_info()?;
+
+    // Need to add a check here for this agent's registered zome functions
     let cell_id = CellId::new( input.dna, agent_info.agent_initial_pubkey );
 
     debug!("Received remote call to bridge: {}::{}->{}", cell_id, input.zome, input.function );
@@ -186,4 +175,40 @@ fn get_registered_hosts(input: host::GetInput) -> ExternResult<Response<Vec<Enti
     let list = catch!( host::list( input ) );
 
     Ok(composition( list, ENTITY_COLLECTION_MD ))
+}
+
+
+
+#[derive(Debug, Deserialize)]
+pub struct CustomRemoteCallInput {
+    host: AgentPubKey,
+    call: RemoteCallInput,
+}
+
+fn handler_custom_remote_call(input: CustomRemoteCallInput) -> AppResult<rmpv::Value> {
+    let call_details = BridgeCallDetails {
+	dna: input.call.dna,
+	zome: input.call.zome,
+	function: input.call.function,
+	payload: input.call.payload,
+    };
+
+    let response = call_remote(
+	input.host,
+	"portal_api",
+	"bridge_call".into(),
+	None,
+	call_details,
+    )?;
+
+    let result = hc_utils::zome_call_response_as_result( response )?;
+
+    Ok( result.decode()? )
+}
+
+#[hdk_extern]
+fn custom_remote_call(input: CustomRemoteCallInput) -> ExternResult<rmpv::Value> {
+    let result = handler_custom_remote_call( input )?;
+
+    Ok( result )
 }
