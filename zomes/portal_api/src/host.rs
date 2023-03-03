@@ -25,6 +25,7 @@ pub struct CreateInput {
     pub granted_functions: GrantedFunctions,
 
     // optional
+    pub cap_access: Option<CapAccess>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
     pub metadata: Option<BTreeMap<String, rmpv::Value>>,
@@ -40,7 +41,8 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
 	dna: input.dna.clone(),
 	capabilities: CapGrantEntry {
 	    tag: String::from(""),
-	    access: CapAccess::Unrestricted,
+	    access: input.cap_access
+		.unwrap_or( CapAccess::Unrestricted ),
 	    functions: input.granted_functions,
 	},
 

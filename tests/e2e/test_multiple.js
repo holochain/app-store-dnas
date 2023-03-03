@@ -14,7 +14,8 @@ const json				= require('@whi/json');
 const { ActionHash, EntryHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { Holochain }			= require('@whi/holochain-backdrop');
-const { CruxConfig }			= require('@whi/crux-payload-parser');
+const { CruxConfig,
+	Translator }			= require('@whi/crux-payload-parser');
 const { ConductorError, AdminClient,
 	TimeoutError,
 	...hc_client }			= require('@whi/holochain-client');
@@ -218,6 +219,72 @@ function errors_tests () {
 	expect( hosts			).to.have.length( 0 );
     });
 
+    it("should fail because no host record", async function () {
+	this.timeout( 30_000 );
+
+	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "dnarepo" );
+	await expect_reject( async () => {
+	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
+		"host": clients.bobby.appstore.cellAgent(),
+		"call": {
+		    "dna": dna_hash,
+		    "zome": "dna_library",
+		    "function": "get_dna",
+		    "payload": null,
+		},
+	    });
+	}, "No host record" );
+    });
+
+    it("should fail because not unrestricted access", async function () {
+	this.timeout( 30_000 );
+
+	await clients.bobby.appstore.call("portal", "portal_api", "register_host", {
+	    "dna": DNAREPO_DNA_HASH,
+	    "granted_functions": {
+		"Listed": [
+		    [ "dna_library", "get_dna" ],
+		],
+	    },
+	    "cap_access": {
+		"Transferable": {
+		    "secret": new Uint8Array( (new Array(64)).fill(0) ),
+		},
+	    },
+	});
+
+	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "dnarepo" );
+	await expect_reject( async () => {
+	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
+		"host": clients.bobby.appstore.cellAgent(),
+		"call": {
+		    "dna": dna_hash,
+		    "zome": "dna_library",
+		    "function": "get_dna",
+		    "payload": null,
+		},
+	    });
+	}, "Access is conditional for DNA" );
+    });
+
+    it("should fail because zome/function not granted", async function () {
+	this.timeout( 30_000 );
+
+	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "happs" );
+
+	await expect_reject( async () => {
+	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
+		"host": clients.bobby.appstore.cellAgent(),
+		"call": {
+		    "dna": dna_hash,
+		    "zome": "happ_library",
+		    "function": "create_app",
+		    "payload": null,
+		},
+	    });
+	}, "No capability granted for DNA zome/function" );
+    });
+
     it("should fail because all hosts were unreachable", async function () {
 	this.timeout( 60_000 );
 
@@ -267,6 +334,7 @@ describe("App Store + DevHub", () => {
 		"carol",
 	    ],
 	});
+	const interpreter		= new Translator([]);
 
 	for ( let name in actors ) {
 	    if ( clients[ name ] === undefined )
@@ -276,6 +344,30 @@ describe("App Store + DevHub", () => {
 		log.info("Upgrade client for %s => %s", name, app_prefix );
 		const client			= actors[ name ][ app_prefix ].client;
 		clients[ name ][ app_prefix ]	= client;
+
+		client.addProcessor("output", (essence, req) => {
+		    if ( !( req.dna === "portal"
+			    && req.zome === "portal_api"
+			    && req.func === "custom_remote_call"
+			  ) )
+			return essence;
+
+		    let pack;
+		    try {
+			log.debug("Portal wrapper (%s) with metadata: %s", essence.type, essence.metadata, essence.payload );
+			pack			= interpreter.parse( essence );
+		    } catch ( err ) {
+			log.error("Error unwrapping portal response response:", err );
+			return essence;
+		    }
+
+		    const payload		= pack.value();
+
+		    if ( payload instanceof Error )
+			throw payload;
+
+		    return payload;
+		});
 
 		crux.upgrade( client );
 	    }

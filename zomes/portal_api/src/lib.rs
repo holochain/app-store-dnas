@@ -9,6 +9,7 @@ use hc_crud::{
 pub use portal::{
     LinkTypes,
     EntryTypes,
+    EntryTypesUnit,
 
     HostEntry,
 
@@ -16,6 +17,7 @@ pub use portal::{
     composition, catch,
 
     AppError,
+    UserError,
 
     RemoteCallDetails,
     BridgeCallDetails,
@@ -105,11 +107,74 @@ fn remote_call(input: RemoteCallInput) -> ExternResult<rmpv::Value> {
     Ok( result )
 }
 
+#[hdk_extern]
+fn my_host_entries(_:()) -> ExternResult<Vec<HostEntry>> {
+    Ok( host_entries()? )
+}
+
+pub fn host_entries() -> AppResult<Vec<HostEntry>> {
+    query(ChainQueryFilter {
+	sequence_range: ChainQueryFilterRange::Unbounded,
+	entry_type: Some( EntryTypesUnit::Host.try_into()? ),
+	entry_hashes: None,
+	action_type: Some( ActionType::Create ),
+	include_entries: true,
+	order_descending: true,
+    })?
+	.into_iter()
+	.map(|record| {
+	    match record.entry {
+		RecordEntry::Present(entry) => {
+		    Ok( entry.try_into()? )
+		},
+		// Should be unreachable because of chain query filter settings
+		_ => Err(UserError::StaticError("Expected entry; Chain query filter provided Create with no entry present"))?,
+	    }
+	})
+	.collect()
+}
+
+pub fn latest_host_entry_for_dna(dna: &holo_hash::DnaHash) -> AppResult<Option<HostEntry>> {
+    let dna_entries = host_entries()?
+	.into_iter()
+	.filter(|host_entry| host_entry.dna == *dna )
+	.collect::<Vec<HostEntry>>();
+    let host_entry = dna_entries.first();
+
+    Ok( host_entry.map(|he| he.to_owned() ) )
+}
 
 fn handler_bridge_call(input: BridgeCallInput) -> AppResult<rmpv::Value> {
     let agent_info = agent_info()?;
 
     // Need to add a check here for this agent's registered zome functions
+    match latest_host_entry_for_dna( &input.dna )? {
+	Some(host_entry) => {
+	    match host_entry.capabilities.access {
+		CapAccess::Unrestricted => (),
+		_ => return Err(UserError::CustomError(format!("Access is conditional for DNA {}, but only Unrestricted is supported at this time", input.dna )))?,
+	    }
+
+	    match host_entry.capabilities.functions {
+		GrantedFunctions::Listed( granted_functions ) => {
+		    if let None = granted_functions
+			.into_iter()
+			.find(|(zome, function)| {
+			    return *zome == input.zome.clone().into()
+				&& *function == input.function.clone().into()
+			})
+		    {
+			Err(UserError::CustomError(format!("No capability granted for DNA zome/function {}/{}", input.zome, input.function )))?;
+		    }
+		}
+		_ => (),
+	    }
+	},
+	None => {
+	    return Err(UserError::CustomError(format!("No host record for DNA {}", input.dna )))?;
+	},
+    };
+
     let cell_id = CellId::new( input.dna, agent_info.agent_initial_pubkey );
 
     debug!("Received remote call to bridge: {}::{}->{}", cell_id, input.zome, input.function );
@@ -126,8 +191,10 @@ fn handler_bridge_call(input: BridgeCallInput) -> AppResult<rmpv::Value> {
 }
 
 #[hdk_extern]
-fn bridge_call(input: BridgeCallInput) -> ExternResult<rmpv::Value> {
-    Ok( handler_bridge_call( input )? )
+fn bridge_call(input: BridgeCallInput) -> ExternResult<Response<rmpv::Value>> {
+    let result = catch!( handler_bridge_call( input ) );
+
+     Ok(composition( result, VALUE_MD ))
 }
 
 
@@ -185,7 +252,7 @@ pub struct CustomRemoteCallInput {
     call: RemoteCallInput,
 }
 
-fn handler_custom_remote_call(input: CustomRemoteCallInput) -> AppResult<rmpv::Value> {
+fn handler_custom_remote_call(input: CustomRemoteCallInput) -> AppResult<Response<rmpv::Value>> {
     let call_details = BridgeCallDetails {
 	dna: input.call.dna,
 	zome: input.call.zome,
@@ -207,8 +274,6 @@ fn handler_custom_remote_call(input: CustomRemoteCallInput) -> AppResult<rmpv::V
 }
 
 #[hdk_extern]
-fn custom_remote_call(input: CustomRemoteCallInput) -> ExternResult<rmpv::Value> {
-    let result = handler_custom_remote_call( input )?;
-
-    Ok( result )
+fn custom_remote_call(input: CustomRemoteCallInput) -> ExternResult<Response<rmpv::Value>> {
+    Ok( handler_custom_remote_call( input )? )
 }
