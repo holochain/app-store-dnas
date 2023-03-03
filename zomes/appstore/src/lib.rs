@@ -45,7 +45,7 @@ pub fn composition<T>(payload: T, composition: &str) -> Response<T> {
 
 
 #[hdk_entry_defs]
-#[unit_enum(UnitEntryTypes)]
+#[unit_enum(EntryTypesUnit)]
 pub enum EntryTypes {
     #[entry_def]
     Publisher(PublisherEntry),

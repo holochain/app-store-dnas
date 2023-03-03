@@ -40,7 +40,10 @@ pub enum UserError {
     InvalidActionError(String),
 
     #[error("{0}")]
-    CustomError(&'static str),
+    StaticError(&'static str),
+
+    #[error("{0}")]
+    CustomError(String),
 }
 
 

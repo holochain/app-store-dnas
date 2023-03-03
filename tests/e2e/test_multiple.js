@@ -14,8 +14,10 @@ const json				= require('@whi/json');
 const { ActionHash, EntryHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { Holochain }			= require('@whi/holochain-backdrop');
-const { CruxConfig }			= require('@whi/crux-payload-parser');
+const { CruxConfig,
+	Translator }			= require('@whi/crux-payload-parser');
 const { ConductorError, AdminClient,
+	TimeoutError,
 	...hc_client }			= require('@whi/holochain-client');
 
 const { expect_reject }			= require('../utils.js');
@@ -34,12 +36,12 @@ let WEBASSETS_DNA_HASH;
 
 
 async function setup () {
-    let hdk_version		= "v0.1.0";
-    let zome			= await clients.alice.devhub.call("dnarepo", "dna_library", "create_zome", {
+    let hdk_version			= "v0.1.0";
+    let zome				= await clients.alice.devhub.call("dnarepo", "dna_library", "create_zome", {
 	"name": "appstore",
 	"description": "",
     });
-    let zome_version		= await clients.alice.devhub.call("dnarepo", "dna_library", "create_zome_version", {
+    let zome_version			= await clients.alice.devhub.call("dnarepo", "dna_library", "create_zome_version", {
 	"for_zome": zome.$id,
 	"version": "1",
 	"ordering": 1,
@@ -47,11 +49,11 @@ async function setup () {
 	hdk_version,
     });
 
-    let dna			= await clients.alice.devhub.call("dnarepo", "dna_library", "create_dna", {
+    let dna				= await clients.alice.devhub.call("dnarepo", "dna_library", "create_dna", {
 	"name": "appstore",
 	"description": "",
     });
-    let dna_version		= await clients.alice.devhub.call("dnarepo", "dna_library", "create_dna_version", {
+    let dna_version			= await clients.alice.devhub.call("dnarepo", "dna_library", "create_dna_version", {
 	"for_dna": dna.$id,
 	"version": "1",
 	"ordering": 1,
@@ -67,14 +69,14 @@ async function setup () {
 	"origin_time": "2022-02-11T23:05:19.470323Z",
     });
 
-    let gui_file		= await clients.alice.devhub.call("web_assets", "web_assets", "create_file", {
+    let gui_file			= await clients.alice.devhub.call("web_assets", "web_assets", "create_file", {
 	"file_bytes": crypto.randomBytes( 1_000 ),
     });
-    let gui			= await clients.alice.devhub.call("happs", "happ_library", "create_gui", {
+    let gui				= await clients.alice.devhub.call("happs", "happ_library", "create_gui", {
 	"name": "Appstore",
 	"description": "",
     });
-    let gui_release		= await clients.alice.devhub.call("happs", "happ_library", "create_gui_release", {
+    let gui_release			= await clients.alice.devhub.call("happs", "happ_library", "create_gui_release", {
 	"version": "1",
 	"changelog": "",
 	"for_gui": gui.$id,
@@ -82,12 +84,12 @@ async function setup () {
 	"web_asset_id": gui_file.$addr,
     });
 
-    let happ			= await clients.alice.devhub.call("happs", "happ_library", "create_happ", {
+    let happ				= await clients.alice.devhub.call("happs", "happ_library", "create_happ", {
 	"title": "Appstore",
 	"subtitle": "",
 	"description": "",
     });
-    let happ_release		= await clients.alice.devhub.call("happs", "happ_library", "create_happ_release", {
+    let happ_release			= await clients.alice.devhub.call("happs", "happ_library", "create_happ_release", {
 	"name": "1",
 	"description": "",
 	"for_happ": happ.$id,
@@ -118,16 +120,22 @@ async function setup () {
 
     await clients.bobby.appstore.call("portal", "portal_api", "register_host", {
 	"dna": HAPPS_DNA_HASH,
-	"zome": "happ_library",
-	"function": "get_webhapp_package",
+	"granted_functions": {
+	    "Listed": [
+		[ "happ_library", "get_webhapp_package" ],
+	    ],
+	},
     });
     await clients.carol.appstore.call("portal", "portal_api", "register_host", {
 	"dna": HAPPS_DNA_HASH,
-	"zome": "happ_library",
-	"function": "get_webhapp_package",
+	"granted_functions": {
+	    "Listed": [
+		[ "happ_library", "get_webhapp_package" ],
+	    ],
+	},
     });
 
-    const publisher		= await clients.alice.appstore.call("appstore", "appstore_api", "create_publisher", {
+    const publisher			= await clients.alice.appstore.call("appstore", "appstore_api", "create_publisher", {
 	"name": "Holochain",
 	"location": {
 	    "country": "Gibraltar",
@@ -141,7 +149,7 @@ async function setup () {
 	"icon": new ActionHash( crypto.randomBytes(32) ),
     });
 
-    app				= await clients.alice.appstore.call("appstore", "appstore_api", "create_app", {
+    app					= await clients.alice.appstore.call("appstore", "appstore_api", "create_app", {
 	"name": "Chess",
 	"description": "The boardgame known as Chess",
 	"icon": new ActionHash( crypto.randomBytes(32) ),
@@ -160,28 +168,146 @@ function download_tests () {
     it("should download DevHub webapp package", async function () {
 	this.timeout( 60_000 );
 
-	let bytes		= await clients.alice.appstore.call("appstore", "appstore_api", "get_app_package", {
-	    "id": app.$id,
-	}, 60_000 );
+	// Get hosts of ...
+	let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "happs" );
+	log.info("Found %s hosts of the 'happs' DNA", hosts.length );
 
-	console.log( bytes );
+	expect( hosts			).to.have.length( 2 );
+
+	// Ping hosts ...
+	let available_host		= await Promise.any(
+	    hosts.map(async host => {
+		await clients.alice.appstore.call("portal", "portal_api", "ping", host.author, 1_000 );
+		return new AgentPubKey( host.author );
+	    })
+	);
+	log.info("Received first pong from host %s", available_host );
+
+	// Get webhapp package from first host
+	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "happs" );
+	const bytes			= await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
+	    "host": available_host,
+	    "call": {
+		"dna": dna_hash,
+		"zome": "happ_library",
+		"function": "get_webhapp_package",
+		"payload": {
+		    "name": app.name,
+		    "happ_release_id": app.devhub_address.happ,
+		    "gui_release_id": app.devhub_address.gui,
+		},
+	    },
+	}, 30_000 );
+	log.info("Received app pacakge with %s bytes", bytes.length );
+
+	expect( bytes.length		).to.be.a("number");
     });
 
 }
 
 let admin;
 function errors_tests () {
+    it("should fail because of invalid DNA alias ", async function () {
+	await expect_reject( async () => {
+	    await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "invalid" );
+	}, "Unknown alias" ); // , "CustomError"
+    });
+
+    it("should fail because 0 hosts registered", async function () {
+	const hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "dnarepo" );
+
+	expect( hosts			).to.have.length( 0 );
+    });
+
+    it("should fail because no host record", async function () {
+	this.timeout( 30_000 );
+
+	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "dnarepo" );
+	await expect_reject( async () => {
+	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
+		"host": clients.bobby.appstore.cellAgent(),
+		"call": {
+		    "dna": dna_hash,
+		    "zome": "dna_library",
+		    "function": "get_dna",
+		    "payload": null,
+		},
+	    });
+	}, "No host record" );
+    });
+
+    it("should fail because not unrestricted access", async function () {
+	this.timeout( 30_000 );
+
+	await clients.bobby.appstore.call("portal", "portal_api", "register_host", {
+	    "dna": DNAREPO_DNA_HASH,
+	    "granted_functions": {
+		"Listed": [
+		    [ "dna_library", "get_dna" ],
+		],
+	    },
+	    "cap_access": {
+		"Transferable": {
+		    "secret": new Uint8Array( (new Array(64)).fill(0) ),
+		},
+	    },
+	});
+
+	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "dnarepo" );
+	await expect_reject( async () => {
+	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
+		"host": clients.bobby.appstore.cellAgent(),
+		"call": {
+		    "dna": dna_hash,
+		    "zome": "dna_library",
+		    "function": "get_dna",
+		    "payload": null,
+		},
+	    });
+	}, "Access is conditional for DNA" );
+    });
+
+    it("should fail because zome/function not granted", async function () {
+	this.timeout( 30_000 );
+
+	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "happs" );
+
+	await expect_reject( async () => {
+	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
+		"host": clients.bobby.appstore.cellAgent(),
+		"call": {
+		    "dna": dna_hash,
+		    "zome": "happ_library",
+		    "function": "create_app",
+		    "payload": null,
+		},
+	    });
+	}, "No capability granted for DNA zome/function" );
+    });
+
     it("should fail because all hosts were unreachable", async function () {
 	this.timeout( 60_000 );
 
 	await admin.disableApp("devhub-bobby");
 	await admin.disableApp("appstore-bobby");
 
-	await expect_reject( async () => {
-	    await clients.alice.appstore.call("appstore", "appstore_api", "get_app_package", {
-		"id": app.$id,
-	    }, 60_000 );
-	}, "WasmError", "All hosts were unreachable" );
+	let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "happs" );
+	log.info("Found %s hosts of the 'happs' DNA", hosts.length );
+
+	expect( hosts			).to.have.length( 2 );
+
+	const pings			= hosts.map(host => {
+	    return clients.alice.appstore.call("portal", "portal_api", "ping", host.author, 1_000 );
+	});
+
+	for ( let p of pings ) {
+	    try {
+		await p
+	    } catch ( err ) {
+		if ( !(err instanceof TimeoutError) )
+		    throw new TypeError(`Expected ping result to be TimeoutError; not type '${err}'`);
+	    }
+	}
     });
 }
 
@@ -208,6 +334,7 @@ describe("App Store + DevHub", () => {
 		"carol",
 	    ],
 	});
+	const interpreter		= new Translator([]);
 
 	for ( let name in actors ) {
 	    if ( clients[ name ] === undefined )
@@ -217,6 +344,30 @@ describe("App Store + DevHub", () => {
 		log.info("Upgrade client for %s => %s", name, app_prefix );
 		const client			= actors[ name ][ app_prefix ].client;
 		clients[ name ][ app_prefix ]	= client;
+
+		client.addProcessor("output", (essence, req) => {
+		    if ( !( req.dna === "portal"
+			    && req.zome === "portal_api"
+			    && req.func === "custom_remote_call"
+			  ) )
+			return essence;
+
+		    let pack;
+		    try {
+			log.debug("Portal wrapper (%s) with metadata: %s", essence.type, essence.metadata, essence.payload );
+			pack			= interpreter.parse( essence );
+		    } catch ( err ) {
+			log.error("Error unwrapping portal response response:", err );
+			return essence;
+		    }
+
+		    const payload		= pack.value();
+
+		    if ( payload instanceof Error )
+			throw payload;
+
+		    return payload;
+		});
 
 		crux.upgrade( client );
 	    }

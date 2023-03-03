@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
+use rand::seq::SliceRandom;
 use hdk::prelude::*;
 use holo_hash::DnaHash;
 use hc_crud::{
-    now, create_entity,// get_entity, update_entity,
+    now, create_entity, get_entity,// update_entity,
     Entity,
 };
 use portal::{
@@ -21,10 +22,10 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct CreateInput {
     pub dna: DnaHash,
-    pub zome: String,
-    pub function: String,
+    pub granted_functions: GrantedFunctions,
 
     // optional
+    pub cap_access: Option<CapAccess>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
     pub metadata: Option<BTreeMap<String, rmpv::Value>>,
@@ -32,14 +33,18 @@ pub struct CreateInput {
 
 
 pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
-    debug!("Creating Host: {}.{}.{}", input.dna, input.zome, input.function );
+    debug!("Creating Host of {}: {:?}", input.dna, input.granted_functions );
     let pubkey = agent_info()?.agent_initial_pubkey;
     let default_now = now()?;
 
     let host = HostEntry {
 	dna: input.dna.clone(),
-	zome: input.zome.clone().into(),
-	function: input.function.clone().into(),
+	capabilities: CapGrantEntry {
+	    tag: String::from(""),
+	    access: input.cap_access
+		.unwrap_or( CapAccess::Unrestricted ),
+	    functions: input.granted_functions,
+	},
 
 	author: pubkey,
 	published_at: input.published_at
@@ -55,8 +60,6 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
     { // Path via Agent's Hosts
 	let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
 	    input.dna.to_string(),
-	    input.zome,
-	    input.function,
 	]);
 	entity.link_from( &pathhash, LinkTypes::Host, None )?;
     }
@@ -71,3 +74,43 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
 
 //     Ok(	entity )
 // }
+
+
+#[derive(Debug, Deserialize)]
+pub struct GetInput {
+    pub dna: DnaHash,
+}
+
+pub fn list_links (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
+    let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
+	&input.dna.to_string(),
+    ]);
+    let links = get_links( pathhash, LinkTypes::Host, None )?;
+
+    Ok(
+	links
+	    .into_iter()
+	    .map(|link| link.target)
+	    .collect()
+    )
+}
+
+pub fn list_links_random (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
+    let mut addrs = list_links( input )?;
+
+    addrs.shuffle(&mut rand::thread_rng());
+
+    Ok( addrs )
+}
+
+pub fn list (input: GetInput) -> AppResult<Vec<Entity<HostEntry>>> {
+    let addrs = list_links( input )?;
+    let mut hosts : Vec<Entity<HostEntry>> = Vec::new();
+
+    for host_addr in addrs {
+	let host : Entity<HostEntry> = get_entity( &host_addr.clone().into() )?;
+	hosts.push( host );
+    }
+
+    Ok( hosts )
+}
