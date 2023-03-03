@@ -2,9 +2,7 @@ use std::collections::BTreeMap;
 mod constants;
 mod publisher;
 mod app;
-mod devhub_calls;
 
-// use hdi::prelude::*;
 use hdk::prelude::*;
 pub use appstore::{
     LinkTypes,
@@ -151,13 +149,6 @@ fn get_app(input: GetEntityInput) -> ExternResult<EntityResponse<AppEntry>> {
     let entity = catch!( app::get( input ) );
 
     Ok(composition( entity, ENTITY_MD ))
-}
-
-#[hdk_extern]
-fn get_app_package(input: GetEntityInput) -> ExternResult<Response<Vec<u8>>> {
-    let bytes = catch!( devhub_calls::get_webhapp_package( input ) );
-
-    Ok(composition( bytes, VALUE_MD ))
 }
 
 #[hdk_extern]

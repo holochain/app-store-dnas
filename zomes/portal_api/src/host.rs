@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use rand::seq::SliceRandom;
 use hdk::prelude::*;
 use holo_hash::DnaHash;
 use hc_crud::{
@@ -95,13 +94,13 @@ pub fn list_links (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
     )
 }
 
-pub fn list_links_random (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
-    let mut addrs = list_links( input )?;
+// pub fn list_links_random (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
+//     let mut addrs = list_links( input )?;
 
-    addrs.shuffle(&mut rand::thread_rng());
+//     addrs.shuffle(&mut rand::thread_rng());
 
-    Ok( addrs )
-}
+//     Ok( addrs )
+// }
 
 pub fn list (input: GetInput) -> AppResult<Vec<Entity<HostEntry>>> {
     let addrs = list_links( input )?;

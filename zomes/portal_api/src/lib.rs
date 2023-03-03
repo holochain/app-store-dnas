@@ -1,9 +1,9 @@
 mod constants;
 mod host;
 
+use rand::seq::SliceRandom;
 use hdk::prelude::*;
 use hc_crud::{
-    get_entity,
     Entity,
 };
 pub use portal::{
@@ -59,53 +59,6 @@ fn whoami(_: ()) -> ExternResult<Response<AgentInfo>> {
 }
 
 
-
-fn handler_remote_call(input: RemoteCallInput) -> AppResult<rmpv::Value> {
-    let host_targets = host::list_links_random( host::GetInput {
-	dna: input.dna.to_owned(),
-    } )?;
-
-    let call_details = BridgeCallDetails {
-	dna: input.dna,
-	zome: input.zome,
-	function: input.function,
-	payload: input.payload,
-    };
-
-    debug!("{} registered host(s)", host_targets.len() );
-    for host_addr in host_targets {
-	let host_entry : Entity<HostEntry> = get_entity( &host_addr.clone().into() )?;
-
-	debug!("Attempting to remote call host: {}", host_entry.content.author );
-	let response = call_remote(
-	    host_entry.content.author,
-	    "portal_api",
-	    "bridge_call".into(),
-	    None,
-	    call_details.clone(),
-	)?;
-
-	if let ZomeCallResponse::NetworkError(message) = response.clone() {
-	    if message.contains("agent is likely offline") {
-		debug!("Host {} is offline, trying next host", host_addr );
-		continue;
-	    }
-	}
-
-	let result = hc_utils::zome_call_response_as_result( response )?;
-
-	return Ok( result.decode()? );
-    }
-
-    Err("All hosts were unreachable".to_string())?
-}
-
-#[hdk_extern]
-fn remote_call(input: RemoteCallInput) -> ExternResult<rmpv::Value> {
-    let result = handler_remote_call( input )?;
-
-    Ok( result )
-}
 
 #[hdk_extern]
 fn my_host_entries(_:()) -> ExternResult<Vec<HostEntry>> {
@@ -235,11 +188,18 @@ fn register_host(input: host::CreateInput) -> ExternResult<EntityResponse<HostEn
     Ok(composition( entity, ENTITY_MD ))
 }
 
-
-
 #[hdk_extern]
 fn get_registered_hosts(input: host::GetInput) -> ExternResult<Response<Vec<Entity<HostEntry>>>> {
     let list = catch!( host::list( input ) );
+
+    Ok(composition( list, ENTITY_COLLECTION_MD ))
+}
+
+#[hdk_extern]
+fn get_registered_hosts_randomized(input: host::GetInput) -> ExternResult<Response<Vec<Entity<HostEntry>>>> {
+    let mut list : Vec<Entity<HostEntry>> = catch!( host::list( input ) );
+
+    list.shuffle(&mut rand::thread_rng());
 
     Ok(composition( list, ENTITY_COLLECTION_MD ))
 }
