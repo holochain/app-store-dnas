@@ -4,8 +4,8 @@ integrity:
   uuid: 00000000-0000-0000-0000-000000000000
   properties:
     dna_hash_alias:
-      dnarepo: uhC0kvd9b3vBwScxH-K22dyHM79FuDnoAG_nFs60k9jPEafXoQ0dM
-      happs: uhC0ksJXO-I1VL3_Ceohcu-149N-adxG9LEgE5zhy6E_OiJd3cyUo
+      dnarepo: uhC0kyIdmyr1GLamnTztOF1ua8lLNFAOBoqEcgEomhwClaREtfQPC
+      happs: uhC0k2gCJ-VQfpvWO3SSa9LPVKJe0D5CFJITN7J0tVcVYlNKwx5_c
   origin_time: 2022-11-22T00:00:00.000000Z
   zomes:
     - name: appstore

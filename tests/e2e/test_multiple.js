@@ -13,7 +13,8 @@ const msgpack				= require('@msgpack/msgpack');
 const json				= require('@whi/json');
 const { ActionHash, EntryHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
-const { Holochain }			= require('@whi/holochain-backdrop');
+const { Holochain,
+	Config }			= require('@whi/holochain-backdrop');
 const { CruxConfig,
 	Translator }			= require('@whi/crux-payload-parser');
 const { ConductorError, AdminClient,
@@ -25,6 +26,7 @@ const { expect_reject }			= require('../utils.js');
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 
 const DEVHUB_PATH			= path.join( __dirname, "../devhub.happ" );
+const APPSTORE_PATH			= path.join( __dirname, "../../appstore.happ" );
 const APPSTORE_DNA_PATH			= path.join( __dirname, "../../bundled/appstore.dna" );
 const PORTAL_DNA_PATH			= path.join( __dirname, "../../bundled/portal.dna" );
 
@@ -37,11 +39,11 @@ let WEBASSETS_DNA_HASH;
 
 async function setup () {
     let hdk_version			= "v0.1.0";
-    let zome				= await clients.alice.devhub.call("dnarepo", "dna_library", "create_zome", {
+    let zome				= await clients.bobby.devhub.call("dnarepo", "dna_library", "create_zome", {
 	"name": "appstore",
 	"description": "",
     });
-    let zome_version			= await clients.alice.devhub.call("dnarepo", "dna_library", "create_zome_version", {
+    let zome_version			= await clients.bobby.devhub.call("dnarepo", "dna_library", "create_zome_version", {
 	"for_zome": zome.$id,
 	"version": "1",
 	"ordering": 1,
@@ -49,11 +51,11 @@ async function setup () {
 	hdk_version,
     });
 
-    let dna				= await clients.alice.devhub.call("dnarepo", "dna_library", "create_dna", {
+    let dna				= await clients.bobby.devhub.call("dnarepo", "dna_library", "create_dna", {
 	"name": "appstore",
 	"description": "",
     });
-    let dna_version			= await clients.alice.devhub.call("dnarepo", "dna_library", "create_dna_version", {
+    let dna_version			= await clients.bobby.devhub.call("dnarepo", "dna_library", "create_dna_version", {
 	"for_dna": dna.$id,
 	"version": "1",
 	"ordering": 1,
@@ -69,14 +71,14 @@ async function setup () {
 	"origin_time": "2022-02-11T23:05:19.470323Z",
     });
 
-    let gui_file			= await clients.alice.devhub.call("web_assets", "web_assets", "create_file", {
+    let gui_file			= await clients.bobby.devhub.call("web_assets", "web_assets", "create_file", {
 	"file_bytes": crypto.randomBytes( 1_000 ),
     });
-    let gui				= await clients.alice.devhub.call("happs", "happ_library", "create_gui", {
+    let gui				= await clients.bobby.devhub.call("happs", "happ_library", "create_gui", {
 	"name": "Appstore",
 	"description": "",
     });
-    let gui_release			= await clients.alice.devhub.call("happs", "happ_library", "create_gui_release", {
+    let gui_release			= await clients.bobby.devhub.call("happs", "happ_library", "create_gui_release", {
 	"version": "1",
 	"changelog": "",
 	"for_gui": gui.$id,
@@ -84,12 +86,12 @@ async function setup () {
 	"web_asset_id": gui_file.$addr,
     });
 
-    let happ				= await clients.alice.devhub.call("happs", "happ_library", "create_happ", {
+    let happ				= await clients.bobby.devhub.call("happs", "happ_library", "create_happ", {
 	"title": "Appstore",
 	"subtitle": "",
 	"description": "",
     });
-    let happ_release			= await clients.alice.devhub.call("happs", "happ_library", "create_happ_release", {
+    let happ_release			= await clients.bobby.devhub.call("happs", "happ_library", "create_happ_release", {
 	"name": "1",
 	"description": "",
 	"for_happ": happ.$id,
@@ -118,7 +120,7 @@ async function setup () {
 	],
     });
 
-    await clients.bobby.appstore.call("portal", "portal_api", "register_host", {
+    await clients.bobby.devhub.call("portal", "portal_api", "register_host", {
 	"dna": HAPPS_DNA_HASH,
 	"granted_functions": {
 	    "Listed": [
@@ -126,7 +128,7 @@ async function setup () {
 	    ],
 	},
     });
-    await clients.carol.appstore.call("portal", "portal_api", "register_host", {
+    await clients.carol.devhub.call("portal", "portal_api", "register_host", {
 	"dna": HAPPS_DNA_HASH,
 	"granted_functions": {
 	    "Listed": [
@@ -205,7 +207,7 @@ function download_tests () {
 
 }
 
-let admin;
+let admin_1, admin_2;
 function errors_tests () {
     it("should fail because of invalid DNA alias ", async function () {
 	await expect_reject( async () => {
@@ -225,7 +227,7 @@ function errors_tests () {
 	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "dnarepo" );
 	await expect_reject( async () => {
 	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
-		"host": clients.bobby.appstore.cellAgent(),
+		"host": clients.bobby.devhub.cellAgent(),
 		"call": {
 		    "dna": dna_hash,
 		    "zome": "dna_library",
@@ -239,7 +241,7 @@ function errors_tests () {
     it("should fail because not unrestricted access", async function () {
 	this.timeout( 30_000 );
 
-	await clients.bobby.appstore.call("portal", "portal_api", "register_host", {
+	await clients.bobby.devhub.call("portal", "portal_api", "register_host", {
 	    "dna": DNAREPO_DNA_HASH,
 	    "granted_functions": {
 		"Listed": [
@@ -256,7 +258,7 @@ function errors_tests () {
 	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "dnarepo" );
 	await expect_reject( async () => {
 	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
-		"host": clients.bobby.appstore.cellAgent(),
+		"host": clients.bobby.devhub.cellAgent(),
 		"call": {
 		    "dna": dna_hash,
 		    "zome": "dna_library",
@@ -274,7 +276,7 @@ function errors_tests () {
 
 	await expect_reject( async () => {
 	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
-		"host": clients.bobby.appstore.cellAgent(),
+		"host": clients.bobby.devhub.cellAgent(),
 		"call": {
 		    "dna": dna_hash,
 		    "zome": "happ_library",
@@ -288,8 +290,7 @@ function errors_tests () {
     it("should fail because all hosts were unreachable", async function () {
 	this.timeout( 60_000 );
 
-	await admin.disableApp("devhub-bobby");
-	await admin.disableApp("appstore-bobby");
+	await admin_2.disableApp("devhub-bobby");
 
 	let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "happs" );
 	log.info("Found %s hosts of the 'happs' DNA", hosts.length );
@@ -304,78 +305,101 @@ function errors_tests () {
 	    try {
 		await p
 	    } catch ( err ) {
-		if ( !(err instanceof TimeoutError) )
+		if ( !(err instanceof TimeoutError) && !err.message.includes("Disconnected") )
 		    throw new TypeError(`Expected ping result to be TimeoutError; not type '${err}'`);
 	    }
 	}
     });
 }
 
+const crux				= new CruxConfig();
+const interpreter			= new Translator([]);
+function organize_clients ( actors ) {
+    for ( let name in actors ) {
+	if ( clients[ name ] === undefined )
+	    clients[ name ]		= {};
+
+	for ( let app_prefix in actors[ name ] ) {
+	    log.info("Upgrade client for %s => %s", name, app_prefix );
+	    const installation			= actors[ name ][ app_prefix ];
+	    const client			= installation.client;
+	    clients[ name ][ app_prefix ]	= client;
+
+	    for ( let role_name in installation.dnas ) {
+		log.normal("%s new cell : %s (%s)", name, role_name, installation.dnas[ role_name ] );
+	    }
+
+	    client.addProcessor("output", (essence, req) => {
+		if ( !( req.dna === "portal"
+			&& req.zome === "portal_api"
+			&& req.func === "custom_remote_call"
+		      ) )
+		    return essence;
+
+		let pack;
+		try {
+		    log.debug("Portal wrapper (%s) with metadata: %s", essence.type, essence.metadata, essence.payload );
+		    pack			= interpreter.parse( essence );
+		} catch ( err ) {
+		    log.error("Error unwrapping portal response response:", err );
+		    return essence;
+		}
+
+		const payload		= pack.value();
+
+		if ( payload instanceof Error )
+		    throw payload;
+
+		return payload;
+	    });
+
+	    crux.upgrade( client );
+	}
+    }
+}
+
 describe("App Store + DevHub", () => {
-    const crux				= new CruxConfig();
-    const holochain			= new Holochain({
+    const holochain_1			= new Holochain({
+	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
+	"timeout": 30_000,
+    });
+    const holochain_2			= new Holochain({
 	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
 	"timeout": 30_000,
     });
 
+
     before(async function () {
 	this.timeout( 120_000 );
 
-	const actors			= await holochain.backdrop({
-	    "devhub":		DEVHUB_PATH,
-	    "appstore": {
-		"appstore":	APPSTORE_DNA_PATH,
-		"portal":	PORTAL_DNA_PATH,
-	    },
-	}, {
-	    "actors": [
-		"alice",
-		"bobby",
-		"carol",
-	    ],
-	});
-	const interpreter		= new Translator([]);
-
-	for ( let name in actors ) {
-	    if ( clients[ name ] === undefined )
-		clients[ name ]		= {};
-
-	    for ( let app_prefix in actors[ name ] ) {
-		log.info("Upgrade client for %s => %s", name, app_prefix );
-		const client			= actors[ name ][ app_prefix ].client;
-		clients[ name ][ app_prefix ]	= client;
-
-		client.addProcessor("output", (essence, req) => {
-		    if ( !( req.dna === "portal"
-			    && req.zome === "portal_api"
-			    && req.func === "custom_remote_call"
-			  ) )
-			return essence;
-
-		    let pack;
-		    try {
-			log.debug("Portal wrapper (%s) with metadata: %s", essence.type, essence.metadata, essence.payload );
-			pack			= interpreter.parse( essence );
-		    } catch ( err ) {
-			log.error("Error unwrapping portal response response:", err );
-			return essence;
-		    }
-
-		    const payload		= pack.value();
-
-		    if ( payload instanceof Error )
-			throw payload;
-
-		    return payload;
-		});
-
-		crux.upgrade( client );
-	    }
+	{
+	    const actors			= await holochain_1.backdrop({
+		"appstore":		APPSTORE_PATH,
+		// "appstore": {
+		//     "appstore":	APPSTORE_DNA_PATH,
+		//     "portal":	PORTAL_DNA_PATH,
+		// },
+	    }, {
+		"network_seed": "test-network",
+	    });
+	    organize_clients( actors );
+	}
+	{
+	    const actors			= await holochain_2.backdrop({
+		"devhub":		DEVHUB_PATH,
+	    }, {
+		"actors": [
+		    "bobby",
+		    "carol",
+		],
+		"network_seed": "test-network",
+	    });
+	    organize_clients( actors );
 	}
 
-	DNAREPO_DNA_HASH		= clients.alice.devhub._app_schema._dnas.dnarepo._hash;
-	HAPPS_DNA_HASH			= clients.alice.devhub._app_schema._dnas.happs._hash;
-	WEBASSETS_DNA_HASH		= clients.alice.devhub._app_schema._dnas.web_assets._hash;
+	DNAREPO_DNA_HASH		= clients.bobby.devhub._app_schema._dnas.dnarepo._hash;
+	HAPPS_DNA_HASH			= clients.bobby.devhub._app_schema._dnas.happs._hash;
+	WEBASSETS_DNA_HASH		= clients.bobby.devhub._app_schema._dnas.web_assets._hash;
 
 	// Must call whoami on each cell to ensure that init has finished.
 	{
@@ -385,19 +409,25 @@ describe("App Store + DevHub", () => {
 
 	await setup();
 
-	const port			= holochain.adminPorts()[0];
-	admin				= new AdminClient( port );
+	{
+	    const port			= holochain_1.adminPorts()[0];
+	    admin_1			= new AdminClient( port );
+	}
+	{
+	    const port			= holochain_2.adminPorts()[0];
+	    admin_2			= new AdminClient( port );
+	}
 
-	await admin.disableApp("devhub-carol");
-	await admin.disableApp("appstore-carol");
+	await admin_2.disableApp("devhub-carol");
    });
 
-    describe("Download", download_tests.bind( this, holochain ) );
-    describe("Errors", errors_tests.bind( this, holochain ) );
+    describe("Download", download_tests.bind( this ) );
+    describe("Errors", errors_tests.bind( this ) );
 
     after(async function () {
 	this.timeout( 10_000 );
-	await holochain.destroy();
+	await holochain_1.destroy();
+	await holochain_2.destroy();
     });
 
 });

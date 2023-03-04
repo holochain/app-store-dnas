@@ -9,7 +9,7 @@
   "dependencies": {
     "@faker-js/faker": "^7.3.0",
     "@whi/holo-hash": "^0.3.0",
-    "@whi/holochain-backdrop": "^1.0.3",
+    "@whi/holochain-backdrop": "^2.0.0",
     "@whi/holochain-client": "^0.80.1",
     "@whi/json": "^0.1.5",
     "@whi/stdlog": "^0.3.4",
