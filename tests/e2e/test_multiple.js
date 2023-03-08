@@ -207,7 +207,7 @@ function download_tests () {
 
 }
 
-let admin_1, admin_2;
+let admin;
 function errors_tests () {
     it("should fail because of invalid DNA alias ", async function () {
 	await expect_reject( async () => {
@@ -290,7 +290,7 @@ function errors_tests () {
     it("should fail because all hosts were unreachable", async function () {
 	this.timeout( 60_000 );
 
-	await admin_2.disableApp("devhub-bobby");
+	await admin.disableApp("devhub-bobby");
 
 	let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "happs" );
 	log.info("Found %s hosts of the 'happs' DNA", hosts.length );
@@ -359,43 +359,40 @@ function organize_clients ( actors ) {
 }
 
 describe("App Store + DevHub", () => {
-    const holochain_1			= new Holochain({
+    const holochain			= new Holochain({
 	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
 	"timeout": 30_000,
     });
-    const holochain_2			= new Holochain({
-	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
-	"timeout": 30_000,
-    });
-
 
     before(async function () {
 	this.timeout( 120_000 );
 
-	{
-	    const actors			= await holochain_1.backdrop({
-		"appstore":		APPSTORE_PATH,
-		// "appstore": {
-		//     "appstore":	APPSTORE_DNA_PATH,
-		//     "portal":	PORTAL_DNA_PATH,
-		// },
-	    }, {
+	const actors			= await holochain.backdrop({
+	    "devhub":		DEVHUB_PATH,
+	}, {
+	    "actors": [
+		"bobby",
+		"carol",
+	    ],
+	    "network_seed": "test-network",
+	});
+	organize_clients( actors );
+
+	const install			= await holochain.setupApp(
+	    actors.bobby.devhub.app_port,
+	    "appstore",
+	    "alice",
+	    await holochain.admin.generateAgent(),
+	    APPSTORE_PATH,
+	    {
 		"network_seed": "test-network",
-	    });
-	    organize_clients( actors );
-	}
-	{
-	    const actors			= await holochain_2.backdrop({
-		"devhub":		DEVHUB_PATH,
-	    }, {
-		"actors": [
-		    "bobby",
-		    "carol",
-		],
-		"network_seed": "test-network",
-	    });
-	    organize_clients( actors );
-	}
+	    }
+	);
+	organize_clients({
+	    "alice": {
+		"appstore": install,
+	    },
+	});
 
 	DNAREPO_DNA_HASH		= clients.bobby.devhub._app_schema._dnas.dnarepo._hash;
 	HAPPS_DNA_HASH			= clients.bobby.devhub._app_schema._dnas.happs._hash;
@@ -410,15 +407,11 @@ describe("App Store + DevHub", () => {
 	await setup();
 
 	{
-	    const port			= holochain_1.adminPorts()[0];
-	    admin_1			= new AdminClient( port );
-	}
-	{
-	    const port			= holochain_2.adminPorts()[0];
-	    admin_2			= new AdminClient( port );
+	    const port			= holochain.adminPorts()[0];
+	    admin			= new AdminClient( port );
 	}
 
-	await admin_2.disableApp("devhub-carol");
+	await admin.disableApp("devhub-carol");
    });
 
     describe("Download", download_tests.bind( this ) );
@@ -426,8 +419,7 @@ describe("App Store + DevHub", () => {
 
     after(async function () {
 	this.timeout( 10_000 );
-	await holochain_1.destroy();
-	await holochain_2.destroy();
+	await holochain.destroy();
     });
 
 });
