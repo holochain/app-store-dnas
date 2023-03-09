@@ -1,5 +1,4 @@
 mod errors;
-mod types;
 mod validation;
 
 use hdi::prelude::*;
@@ -11,11 +10,11 @@ pub use hc_crud::{
     entry_model,
 };
 
-pub use types::{
+pub use appstore_types::{
     CommonFields,
     EntityId,
 
-    HolochainResourceLocation,
+    WebHappConfig,
     DeprecationNotice,
     LocationTriplet,
     WebAddress,

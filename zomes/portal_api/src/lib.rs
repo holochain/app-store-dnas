@@ -24,6 +24,7 @@ pub use portal::{
     Payload,
     RemoteCallInput,
     BridgeCallInput,
+    DnaZomeFunction,
 };
 pub use constants::{
     ENTITY_MD,
@@ -168,8 +169,9 @@ fn handler_ping_call(host: AgentPubKey) -> AppResult<bool> {
 #[hdk_extern]
 fn ping(host: AgentPubKey) -> ExternResult<Response<bool>> {
     debug!("Sending ping to host: {}", host );
-    handler_ping_call( host )?;
-    Ok(composition( true, VALUE_MD ))
+    let success = catch!( handler_ping_call( host ) );
+
+    Ok(composition( success, VALUE_MD ))
 }
 
 
@@ -202,6 +204,40 @@ fn get_registered_hosts_randomized(input: host::GetInput) -> ExternResult<Respon
     list.shuffle(&mut rand::thread_rng());
 
     Ok(composition( list, ENTITY_COLLECTION_MD ))
+}
+
+
+fn handler_get_hosts_for_zome_function(dna: holo_hash::DnaHash, zome: ZomeName, function: FunctionName) -> AppResult<Vec<Entity<HostEntry>>> {
+    let hosts = host::list( host::GetInput {
+	dna: dna,
+    })?;
+
+    Ok(
+	hosts.into_iter()
+	    .filter(|host_entry| {
+		match &host_entry.content.capabilities.functions {
+		    GrantedFunctions::Listed( granted_functions ) => {
+			granted_functions
+			    .into_iter()
+			    .find(|(cap_zome, cap_function)| {
+				return *cap_zome == zome
+				    && *cap_function == function
+			    })
+			    .is_some()
+		    },
+		    GrantedFunctions::All => true,
+		}
+	    })
+	    .collect()
+    )
+}
+
+
+#[hdk_extern]
+fn get_hosts_for_zome_function(input: DnaZomeFunction) -> ExternResult<Response<Vec<Entity<HostEntry>>>> {
+    let hosts = catch!( handler_get_hosts_for_zome_function(input.dna, input.zome, input.function) );
+
+    Ok(composition( hosts, ENTITY_COLLECTION_MD ))
 }
 
 

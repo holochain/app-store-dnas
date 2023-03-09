@@ -125,6 +125,12 @@ async function setup () {
 	"granted_functions": {
 	    "Listed": [
 		[ "happ_library", "get_webhapp_package" ],
+		[ "happ_library", "get_happ" ],
+		[ "happ_library", "get_happ_release" ],
+		[ "happ_library", "get_happ_releases" ],
+		[ "happ_library", "get_gui" ],
+		[ "happ_library", "get_gui_release" ],
+		[ "happ_library", "get_gui_releases" ],
 	    ],
 	},
     });
@@ -133,6 +139,9 @@ async function setup () {
 	"granted_functions": {
 	    "Listed": [
 		[ "happ_library", "get_webhapp_package" ],
+		[ "happ_library", "get_happ" ],
+		[ "happ_library", "get_happ_release" ],
+		[ "happ_library", "get_happ_releases" ],
 	    ],
 	},
     });
@@ -158,47 +167,88 @@ async function setup () {
 	"publisher": publisher.$id,
 	"devhub_address": {
 	    "dna": HAPPS_DNA_HASH,
-	    "happ": happ_release.$id,
-	    "gui": gui_release.$id,
+	    "happ": happ.$id,
+	    "gui": null,
 	},
     });
 }
 
 let app;
 function download_tests () {
+    let available_host;
+
+    async function portal_call ( dna, zome, func, payload, timeout ) {
+	if ( available_host === undefined ) {
+	    // Get hosts of ...
+	    let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_hosts_for_zome_function", {
+		"dna": dna,
+		"zome": zome,
+		"function": func,
+	    });
+	    log.info("Found %s hosts for API %s::%s->%s()", hosts.length, dna, zome, func );
+
+	    // Ping hosts ...
+	    available_host		= await Promise.any(
+		hosts.map(async host => {
+		    await clients.alice.appstore.call("portal", "portal_api", "ping", host.author, 1_000 );
+		    return new AgentPubKey( host.author );
+		})
+	    );
+	    log.info("Set available host: %s", available_host );
+	}
+
+	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", dna );
+	return await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
+	    "host": available_host,
+	    "call": {
+		"dna": dna_hash,
+		"zome": zome,
+		"function": func,
+		"payload": payload,
+	    },
+	}, timeout );
+    }
+
+    it("should find 1 host for happ_library GUI methods", async function () {
+	let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_hosts_for_zome_function", {
+	    "dna": "happs",
+	    "zome": "happ_library",
+	    "function": "get_gui_releases",
+	});
+
+	expect( hosts			).to.have.length( 1 );
+    });
+
+    it("should get hApp info", async function () {
+	this.timeout( 10_000 );
+
+	const happ			= await portal_call( "happs", "happ_library", "get_happ", {
+	    "id": app.devhub_address.happ,
+	}, 10_000 );
+
+	expect( happ.title		).to.be.a("string");
+    });
 
     it("should download DevHub webapp package", async function () {
 	this.timeout( 60_000 );
 
-	// Get hosts of ...
-	let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "happs" );
-	log.info("Found %s hosts of the 'happs' DNA", hosts.length );
+	const happ_releases		= await portal_call( "happs", "happ_library", "get_happ_releases", {
+	    "for_happ": app.devhub_address.happ,
+	}, 10_000 );
 
-	expect( hosts			).to.have.length( 2 );
+	expect( happ_releases		).to.have.length( 1 );
 
-	// Ping hosts ...
-	let available_host		= await Promise.any(
-	    hosts.map(async host => {
-		await clients.alice.appstore.call("portal", "portal_api", "ping", host.author, 1_000 );
-		return new AgentPubKey( host.author );
-	    })
-	);
-	log.info("Received first pong from host %s", available_host );
+	const gui_releases		= await portal_call( "happs", "happ_library", "get_gui_releases", {
+	    "for_gui": happ_releases[0].official_gui,
+	}, 10_000 );
+
+	expect( gui_releases		).to.have.length( 1 );
 
 	// Get webhapp package from first host
-	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "happs" );
-	const bytes			= await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
-	    "host": available_host,
-	    "call": {
-		"dna": dna_hash,
-		"zome": "happ_library",
-		"function": "get_webhapp_package",
-		"payload": {
-		    "name": app.name,
-		    "happ_release_id": app.devhub_address.happ,
-		    "gui_release_id": app.devhub_address.gui,
-		},
-	    },
+	const bytes			= await portal_call( "happs", "happ_library", "get_webhapp_package", {
+	    "name": app.name,
+	    "happ_release_id": happ_releases[0].$id,
+	    "gui_release_id": gui_releases[0].$id,
 	}, 30_000 );
 	log.info("Received app pacakge with %s bytes", bytes.length );
 
@@ -305,7 +355,9 @@ function errors_tests () {
 	    try {
 		await p
 	    } catch ( err ) {
-		if ( !(err instanceof TimeoutError) && !err.message.includes("Disconnected") )
+		if ( !(err instanceof TimeoutError)
+		     && !err.message.includes("Disconnected")
+		     && !err.message.includes("agent is likely offline") )
 		    throw new TypeError(`Expected ping result to be TimeoutError; not type '${err}'`);
 	    }
 	}

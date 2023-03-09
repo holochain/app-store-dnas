@@ -20,6 +20,7 @@ pub use appstore::{
 };
 pub use portal_types::{
     HostEntry,
+    DnaZomeFunction,
 };
 pub use constants::{
     ENTITY_MD,
@@ -224,6 +225,43 @@ fn handler_get_registered_hosts(alias: String) -> AppResult<Response<Vec<Entity<
 #[hdk_extern]
 fn get_registered_hosts(alias: String) -> ExternResult<Response<Vec<Entity<HostEntry>>>> {
     let hosts = catch!( handler_get_registered_hosts(alias) );
+
+    Ok( hosts )
+}
+
+
+
+fn handler_get_hosts_for_zome_function(dna_alias: String, zome: ZomeName, function: FunctionName) -> AppResult<Response<Vec<Entity<HostEntry>>>> {
+    let props = dna_properties()?;
+
+    let response = call(
+	CallTargetCell::OtherRole(String::from("portal")),
+	"portal_api",
+	"get_hosts_for_zome_function".into(),
+	None, // CapSecret
+	DnaZomeFunction {
+	    dna: props.dna_hash_alias.get(&dna_alias)
+		.ok_or( UserError::CustomError(format!("Unknown alias '{}'", dna_alias )) )?
+		.to_owned(),
+	    zome,
+	    function,
+	}
+    )?;
+
+    let result = hc_utils::zome_call_response_as_result( response )?;
+    Ok( result.decode()? )
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetHostsForInput {
+    pub dna: String,
+    pub zome: ZomeName,
+    pub function: FunctionName,
+}
+
+#[hdk_extern]
+fn get_hosts_for_zome_function(input: GetHostsForInput) -> ExternResult<Response<Vec<Entity<HostEntry>>>> {
+    let hosts = catch!( handler_get_hosts_for_zome_function(input.dna, input.zome, input.function) );
 
     Ok( hosts )
 }

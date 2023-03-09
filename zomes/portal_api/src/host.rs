@@ -57,6 +57,7 @@ pub fn create(input: CreateInput) -> AppResult<Entity<HostEntry>> {
     let entity = create_entity( &host )?;
 
     { // Path via Agent's Hosts
+	debug!("Hosting anchor: {}.{}", ANCHOR_HOSTS, input.dna.to_string() );
 	let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
 	    input.dna.to_string(),
 	]);
@@ -81,6 +82,7 @@ pub struct GetInput {
 }
 
 pub fn list_links (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
+    debug!("Get links from hosting anchor: {}.{}", ANCHOR_HOSTS, &input.dna.to_string() );
     let (_, pathhash ) = hc_utils::path( ANCHOR_HOSTS, vec![
 	&input.dna.to_string(),
     ]);
@@ -93,14 +95,6 @@ pub fn list_links (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
 	    .collect()
     )
 }
-
-// pub fn list_links_random (input: GetInput) -> AppResult<Vec<AnyLinkableHash>> {
-//     let mut addrs = list_links( input )?;
-
-//     addrs.shuffle(&mut rand::thread_rng());
-
-//     Ok( addrs )
-// }
 
 pub fn list (input: GetInput) -> AppResult<Vec<Entity<HostEntry>>> {
     let addrs = list_links( input )?;

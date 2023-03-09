@@ -2,7 +2,12 @@
 SHELL			= bash
 
 NAME			= appstore
+DEVHUB_VERSION		= v0.12.0
 DEVHUB_HAPP		= tests/devhub.happ
+DNAREPO_DNA		= tests/devhub/dnarepo.dna
+HAPPS_DNA		= tests/devhub/happs.dna
+WEBASSETS_DNA		= tests/devhub/web_assets.dna
+
 APPSTORE_HAPP		= ${NAME}.happ
 APPSTORE_DNA		= bundled/appstore.dna
 PORTAL_DNA		= bundled/portal.dna
@@ -70,8 +75,11 @@ $(MERE_MEMORY_WASM):
 $(MERE_MEMORY_API_WASM):
 	curl --fail -L "https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v$$(echo $(NEW_MM_VERSION))/mere_memory.wasm" --output $@
 
-$(DEVHUB_HAPP):
-	$(error Download missing hApp into location ./$@)
+tests/devhub/%.dna:
+	wget -O $@ "https://github.com/holochain/devhub-dnas/releases/download/$(DEVHUB_VERSION)/$*.dna"
+
+$(DEVHUB_HAPP):			$(DNAREPO_DNA) $(HAPPS_DNA) $(WEBASSETS_DNA) $(PORTAL_DNA) tests/devhub/happ.yaml
+	hc app pack -o $@ ./tests/devhub/
 copy-devhub-from-local:
 	cp ../devhub-dnas/DevHub.happ $(DEVHUB_HAPP)
 
@@ -124,9 +132,9 @@ test-portal-debug:		test-setup $(PORTAL_DNA)
 test-e2e:			test-setup test-multi
 test-e2e-debug:			test-setup test-multi-debug
 
-test-multi:			test-setup $(APPSTORE_HAPP)
+test-multi:			test-setup $(APPSTORE_HAPP) $(DEVHUB_HAPP)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha e2e/test_multiple.js
-test-multi-debug:		test-setup $(APPSTORE_HAPP)
+test-multi-debug:		test-setup $(APPSTORE_HAPP) $(DEVHUB_HAPP)
 	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha e2e/test_multiple.js
 
 

@@ -2,6 +2,7 @@
 target
 tests/node_modules
 tests/*.dna
+tests/devhub/*.dna
 zomes/*.wasm
 bundled/*.dna
 *.happ

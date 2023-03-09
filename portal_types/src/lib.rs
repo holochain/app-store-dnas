@@ -7,6 +7,13 @@ use hdi::prelude::*;
 //
 pub type EntityId = EntryHash;
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DnaZomeFunction {
+    pub dna: holo_hash::DnaHash,
+    pub zome: ZomeName,
+    pub function: FunctionName,
+}
+
 
 // Trait for common fields
 pub trait CommonFields<'a> {

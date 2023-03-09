@@ -21,6 +21,7 @@ pub use portal_types::{
     Payload,
     RemoteCallInput,
     BridgeCallInput,
+    DnaZomeFunction,
 };
 
 

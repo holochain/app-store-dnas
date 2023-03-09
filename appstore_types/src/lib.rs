@@ -2,17 +2,17 @@ use std::collections::BTreeMap;
 use hdi::prelude::*;
 
 
-pub type EntityId = EntryHash;
+pub type EntityId = ActionHash;
 
 //
 // General-use Structs
 //
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct HolochainResourceLocation {
+pub struct WebHappConfig {
     pub dna: DnaHash,
     // pub entry: EntryHash,
     pub happ: EntryHash,
-    pub gui: EntryHash,
+    pub gui: Option<EntryHash>,
 
     // // optional
     // pub action: Option<ActionHash>,
@@ -60,7 +60,7 @@ pub struct PublisherEntry {
     pub name: String,
     pub location: LocationTriplet,
     pub website: WebAddress,
-    pub icon: EntityId,
+    pub icon: EntryHash,
     pub editors: Vec<AgentPubKey>,
 
     // common fields
@@ -99,9 +99,9 @@ impl<'a> CommonFields<'a> for PublisherEntry {
 pub struct AppEntry {
     pub name: String,
     pub description: String,
-    pub icon: EntityId,
+    pub icon: EntryHash,
     pub publisher: EntityId,
-    pub devhub_address: HolochainResourceLocation,
+    pub devhub_address: WebHappConfig,
     pub editors: Vec<AgentPubKey>,
 
     // common fields

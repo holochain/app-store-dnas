@@ -11,7 +11,7 @@ use appstore::{
 
     EntityId,
     GetEntityInput, UpdateEntityInput,
-    HolochainResourceLocation,
+    WebHappConfig,
 };
 use crate::{
     AppResult,
@@ -29,7 +29,7 @@ pub struct CreateInput {
     pub description: String,
     pub icon: SerializedBytes,
     pub publisher: EntityId,
-    pub devhub_address: HolochainResourceLocation,
+    pub devhub_address: WebHappConfig,
 
     // optional
     pub editors: Option<Vec<AgentPubKey>>,
@@ -116,7 +116,7 @@ pub struct UpdateProperties {
     pub name: Option<String>,
     pub description: Option<String>,
     pub icon: Option<EntryHash>,
-    pub devhub_address: Option<HolochainResourceLocation>,
+    pub devhub_address: Option<WebHappConfig>,
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
