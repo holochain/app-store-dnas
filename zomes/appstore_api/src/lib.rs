@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 mod constants;
 mod publisher;
 mod app;
@@ -35,17 +34,6 @@ pub use constants::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetForAgentInput {
     pub for_agent: AgentPubKey,
-}
-
-
-
-#[derive(Debug, Deserialize, Serialize, SerializedBytes)]
-pub struct DnaProperties {
-    pub dna_hash_alias: BTreeMap<String,holo_hash::DnaHash>, // DnaHashAlias,
-}
-
-pub fn dna_properties () -> AppResult<DnaProperties> {
-    Ok( dna_info()?.properties.try_into()? )
 }
 
 
@@ -194,92 +182,4 @@ fn get_all_apps(_: ()) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
 	collection,
 	ENTITY_COLLECTION_MD
     ))
-}
-
-
-#[derive(Debug, Serialize)]
-pub struct GetInput {
-    pub dna: holo_hash::DnaHash,
-}
-
-
-fn handler_get_registered_hosts(alias: String) -> AppResult<Response<Vec<Entity<HostEntry>>>> {
-    let props = dna_properties()?;
-
-    let response = call(
-	CallTargetCell::OtherRole(String::from("portal")),
-	"portal_api",
-	"get_registered_hosts".into(),
-	None, // CapSecret
-	GetInput {
-	    dna: props.dna_hash_alias.get(&alias)
-		.ok_or( UserError::CustomError(format!("Unknown alias '{}'", alias )) )?
-		.to_owned(),
-	}
-    )?;
-
-    let result = hc_utils::zome_call_response_as_result( response )?;
-    Ok( result.decode()? )
-}
-
-#[hdk_extern]
-fn get_registered_hosts(alias: String) -> ExternResult<Response<Vec<Entity<HostEntry>>>> {
-    let hosts = catch!( handler_get_registered_hosts(alias) );
-
-    Ok( hosts )
-}
-
-
-
-fn handler_get_hosts_for_zome_function(dna_alias: String, zome: ZomeName, function: FunctionName) -> AppResult<Response<Vec<Entity<HostEntry>>>> {
-    let props = dna_properties()?;
-
-    let response = call(
-	CallTargetCell::OtherRole(String::from("portal")),
-	"portal_api",
-	"get_hosts_for_zome_function".into(),
-	None, // CapSecret
-	DnaZomeFunction {
-	    dna: props.dna_hash_alias.get(&dna_alias)
-		.ok_or( UserError::CustomError(format!("Unknown alias '{}'", dna_alias )) )?
-		.to_owned(),
-	    zome,
-	    function,
-	}
-    )?;
-
-    let result = hc_utils::zome_call_response_as_result( response )?;
-    Ok( result.decode()? )
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GetHostsForInput {
-    pub dna: String,
-    pub zome: ZomeName,
-    pub function: FunctionName,
-}
-
-#[hdk_extern]
-fn get_hosts_for_zome_function(input: GetHostsForInput) -> ExternResult<Response<Vec<Entity<HostEntry>>>> {
-    let hosts = catch!( handler_get_hosts_for_zome_function(input.dna, input.zome, input.function) );
-
-    Ok( hosts )
-}
-
-
-fn handler_get_dna_hash(alias: String) -> AppResult<holo_hash::DnaHash> {
-    let props = dna_properties()?;
-
-    Ok(
-	props.dna_hash_alias.get(&alias)
-	    .ok_or( UserError::CustomError(format!("Unknown alias '{}'", alias )) )?
-	    .to_owned()
-    )
-}
-
-#[hdk_extern]
-fn get_dna_hash(alias: String) -> ExternResult<Response<holo_hash::DnaHash>> {
-    let hash = catch!( handler_get_dna_hash(alias) );
-
-    Ok(composition( hash, VALUE_MD ))
 }

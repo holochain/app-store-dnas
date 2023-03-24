@@ -180,7 +180,7 @@ function download_tests () {
     async function portal_call ( dna, zome, func, payload, timeout ) {
 	if ( available_host === undefined ) {
 	    // Get hosts of ...
-	    let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_hosts_for_zome_function", {
+	    let hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_hosts_for_zome_function", {
 		"dna": dna,
 		"zome": zome,
 		"function": func,
@@ -197,11 +197,10 @@ function download_tests () {
 	    log.info("Set available host: %s", available_host );
 	}
 
-	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", dna );
 	return await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
 	    "host": available_host,
 	    "call": {
-		"dna": dna_hash,
+		"dna": HAPPS_DNA_HASH,
 		"zome": zome,
 		"function": func,
 		"payload": payload,
@@ -210,8 +209,8 @@ function download_tests () {
     }
 
     it("should find 1 host for happ_library GUI methods", async function () {
-	let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_hosts_for_zome_function", {
-	    "dna": "happs",
+	let hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_hosts_for_zome_function", {
+	    "dna": HAPPS_DNA_HASH,
 	    "zome": "happ_library",
 	    "function": "get_gui_releases",
 	});
@@ -222,7 +221,7 @@ function download_tests () {
     it("should get hApp info", async function () {
 	this.timeout( 10_000 );
 
-	const happ			= await portal_call( "happs", "happ_library", "get_happ", {
+	const happ			= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_happ", {
 	    "id": app.devhub_address.happ,
 	}, 10_000 );
 
@@ -232,20 +231,20 @@ function download_tests () {
     it("should download DevHub webapp package", async function () {
 	this.timeout( 60_000 );
 
-	const happ_releases		= await portal_call( "happs", "happ_library", "get_happ_releases", {
+	const happ_releases		= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_happ_releases", {
 	    "for_happ": app.devhub_address.happ,
 	}, 10_000 );
 
 	expect( happ_releases		).to.have.length( 1 );
 
-	const gui_releases		= await portal_call( "happs", "happ_library", "get_gui_releases", {
+	const gui_releases		= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_gui_releases", {
 	    "for_gui": happ_releases[0].official_gui,
 	}, 10_000 );
 
 	expect( gui_releases		).to.have.length( 1 );
 
 	// Get webhapp package from first host
-	const bytes			= await portal_call( "happs", "happ_library", "get_webhapp_package", {
+	const bytes			= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_webhapp_package", {
 	    "name": app.name,
 	    "happ_release_id": happ_releases[0].$id,
 	    "gui_release_id": gui_releases[0].$id,
@@ -259,14 +258,10 @@ function download_tests () {
 
 let admin;
 function errors_tests () {
-    it("should fail because of invalid DNA alias ", async function () {
-	await expect_reject( async () => {
-	    await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "invalid" );
-	}, "Unknown alias" ); // , "CustomError"
-    });
-
     it("should fail because 0 hosts registered", async function () {
-	const hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "dnarepo" );
+	const hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_registered_hosts", {
+	    "dna": DNAREPO_DNA_HASH,
+	});
 
 	expect( hosts			).to.have.length( 0 );
     });
@@ -274,12 +269,11 @@ function errors_tests () {
     it("should fail because no host record", async function () {
 	this.timeout( 30_000 );
 
-	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "dnarepo" );
 	await expect_reject( async () => {
 	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
 		"host": clients.bobby.devhub.cellAgent(),
 		"call": {
-		    "dna": dna_hash,
+		    "dna": DNAREPO_DNA_HASH,
 		    "zome": "dna_library",
 		    "function": "get_dna",
 		    "payload": null,
@@ -305,12 +299,11 @@ function errors_tests () {
 	    },
 	});
 
-	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "dnarepo" );
 	await expect_reject( async () => {
 	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
 		"host": clients.bobby.devhub.cellAgent(),
 		"call": {
-		    "dna": dna_hash,
+		    "dna": DNAREPO_DNA_HASH,
 		    "zome": "dna_library",
 		    "function": "get_dna",
 		    "payload": null,
@@ -322,13 +315,11 @@ function errors_tests () {
     it("should fail because zome/function not granted", async function () {
 	this.timeout( 30_000 );
 
-	const dna_hash			= await clients.alice.appstore.call("appstore", "appstore_api", "get_dna_hash", "happs" );
-
 	await expect_reject( async () => {
 	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
 		"host": clients.bobby.devhub.cellAgent(),
 		"call": {
-		    "dna": dna_hash,
+		    "dna": HAPPS_DNA_HASH,
 		    "zome": "happ_library",
 		    "function": "create_app",
 		    "payload": null,
@@ -342,7 +333,9 @@ function errors_tests () {
 
 	await admin.disableApp("devhub-bobby");
 
-	let hosts			= await clients.alice.appstore.call("appstore", "appstore_api", "get_registered_hosts", "happs" );
+	let hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_registered_hosts", {
+	    "dna": HAPPS_DNA_HASH,
+	});
 	log.info("Found %s hosts of the 'happs' DNA", hosts.length );
 
 	expect( hosts			).to.have.length( 2 );
@@ -453,6 +446,18 @@ describe("App Store + DevHub", () => {
 	// Must call whoami on each cell to ensure that init has finished.
 	{
 	    let whoami			= await clients.alice.appstore.call("appstore", "appstore_api", "whoami", null, 30_000 );
+	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
+	}
+	{
+	    let whoami			= await clients.alice.appstore.call("portal", "portal_api", "whoami", null, 30_000 );
+	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
+	}
+	{
+	    let whoami			= await clients.bobby.devhub.call("dnarepo", "dna_library", "whoami", null, 30_000 );
+	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
+	}
+	{
+	    let whoami			= await clients.carol.devhub.call("dnarepo", "dna_library", "whoami", null, 30_000 );
 	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
 	}
 
