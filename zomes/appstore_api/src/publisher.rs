@@ -30,6 +30,7 @@ pub struct CreateInput {
     pub icon: SerializedBytes,
 
     // optional
+    pub description: Option<String>,
     pub email: Option<String>,
     pub editors: Option<Vec<AgentPubKey>>,
 
@@ -55,6 +56,7 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<PublisherEntry>> {
 
     let publisher = PublisherEntry {
 	name: input.name,
+	description: input.description,
 	location: input.location,
 	website: input.website,
 	icon: icon_addr,
@@ -106,6 +108,7 @@ pub fn get(input: GetEntityInput) -> AppResult<Entity<PublisherEntry>> {
 #[derive(Debug, Deserialize, Clone)]
 pub struct UpdateProperties {
     pub name: Option<String>,
+    pub description: Option<String>,
     pub location: Option<LocationTriplet>,
     pub website: Option<WebAddress>,
     pub icon: Option<EntryHash>,
@@ -129,6 +132,8 @@ pub fn update(input: UpdateInput) -> AppResult<Entity<PublisherEntry>> {
 
 	    current.name = props.name
 		.unwrap_or( current.name );
+	    current.description = props.description
+		.or( current.description );
 	    current.location = props.location
 		.unwrap_or( current.location );
 	    current.website = props.website

@@ -107,7 +107,8 @@ function publisher_tests () {
 
 function createAppInput ( overrides ) {
     return Object.assign({
-	"name": "Chess",
+	"title": "Chess",
+	"subtitle": "The classic boardgame",
 	"description": "The boardgame known as Chess",
 	"icon": crypto.randomBytes(1_000),
 	"publisher": publisher_1.$id,

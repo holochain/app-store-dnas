@@ -70,6 +70,7 @@ pub struct PublisherEntry {
     pub metadata: BTreeMap<String, serde_yaml::Value>,
 
     // optional
+    pub description: Option<String>,
     pub email: Option<String>,
     pub deprecation: Option<DeprecationNotice>,
 }
@@ -97,7 +98,8 @@ impl<'a> CommonFields<'a> for PublisherEntry {
 #[hdk_entry_helper]
 #[derive(Clone)]
 pub struct AppEntry {
-    pub name: String,
+    pub title: String,
+    pub subtitle: String,
     pub description: String,
     pub icon: EntryHash,
     pub publisher: EntityId,

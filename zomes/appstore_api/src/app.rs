@@ -25,7 +25,8 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct CreateInput {
-    pub name: String,
+    pub title: String,
+    pub subtitle: String,
     pub description: String,
     pub icon: SerializedBytes,
     pub publisher: EntityId,
@@ -41,7 +42,7 @@ pub struct CreateInput {
 
 
 pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
-    debug!("Creating App: {}", input.name );
+    debug!("Creating App: {}", input.title );
     let pubkey = agent_info()?.agent_initial_pubkey;
     let default_now = now()?;
     let default_editors = vec![ pubkey.clone() ];
@@ -55,7 +56,8 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
     let icon_addr = crate::save_bytes( input.icon.bytes() )?;
 
     let app = AppEntry {
-	name: input.name,
+	title: input.title,
+	subtitle: input.subtitle,
 	description: input.description,
 	icon: icon_addr,
 	publisher: input.publisher.clone(),
@@ -113,7 +115,8 @@ pub fn get(input: GetEntityInput) -> AppResult<Entity<AppEntry>> {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct UpdateProperties {
-    pub name: Option<String>,
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
     pub description: Option<String>,
     pub icon: Option<EntryHash>,
     pub devhub_address: Option<WebHappConfig>,
@@ -134,8 +137,10 @@ pub fn update(input: UpdateInput) -> AppResult<Entity<AppEntry>> {
 	|mut current : AppEntry, _| {
 	    previous = Some(current.clone());
 
-	    current.name = props.name
-		.unwrap_or( current.name );
+	    current.title = props.title
+		.unwrap_or( current.title );
+	    current.subtitle = props.subtitle
+		.unwrap_or( current.subtitle );
 	    current.description = props.description
 		.unwrap_or( current.description );
 	    current.devhub_address = props.devhub_address

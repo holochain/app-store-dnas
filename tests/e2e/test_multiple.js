@@ -161,7 +161,8 @@ async function setup () {
     });
 
     app					= await clients.alice.appstore.call("appstore", "appstore_api", "create_app", {
-	"name": "Chess",
+	"title": "Chess",
+	"subtitle": "The classic boardgame",
 	"description": "The boardgame known as Chess",
 	"icon": new ActionHash( crypto.randomBytes(32) ),
 	"publisher": publisher.$id,
@@ -245,7 +246,7 @@ function download_tests () {
 
 	// Get webhapp package from first host
 	const bytes			= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_webhapp_package", {
-	    "name": app.name,
+	    "name": app.title,
 	    "happ_release_id": happ_releases[0].$id,
 	    "gui_release_id": gui_releases[0].$id,
 	}, 30_000 );
