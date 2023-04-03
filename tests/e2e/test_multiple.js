@@ -92,7 +92,7 @@ async function setup () {
 	"description": "",
     });
     let happ_release			= await clients.bobby.devhub.call("happs", "happ_library", "create_happ_release", {
-	"name": "1",
+	"version": "1",
 	"description": "",
 	"for_happ": happ.$id,
 	"official_gui": gui.$id,
@@ -118,32 +118,6 @@ async function setup () {
 		"wasm_hash": dna_version.wasm_hash,
 	    }
 	],
-    });
-
-    await clients.bobby.devhub.call("portal", "portal_api", "register_host", {
-	"dna": HAPPS_DNA_HASH,
-	"granted_functions": {
-	    "Listed": [
-		[ "happ_library", "get_webhapp_package" ],
-		[ "happ_library", "get_happ" ],
-		[ "happ_library", "get_happ_release" ],
-		[ "happ_library", "get_happ_releases" ],
-		[ "happ_library", "get_gui" ],
-		[ "happ_library", "get_gui_release" ],
-		[ "happ_library", "get_gui_releases" ],
-	    ],
-	},
-    });
-    await clients.carol.devhub.call("portal", "portal_api", "register_host", {
-	"dna": HAPPS_DNA_HASH,
-	"granted_functions": {
-	    "Listed": [
-		[ "happ_library", "get_webhapp_package" ],
-		[ "happ_library", "get_happ" ],
-		[ "happ_library", "get_happ_release" ],
-		[ "happ_library", "get_happ_releases" ],
-	    ],
-	},
     });
 
     const publisher			= await clients.alice.appstore.call("appstore", "appstore_api", "create_publisher", {
@@ -209,14 +183,14 @@ function download_tests () {
 	}, timeout );
     }
 
-    it("should find 1 host for happ_library GUI methods", async function () {
+    it("should find 2 host for happ_library GUI methods", async function () {
 	let hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_hosts_for_zome_function", {
 	    "dna": HAPPS_DNA_HASH,
 	    "zome": "happ_library",
 	    "function": "get_gui_releases",
 	});
 
-	expect( hosts			).to.have.length( 1 );
+	expect( hosts			).to.have.length( 2 );
     });
 
     it("should get hApp info", async function () {
@@ -337,7 +311,7 @@ function errors_tests () {
 	let hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_registered_hosts", {
 	    "dna": HAPPS_DNA_HASH,
 	});
-	log.info("Found %s hosts of the 'happs' DNA", hosts.length );
+	log.info("Found %s hosts of the '%s' DNA", hosts.length, HAPPS_DNA_HASH );
 
 	expect( hosts			).to.have.length( 2 );
 
@@ -413,6 +387,7 @@ describe("App Store + DevHub", () => {
     before(async function () {
 	this.timeout( 120_000 );
 
+	const network_seed		= crypto.randomBytes( 8 ).toString("hex");
 	const actors			= await holochain.backdrop({
 	    "devhub":		DEVHUB_PATH,
 	}, {
@@ -420,7 +395,7 @@ describe("App Store + DevHub", () => {
 		"bobby",
 		"carol",
 	    ],
-	    "network_seed": "test-network",
+	    network_seed,
 	});
 	organize_clients( actors );
 
@@ -431,7 +406,7 @@ describe("App Store + DevHub", () => {
 	    await holochain.admin.generateAgent(),
 	    APPSTORE_PATH,
 	    {
-		"network_seed": "test-network",
+		network_seed,
 	    }
 	);
 	organize_clients({
@@ -459,6 +434,14 @@ describe("App Store + DevHub", () => {
 	}
 	{
 	    let whoami			= await clients.carol.devhub.call("dnarepo", "dna_library", "whoami", null, 30_000 );
+	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
+	}
+	{
+	    let whoami			= await clients.bobby.devhub.call("happs", "happ_library", "whoami", null, 30_000 );
+	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
+	}
+	{
+	    let whoami			= await clients.carol.devhub.call("happs", "happ_library", "whoami", null, 30_000 );
 	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
 	}
 

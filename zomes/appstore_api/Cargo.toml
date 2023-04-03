@@ -15,7 +15,7 @@ hc_utils = {path = "../../hc_utils"}
 hdk = "0.1.0"
 hex = "0"
 mere_memory_types = "0.60.1"
-portal_types = {path = "../../portal_types"}
+hc_portal_types = "0.3.0"
 rmp-serde = "1.1.1"
 rmpv = { version = "1.0.0", features = ["with-serde"] }
 serde = "1"

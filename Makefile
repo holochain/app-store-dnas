@@ -10,14 +10,14 @@ WEBASSETS_DNA		= tests/devhub/web_assets.dna
 
 APPSTORE_HAPP		= ${NAME}.happ
 APPSTORE_DNA		= bundled/appstore.dna
+
+PORTAL_VERSION		= v0.3.0
 PORTAL_DNA		= bundled/portal.dna
 TARGET			= release
 
 # Zomes (WASM)
 APPSTORE_WASM		= zomes/appstore.wasm
 APPSTORE_API_WASM	= zomes/appstore_api.wasm
-PORTAL_WASM		= zomes/portal.wasm
-PORTAL_API_WASM		= zomes/portal_api.wasm
 
 # External Zomes (WASM)
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
@@ -42,18 +42,18 @@ clean:
 	    $(APPSTORE_HAPP) \
 	    $(APPSTORE_DNA) $(PORTAL_DNA) \
 	    $(APPSTORE_WASM) $(APPSTORE_API_WASM) \
-	    $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM) \
-	    $(PORTAL_WASM) $(PORTAL_API_WASM)
+	    $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM)
 
 rebuild:			clean build
-build:				$(APPSTORE_HAPP) $(PORTAL_HAPP)
+build:				$(APPSTORE_HAPP)
 
 
 $(APPSTORE_HAPP):		$(APPSTORE_DNA) $(PORTAL_DNA) bundled/happ.yaml
 	hc app pack -o $@ ./bundled/
 
 $(APPSTORE_DNA):		$(APPSTORE_WASM) $(APPSTORE_API_WASM) $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM)
-$(PORTAL_DNA):			$(PORTAL_WASM) $(PORTAL_API_WASM)
+$(PORTAL_DNA):
+	wget -O $@ "https://github.com/holochain/portal-dna/releases/download/$(PORTAL_VERSION)/portal.dna"
 
 bundled/%.dna:			bundled/%/dna.yaml
 	@echo "Packaging '$*': $@"
@@ -103,7 +103,7 @@ use-npm-backdrop:
 test:				test-unit test-integration		test-e2e
 test-debug:			test-unit test-integration-debug	test-e2e-debug
 
-test-unit:			test-unit test-unit-appstore
+test-unit:			test-unit-appstore
 test-unit-%:
 	cd zomes;		RUST_BACKTRACE=1 cargo test $* -- --nocapture
 
@@ -115,17 +115,13 @@ tests/test.gz:
 # DNAs
 test-setup:			tests/node_modules
 
-test-integration:		test-setup test-appstore	test-portal
-test-integration-debug:		test-setup test-appstore-debug	test-portal-debug
+test-integration:		test-setup test-appstore
+test-integration-debug:		test-setup test-appstore-debug
 
 test-appstore:			test-setup $(APPSTORE_DNA)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_appstore.js
 test-appstore-debug:		test-setup $(APPSTORE_DNA)
 	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_appstore.js
-test-portal:			test-setup $(PORTAL_DNA)
-	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_portal.js
-test-portal-debug:		test-setup $(PORTAL_DNA)
-	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_portal.js
 
 test-e2e:			test-setup test-multi
 test-e2e-debug:			test-setup test-multi-debug
