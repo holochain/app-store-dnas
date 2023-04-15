@@ -13,10 +13,11 @@ const msgpack				= require('@msgpack/msgpack');
 const json				= require('@whi/json');
 const { ActionHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
-const { Holochain }			= require('@whi/holochain-backdrop');
 const { CruxConfig }			= require('@whi/crux-payload-parser');
+const { Holochain,
+	HolochainClientLib }		= require('@whi/holochain-backdrop');
 const { ConductorError,
-	...hc_client }			= require('@whi/holochain-client');
+	...hc_client }			= HolochainClientLib;
 
 const { expect_reject }			= require('../utils.js');
 
@@ -58,7 +59,7 @@ function publisher_tests () {
 
 	const publisher = publisher_1	= await clients.alice.call("appstore", "appstore_api", "create_publisher", createPublisherInput() );
 
-	log.debug( json.debug( publisher ) );
+	// log.debug( json.debug( publisher ) );
 
 	expect( publisher.editors	).to.have.length( 2 );
     });
@@ -132,7 +133,7 @@ function app_tests () {
 
 	const app = app_1		= await clients.alice.call("appstore", "appstore_api", "create_app", createAppInput() );
 
-	log.debug( json.debug( app ) );
+	// log.debug( json.debug( app ) );
 
 	expect( app.editors		).to.have.length( 2 );
     });

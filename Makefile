@@ -11,7 +11,6 @@ WEBASSETS_DNA		= tests/devhub/web_assets.dna
 APPSTORE_HAPP		= ${NAME}.happ
 APPSTORE_DNA		= bundled/appstore.dna
 
-PORTAL_VERSION		= v0.3.0
 PORTAL_DNA		= bundled/portal.dna
 TARGET			= release
 
@@ -53,7 +52,7 @@ $(APPSTORE_HAPP):		$(APPSTORE_DNA) $(PORTAL_DNA) bundled/happ.yaml
 
 $(APPSTORE_DNA):		$(APPSTORE_WASM) $(APPSTORE_API_WASM) $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM)
 $(PORTAL_DNA):
-	wget -O $@ "https://github.com/holochain/portal-dna/releases/download/$(PORTAL_VERSION)/portal.dna"
+	wget -O $@ "https://github.com/holochain/portal-dna/releases/download/v$(NEW_PORTAL_VERSION)/portal.dna"
 
 bundled/%.dna:			bundled/%/dna.yaml
 	@echo "Packaging '$*': $@"
@@ -83,17 +82,17 @@ $(DEVHUB_HAPP):			$(DNAREPO_DNA) $(HAPPS_DNA) $(WEBASSETS_DNA) $(PORTAL_DNA) tes
 
 use-local-client:
 	cd tests; npm uninstall @whi/holochain-client
-	cd tests; npm install --save ../../js-holochain-client/whi-holochain-client-0.78.0.tgz
+	cd tests; npm install --save-dev ../../holochain-client-js/
 use-npm-client:
 	cd tests; npm uninstall @whi/holochain-client
-	cd tests; npm install --save @whi/holochain-client
+	cd tests; npm install --save-dev @whi/holochain-client
 
 use-local-backdrop:
 	cd tests; npm uninstall @whi/holochain-backdrop
-	cd tests; npm install --save ../../node-holochain-backdrop/
+	cd tests; npm install --save-dev ../../node-holochain-backdrop/
 use-npm-backdrop:
 	cd tests; npm uninstall @whi/holochain-backdrop
-	cd tests; npm install --save @whi/holochain-backdrop
+	cd tests; npm install --save-dev @whi/holochain-backdrop
 
 
 
@@ -148,16 +147,19 @@ clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
 PRE_HDK_VERSION = "0.1.0"
-NEW_HDK_VERSION = "0.2.0-beta-rc.1"
+NEW_HDK_VERSION = "0.2.0-beta-rc.4"
 
 PRE_HDI_VERSION = "0.2.0"
-NEW_HDI_VERSION = "0.3.0-beta-rc.1"
+NEW_HDI_VERSION = "0.3.0-beta-rc.3"
 
-PRE_CRUD_VERSION = "0.3.0"
-NEW_CRUD_VERSION = "0.4.0"
+PRE_CRUD_VERSION = "0.4.0"
+NEW_CRUD_VERSION = "0.5.0"
 
-PRE_MM_VERSION = "0.79.0"
-NEW_MM_VERSION = "0.80.0"
+PRE_MM_VERSION = "0.60.1"
+NEW_MM_VERSION = "0.82.0"
+
+PRE_PORTAL_VERSION = "0.3.0"
+NEW_PORTAL_VERSION = "0.4.0"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ hc_utils
 
@@ -169,4 +171,7 @@ update-crud-version:
 	git grep -l $(PRE_CRUD_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_CRUD_VERSION)/$(NEW_CRUD_VERSION)/g'
 update-mere-memory-version:
 	rm -f zomes/mere_memory*.wasm
-#	git grep -l $(PRE_MM_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_MM_VERSION)/$(NEW_MM_VERSION)/g'
+	git grep -l $(PRE_MM_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_MM_VERSION)/$(NEW_MM_VERSION)/g'
+update-portal-version:
+	git grep -l $(PRE_PORTAL_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_PORTAL_VERSION)/$(NEW_PORTAL_VERSION)/g'
+	rm -f $(PORTAL_DNA)

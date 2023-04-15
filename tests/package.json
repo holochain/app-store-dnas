@@ -9,14 +9,13 @@
   "dependencies": {
     "@faker-js/faker": "^7.3.0",
     "@whi/holo-hash": "^0.3.0",
-    "@whi/holochain-backdrop": "^2.0.0",
-    "@whi/holochain-client": "^0.80.1",
     "@whi/json": "^0.1.5",
     "@whi/stdlog": "^0.3.4",
     "ws": "^8.2.2"
   },
   "devDependencies": {
     "@whi/crux-payload-parser": "^0.3.2",
+    "@whi/holochain-backdrop": "^2.2.0",
     "chai": "^4.3.4",
     "mocha": "^10.1.0",
     "why-is-node-running": "^2.2.0"
