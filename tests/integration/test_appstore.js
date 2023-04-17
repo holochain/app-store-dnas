@@ -125,8 +125,9 @@ function createAppInput ( overrides ) {
 };
 
 
+let app_1;
+
 function app_tests () {
-    let app_1;
 
     it("should create app profile", async function () {
 	this.timeout( 10_000 );
@@ -169,24 +170,82 @@ function app_tests () {
 }
 
 
+const ICON_SIZE_LIMIT		= 204_800;
+
 function errors_tests () {
+    it("should fail to update publisher because bad author", async function () {
+	this.timeout( 10_000 );
 
-    // it("should fail to create Publisher because ", async function () {
-    // 	await expect_reject( async () => {
-    // 	    await clients.alice.call("appstore", "appstore_api", "create_publisher", createPublisherInput({
-    // 		""
-    // 	    }) );
-    // 	}, ConductorError, "It broke" );
+	await expect_reject( async () => {
+	    await clients.bobby.call("appstore", "appstore_api", "update_publisher", {
+		"base": publisher_1.$action,
+		"properties": {
+		    "name": "Malicious",
+		},
+	    });
+	}, ConductorError, "InvalidCommit error: Previous entry author does not match Action author" );
+    });
 
-    // });
+    it("should fail to update app because bad author", async function () {
+	this.timeout( 10_000 );
 
-    // it("should fail to update another Agent's zome", async function () {
-    // 	await expect_reject( async () => {
-    // 	    throw new TypeError(`Not implemented`);
-    // 	}, ConductorError, "It broke" );
+	await expect_reject( async () => {
+	    await clients.bobby.call("appstore", "appstore_api", "update_app", {
+		"base": app_1.$action,
+		"properties": {
+		    "name": "Malicious",
+		},
+	    });
+	}, ConductorError, "InvalidCommit error: Previous entry author does not match Action author" );
+    });
 
-    // });
+    it("should fail to create publisher because icon is too big", async function () {
+	this.timeout( 10_000 );
 
+	await expect_reject( async () => {
+	    const input			= createPublisherInput();
+	    input.icon			= new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0);
+	    await clients.alice.call("appstore", "appstore_api", "create_publisher", input );
+	}, ConductorError, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+    });
+
+    it("should fail to update publisher because icon is too big", async function () {
+	this.timeout( 10_000 );
+
+	await expect_reject( async () => {
+	    const memory_addr		= await clients.alice.call("appstore", "mere_memory_api", "save_bytes", new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0) );
+	    await clients.alice.call("appstore", "appstore_api", "update_publisher", {
+		"base": publisher_1.$action,
+		"properties": {
+		    "icon": memory_addr,
+		},
+	    });
+	}, ConductorError, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+    });
+
+    it("should fail to create app because icon is too big", async function () {
+	this.timeout( 10_000 );
+
+	await expect_reject( async () => {
+	    const input			= createAppInput();
+	    input.icon			= new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0);
+	    await clients.alice.call("appstore", "appstore_api", "create_app", input );
+	}, ConductorError, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+    });
+
+    it("should fail to update app because icon is too big", async function () {
+	this.timeout( 10_000 );
+
+	await expect_reject( async () => {
+	    const memory_addr		= await clients.alice.call("appstore", "mere_memory_api", "save_bytes", new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0) );
+	    await clients.alice.call("appstore", "appstore_api", "update_app", {
+		"base": app_1.$action,
+		"properties": {
+		    "icon": memory_addr,
+		},
+	    });
+	}, ConductorError, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+    });
 }
 
 describe("Appstore", () => {
@@ -203,6 +262,8 @@ describe("Appstore", () => {
 	    "test_happ": {
 		"appstore":	APPSTORE_DNA_PATH,
 	    },
+	}, {
+	    "actors": [ "alice", "bobby" ],
 	});
 
 	for ( let name in actors ) {
@@ -218,6 +279,10 @@ describe("Appstore", () => {
 	{
 	    let whoami			= await clients.alice.call( "appstore", "appstore_api", "whoami", null, 30_000 );
 	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
+	}
+	{
+	    let whoami			= await clients.bobby.call( "appstore", "appstore_api", "whoami", null, 30_000 );
+	    log.normal("Bobby whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
 	}
     });
 

@@ -65,6 +65,7 @@ dependencies = [
  "hc_utils",
  "hdi",
  "hdk",
+ "mere_memory_types",
  "serde",
  "serde_yaml",
  "thiserror",
@@ -1357,9 +1358,9 @@ dependencies = [
 
 [[package]]
 name = "mere_memory_types"
-version = "0.82.0"
+version = "0.83.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22aedf62aa89f3e021f33fa126121c03a0596e6c5972051104849678e8fda76a"
+checksum = "819f55f8a0e1aa9b957ff37de3b08144252813810af80cf4e7579a1a33bc350d"
 dependencies = [
  "hdi",
  "serde",
