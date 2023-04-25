@@ -12,6 +12,7 @@ use appstore::{
     GetEntityInput, UpdateEntityInput,
     LocationTriplet,
     WebAddress,
+    DeprecationNotice,
 };
 use crate::{
     AppResult,
@@ -153,6 +154,29 @@ pub fn update(input: UpdateInput) -> AppResult<Entity<PublisherEntry>> {
 	})?;
 
     // let previous = previous.unwrap();
+
+    Ok( entity )
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct DeprecateInput {
+    pub base: ActionHash,
+    pub message: String,
+}
+
+pub fn deprecate(input: DeprecateInput) -> AppResult<Entity<PublisherEntry>> {
+    debug!("Deprecating hApp: {}", input.base );
+    let entity = update_entity(
+	&input.base,
+	|mut current : PublisherEntry, _| {
+	    current.deprecation = Some(DeprecationNotice {
+		message: input.message.to_owned(),
+		recommended_alternatives: None,
+	    });
+
+	    Ok( current )
+	})?;
 
     Ok( entity )
 }

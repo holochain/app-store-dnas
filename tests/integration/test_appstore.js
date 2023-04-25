@@ -103,6 +103,33 @@ function publisher_tests () {
 	expect( publishers		).to.have.length( 1 );
     });
 
+    it("should deprecate publisher", async function () {
+	const publisher		= await clients.alice.call("appstore", "appstore_api", "create_publisher", createPublisherInput() );
+
+	{
+	    const publishers	= await clients.alice.call("appstore", "appstore_api", "get_my_publishers");
+	    expect( publishers	).to.have.length( 2 );
+	}
+	{
+	    const publishers	= await clients.alice.call("appstore", "appstore_api", "get_all_publishers");
+	    expect( publishers	).to.have.length( 2 );
+	}
+
+	await clients.alice.call("appstore", "appstore_api", "deprecate_publisher", {
+	    "base": publisher.$action,
+	    "message": "Oopsie!",
+	});
+
+	{
+	    const publishers	= await clients.alice.call("appstore", "appstore_api", "get_my_publishers");
+	    expect( publishers	).to.have.length( 1 );
+	}
+	{
+	    const publishers	= await clients.alice.call("appstore", "appstore_api", "get_all_publishers");
+	    expect( publishers	).to.have.length( 1 );
+	}
+    });
+
 }
 
 
@@ -165,6 +192,33 @@ function app_tests () {
 	const apps		= await clients.alice.call("appstore", "appstore_api", "get_all_apps");
 
 	expect( apps		).to.have.length( 1 );
+    });
+
+    it("should deprecate app", async function () {
+	const app		= await clients.alice.call("appstore", "appstore_api", "create_app", createAppInput() );
+
+	{
+	    const apps		= await clients.alice.call("appstore", "appstore_api", "get_my_apps");
+	    expect( apps	).to.have.length( 2 );
+	}
+	{
+	    const apps		= await clients.alice.call("appstore", "appstore_api", "get_all_apps");
+	    expect( apps	).to.have.length( 2 );
+	}
+
+	await clients.alice.call("appstore", "appstore_api", "deprecate_app", {
+	    "base": app.$action,
+	    "message": "Oopsie!",
+	});
+
+	{
+	    const apps		= await clients.alice.call("appstore", "appstore_api", "get_my_apps");
+	    expect( apps	).to.have.length( 1 );
+	}
+	{
+	    const apps		= await clients.alice.call("appstore", "appstore_api", "get_all_apps");
+	    expect( apps	).to.have.length( 1 );
+	}
     });
 
 }

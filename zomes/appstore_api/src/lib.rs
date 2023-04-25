@@ -88,6 +88,13 @@ fn update_publisher(input: publisher::UpdateInput) -> ExternResult<EntityRespons
 }
 
 #[hdk_extern]
+fn deprecate_publisher(input: publisher::DeprecateInput) -> ExternResult<EntityResponse<PublisherEntry>> {
+    let entity = catch!( publisher::deprecate( input ) );
+
+    Ok(composition( entity, ENTITY_MD ))
+}
+
+#[hdk_extern]
 fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Response<Vec<Entity<PublisherEntry>>>> {
     let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
 	input.for_agent.to_string(), ANCHOR_PUBLISHERS.to_string(),
@@ -96,6 +103,11 @@ fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Response<Ve
 	hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )
 	    .map_err(|e| e.into())
     );
+    let collection = collection.into_iter()
+	.filter(|entity : &Entity<PublisherEntry>| {
+	    entity.content.deprecation.is_none()
+	})
+	.collect();
 
     Ok(composition(
 	collection,
@@ -117,6 +129,11 @@ fn get_all_publishers(_: ()) -> ExternResult<Response<Vec<Entity<PublisherEntry>
 	hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )
 	    .map_err(|e| e.into())
     );
+    let collection = collection.into_iter()
+	.filter(|entity : &Entity<PublisherEntry>| {
+	    entity.content.deprecation.is_none()
+	})
+	.collect();
 
     Ok(composition(
 	collection,
@@ -148,6 +165,13 @@ fn update_app(input: app::UpdateInput) -> ExternResult<EntityResponse<AppEntry>>
 }
 
 #[hdk_extern]
+fn deprecate_app(input: app::DeprecateInput) -> ExternResult<EntityResponse<AppEntry>> {
+    let entity = catch!( app::deprecate( input ) );
+
+    Ok(composition( entity, ENTITY_MD ))
+}
+
+#[hdk_extern]
 fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
     let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
 	input.for_agent.to_string(), ANCHOR_APPS.to_string(),
@@ -156,6 +180,11 @@ fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Response<Vec<Enti
 	hc_crud::get_entities( &pathhash, LinkTypes::App, None )
 	    .map_err(|e| e.into())
     );
+    let collection = collection.into_iter()
+	.filter(|entity : &Entity<AppEntry>| {
+	    entity.content.deprecation.is_none()
+	})
+	.collect();
 
     Ok(composition(
 	collection,
@@ -177,6 +206,11 @@ fn get_all_apps(_: ()) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
 	hc_crud::get_entities( &pathhash, LinkTypes::App, None )
 	    .map_err(|e| e.into())
     );
+    let collection = collection.into_iter()
+	.filter(|entity : &Entity<AppEntry>| {
+	    entity.content.deprecation.is_none()
+	})
+	.collect();
 
     Ok(composition(
 	collection,
