@@ -52,7 +52,7 @@ $(APPSTORE_HAPP):		$(APPSTORE_DNA) $(PORTAL_DNA) bundled/happ.yaml
 
 $(APPSTORE_DNA):		$(APPSTORE_WASM) $(APPSTORE_API_WASM) $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM)
 $(PORTAL_DNA):
-	wget -O $@ "https://github.com/holochain/portal-dna/releases/download/v$(NEW_PORTAL_VERSION)/portal.dna"
+	cp ../portal-dna/bundled/portal.dna $@
 
 bundled/%.dna:			bundled/%/dna.yaml
 	@echo "Packaging '$*': $@"
@@ -70,9 +70,9 @@ zomes/%/Cargo.lock:
 	touch $@
 
 $(MERE_MEMORY_WASM):
-	curl --fail -L "https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v$$(echo $(NEW_MM_VERSION))/mere_memory.wasm" --output $@
+	cp ../zome-mere-memory/target/wasm32-unknown-unknown/release/mere_memory.wasm $@
 $(MERE_MEMORY_API_WASM):
-	curl --fail -L "https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v$$(echo $(NEW_MM_VERSION))/mere_memory_api.wasm" --output $@
+	cp ../zome-mere-memory/target/wasm32-unknown-unknown/release/mere_memory_api.wasm $@
 
 tests/devhub/%.dna:
 	wget -O $@ "https://github.com/holochain/devhub-dnas/releases/download/$(DEVHUB_VERSION)/$*.dna"
@@ -146,17 +146,17 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
-PRE_HDK_VERSION = "0.2.0-beta-rc.4"
-NEW_HDK_VERSION = "0.2.0"
+PRE_HDK_VERSION = "0.2.0"
+NEW_HDK_VERSION = "0.1.3-beta-rc.1"
 
-PRE_HDI_VERSION = "0.3.0-beta-rc.3"
-NEW_HDI_VERSION = "0.3.0"
+PRE_HDI_VERSION = "0.3.0"
+NEW_HDI_VERSION = "0.2.3-beta-rc.0"
 
-PRE_CRUD_VERSION = "0.4.0"
-NEW_CRUD_VERSION = "0.5.0"
+PRE_CRUD_VERSION = "0.5.0"
+NEW_CRUD_VERSION = "0.3.0"
 
-PRE_MM_VERSION = "0.82.0"
-NEW_MM_VERSION = "0.83.0"
+PRE_MM_VERSION = "0.83.0"
+NEW_MM_VERSION = "0.60.1"
 
 PRE_PORTAL_VERSION = "0.3.0"
 NEW_PORTAL_VERSION = "0.4.0"

@@ -10,12 +10,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 appstore = {path = "../appstore"}
-hc_crud_caps = "0.5.0"
+hc_crud_caps = { git = "https://github.com/mjbrisebois/rust-hc-crud-caps.git", rev = "10d042c36024e2d839008bdb621595a8c09f0b74" }
 hc_utils = {path = "../../hc_utils"}
-hdk = "0.2.0"
+hdk = "0.1.3-beta-rc.1"
 hex = "0"
-mere_memory_types = "0.83.0"
-hc_portal_types = "0.4.0"
+mere_memory_types = "0.60.1"
+hc_portal_types = { git = "https://github.com/holochain/portal-dna.git", rev = "bf5f567b0c0186f6e6e73660857de1a68f3aff6f" }
 rmp-serde = "1.1.1"
 rmpv = { version = "1.0.0", features = ["with-serde"] }
 serde = "1"

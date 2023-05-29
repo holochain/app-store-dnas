@@ -14,10 +14,9 @@ const json				= require('@whi/json');
 const { ActionHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { CruxConfig }			= require('@whi/crux-payload-parser');
-const { Holochain,
-	HolochainClientLib }		= require('@whi/holochain-backdrop');
-const { ConductorError,
-	...hc_client }			= HolochainClientLib;
+const { Holochain }			= require('@whi/holochain-backdrop');
+// const { ConductorError,
+// 	...hc_client }			= HolochainClientLib;
 
 const { expect_reject }			= require('../utils.js');
 
@@ -237,7 +236,7 @@ function errors_tests () {
 		    "name": "Malicious",
 		},
 	    });
-	}, ConductorError, "InvalidCommit error: Previous entry author does not match Action author" );
+	}, "InvalidCommit error: Previous entry author does not match Action author" );
     });
 
     it("should fail to update app because bad author", async function () {
@@ -250,7 +249,7 @@ function errors_tests () {
 		    "name": "Malicious",
 		},
 	    });
-	}, ConductorError, "InvalidCommit error: Previous entry author does not match Action author" );
+	}, "InvalidCommit error: Previous entry author does not match Action author" );
     });
 
     it("should fail to create publisher because icon is too big", async function () {
@@ -260,7 +259,7 @@ function errors_tests () {
 	    const input			= createPublisherInput();
 	    input.icon			= new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0);
 	    await clients.alice.call("appstore", "appstore_api", "create_publisher", input );
-	}, ConductorError, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to update publisher because icon is too big", async function () {
@@ -274,7 +273,7 @@ function errors_tests () {
 		    "icon": memory_addr,
 		},
 	    });
-	}, ConductorError, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to create app because icon is too big", async function () {
@@ -284,7 +283,7 @@ function errors_tests () {
 	    const input			= createAppInput();
 	    input.icon			= new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0);
 	    await clients.alice.call("appstore", "appstore_api", "create_app", input );
-	}, ConductorError, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to update app because icon is too big", async function () {
@@ -298,7 +297,7 @@ function errors_tests () {
 		    "icon": memory_addr,
 		},
 	    });
-	}, ConductorError, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 }
 
