@@ -11,11 +11,11 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 appstore_types = {path = "../../appstore_types"}
 essence_payloads = "0.1"
-hc_crud_caps = "0.6.0"
+hc_crud_caps = "0.7.0"
 hc_utils = {path = "../../hc_utils"}
-hdi = "0.4.0-beta-dev.1"
-hdk = "0.3.0-beta-dev.2"
-mere_memory_types = "0.85.0"
+hdi = "0.4.0-beta-dev.5"
+hdk = "0.3.0-beta-dev.7"
+mere_memory_types = "0.86.0"
 serde = "1"
 serde_yaml = "0.8.17"
 thiserror = "1"

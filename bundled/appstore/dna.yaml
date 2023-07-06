@@ -1,9 +1,9 @@
 manifest_version: "1"
 name: appstore
 integrity:
-  uuid: 00000000-0000-0000-0000-000000000000
-  properties: ~
   origin_time: 2022-11-22T00:00:00.000000Z
+  network_seed: ~
+  properties: ~
   zomes:
     - name: appstore
       bundled: ../../zomes/appstore.wasm

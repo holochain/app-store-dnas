@@ -109,7 +109,7 @@ pub fn agentid () -> UtilResult<String> {
 }
 
 
-pub fn zome_call_response_as_result(response: ZomeCallResponse) -> UtilResult<zome_io::ExternIO> {
+pub fn zome_call_response_as_result(response: ZomeCallResponse) -> UtilResult<ExternIO> {
     Ok( match response {
 	ZomeCallResponse::Ok(bytes)
 	    => Ok(bytes),
