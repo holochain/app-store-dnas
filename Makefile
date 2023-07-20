@@ -76,8 +76,10 @@ $(MERE_MEMORY_API_WASM):
 tests/devhub/%.dna:
 	wget -O $@ "https://github.com/holochain/devhub-dnas/releases/download/$(DEVHUB_VERSION)/$*.dna"
 
-$(DEVHUB_HAPP):			$(DNAREPO_DNA) $(HAPPS_DNA) $(WEBASSETS_DNA) $(PORTAL_DNA) tests/devhub/happ.yaml
-	hc app pack -o $@ ./tests/devhub/
+# $(DEVHUB_HAPP):			$(DNAREPO_DNA) $(HAPPS_DNA) $(WEBASSETS_DNA) $(PORTAL_DNA) tests/devhub/happ.yaml
+# 	hc app pack -o $@ ./tests/devhub/
+$(DEVHUB_HAPP):			../devhub-dnas/devhub.happ
+	cp $< $@
 
 use-local-client:
 	cd tests; npm uninstall @whi/holochain-client
@@ -145,20 +147,20 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
-PRE_HDK_VERSION = "0.3.0-beta-dev.2"
-NEW_HDK_VERSION = "0.3.0-beta-dev.7"
+PRE_HDK_VERSION = "0.3.0-beta-dev.7"
+NEW_HDK_VERSION = "0.2.1-beta-rc.0"
 
-PRE_HDI_VERSION = "0.4.0-beta-dev.1"
-NEW_HDI_VERSION = "0.4.0-beta-dev.5"
+PRE_HDI_VERSION = "0.4.0-beta-dev.5"
+NEW_HDI_VERSION = "0.3.1-beta-rc.0"
 
-PRE_CRUD_VERSION = "0.6.0"
-NEW_CRUD_VERSION = "0.7.0"
+PRE_CRUD_VERSION = "0.7.0"
+NEW_CRUD_VERSION = "0.8.0"
 
-PRE_MM_VERSION = "0.85.0"
-NEW_MM_VERSION = "0.86.0"
+PRE_MM_VERSION = "0.86.0"
+NEW_MM_VERSION = "0.87.0"
 
-PRE_PORTAL_VERSION = "0.5.0"
-NEW_PORTAL_VERSION = "0.6.0"
+PRE_PORTAL_VERSION = "0.6.0"
+NEW_PORTAL_VERSION = "0.7.0"
 
 DEVHUB_VERSION = v0.12.0
 
