@@ -142,8 +142,8 @@ function createAppInput ( overrides ) {
 	"publisher": publisher_1.$id,
 	"devhub_address": {
 	    "dna": TEST_DNA_HASH,
-	    "happ": publisher_1.$addr,
-	    "gui": publisher_1.$addr,
+	    "happ": publisher_1.$id,
+	    "gui": publisher_1.$id,
 	},
 	"editors": [
 	    new AgentPubKey( crypto.randomBytes(32) )

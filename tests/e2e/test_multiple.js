@@ -63,7 +63,7 @@ async function setup () {
 	hdk_version,
 	"integrity_zomes": [{
 	    "name": "appstore",
-	    "zome": new EntryHash( zome_version.for_zome ),
+	    "zome": new ActionHash( zome_version.for_zome ),
 	    "version": zome_version.$id,
 	    "resource": new EntryHash( zome_version.mere_memory_addr ),
 	    "resource_hash": zome_version.mere_memory_hash,
@@ -84,7 +84,7 @@ async function setup () {
 	"changelog": "",
 	"for_gui": gui.$id,
 	"for_happ_releases": [],
-	"web_asset_id": gui_file.$addr,
+	"web_asset_id": gui_file.$id,
     });
 
     let happ				= await clients.bobby.devhub.call("happs", "happ_library", "create_happ", {

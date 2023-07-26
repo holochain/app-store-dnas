@@ -10,9 +10,9 @@ pub type EntityId = ActionHash;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebHappConfig {
     pub dna: DnaHash,
-    // pub entry: EntryHash,
-    pub happ: EntryHash,
-    pub gui: Option<EntryHash>,
+    // pub entry: ActionHash,
+    pub happ: ActionHash,
+    pub gui: Option<ActionHash>,
 
     // // optional
     // pub action: Option<ActionHash>,
@@ -23,7 +23,7 @@ pub struct DeprecationNotice {
     pub message: String,
 
     // optional
-    pub recommended_alternatives: Option<Vec<EntryHash>>,
+    pub recommended_alternatives: Option<Vec<ActionHash>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
