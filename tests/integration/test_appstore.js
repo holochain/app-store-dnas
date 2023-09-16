@@ -15,8 +15,6 @@ const { ActionHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { CruxConfig }			= require('@whi/crux-payload-parser');
 const { Holochain }			= require('@whi/holochain-backdrop');
-// const { ConductorError,
-// 	...hc_client }			= HolochainClientLib;
 
 const { expect_reject }			= require('../utils.js');
 

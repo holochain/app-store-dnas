@@ -14,13 +14,10 @@ const json				= require('@whi/json');
 const { ActionHash, EntryHash, AgentPubKey,
 	HoloHash }			= require('@whi/holo-hash');
 const { Holochain,
-	HolochainClientLib,
-	Config }			= require('@whi/holochain-backdrop');
+	TimeoutError }			= require('@whi/holochain-backdrop');
+const { AdminClient }			= require('@whi/holochain-client');
 const { CruxConfig,
 	Translator }			= require('@whi/crux-payload-parser');
-const { AdminClient,
-	TimeoutError,
-	...hc_client }			= HolochainClientLib;
 
 const { expect_reject }			= require('../utils.js');
 

@@ -2,7 +2,6 @@
 SHELL			= bash
 
 NAME			= appstore
-DEVHUB_VERSION		= v0.12.0
 DEVHUB_HAPP		= tests/devhub.happ
 DNAREPO_DNA		= tests/devhub/dnarepo.dna
 HAPPS_DNA		= tests/devhub/happs.dna
@@ -75,7 +74,7 @@ $(MERE_MEMORY_API_WASM):
 	cp ../zome-mere-memory/target/wasm32-unknown-unknown/release/mere_memory_api.wasm $@
 
 tests/devhub/%.dna:
-	wget -O $@ "https://github.com/holochain/devhub-dnas/releases/download/$(DEVHUB_VERSION)/$*.dna"
+	cp ../devhub-dnas/bundled/$*.dna $@
 
 $(DEVHUB_HAPP):			$(DNAREPO_DNA) $(HAPPS_DNA) $(WEBASSETS_DNA) $(PORTAL_DNA) tests/devhub/happ.yaml
 	hc app pack -o $@ ./tests/devhub/
@@ -146,32 +145,24 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
-PRE_HDK_VERSION = "0.2.0"
-NEW_HDK_VERSION = "0.1.3-beta-rc.1"
+PRE_HDK_VERSION = "0.1.3-beta-rc.1"
+NEW_HDK_VERSION = "0.1.4"
 
-PRE_HDI_VERSION = "0.3.0"
-NEW_HDI_VERSION = "0.2.3-beta-rc.0"
+PRE_HDI_VERSION = "0.2.3-beta-rc.0"
+NEW_HDI_VERSION = "0.2.4"
 
-PRE_CRUD_VERSION = "0.5.0"
-NEW_CRUD_VERSION = "0.3.0"
-
-PRE_MM_VERSION = "0.83.0"
-NEW_MM_VERSION = "0.60.1"
-
-PRE_PORTAL_VERSION = "0.3.0"
-NEW_PORTAL_VERSION = "0.4.0"
+PRE_CRUD_VERSION = rev = "10d042c36024e2d839008bdb621595a8c09f0b74"
+NEW_CRUD_VERSION = rev = "ccee03e7493cd45d73b2211f4f465cabde28e357"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ hc_utils
 
 update-hdk-version:
-	git grep -l $(PRE_HDK_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDK_VERSION)/$(NEW_HDK_VERSION)/g'
+	git grep -l '$(PRE_HDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDK_VERSION)/$(NEW_HDK_VERSION)/g'
 update-hdi-version:
-	git grep -l $(PRE_HDI_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDI_VERSION)/$(NEW_HDI_VERSION)/g'
+	git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDI_VERSION)/$(NEW_HDI_VERSION)/g'
 update-crud-version:
-	git grep -l $(PRE_CRUD_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_CRUD_VERSION)/$(NEW_CRUD_VERSION)/g'
+	git grep -l '$(PRE_CRUD_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_CRUD_VERSION)/$(NEW_CRUD_VERSION)/g'
 update-mere-memory-version:
-	rm -f zomes/mere_memory*.wasm
-	git grep -l $(PRE_MM_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_MM_VERSION)/$(NEW_MM_VERSION)/g'
+	rm zomes/mere_memory*.wasm
 update-portal-version:
-	git grep -l $(PRE_PORTAL_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_PORTAL_VERSION)/$(NEW_PORTAL_VERSION)/g'
 	rm -f $(PORTAL_DNA)
