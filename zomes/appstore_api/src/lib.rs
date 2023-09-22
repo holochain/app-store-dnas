@@ -2,6 +2,7 @@ mod constants;
 mod publisher;
 mod app;
 
+// use std::collections::BTreeMap;
 use hdk::prelude::*;
 pub use appstore::{
     LinkTypes,
@@ -29,6 +30,21 @@ pub use constants::{
     ANCHOR_AGENTS,
     ANCHOR_PUBLISHERS,
     ANCHOR_APPS,
+};
+use coop_content_sdk::{
+    GroupEntry,
+    hdi_extensions,
+    hdk_extensions,
+    group_ref,
+    create_group, get_group, update_group,
+    register_content_to_group,
+    get_all_group_content_latest,
+};
+use hdi_extensions::{
+    guest_error,
+};
+use hdk_extensions::{
+    UpdateEntryInput,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -214,6 +230,101 @@ fn get_all_apps(_: ()) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
 
     Ok(composition(
 	collection,
+	ENTITY_COLLECTION_MD
+    ))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FauxEntry {
+    pub group_id: ActionHash,
+}
+group_ref!( FauxEntry, group_id, group_id );
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemoveAppInput {
+    pub group_id: ActionHash,
+    pub app_id: ActionHash,
+}
+
+#[hdk_extern]
+fn remove_app(input: RemoveAppInput) -> ExternResult<Response<ActionHash>> {
+    let faux_entry = FauxEntry {
+        group_id: input.group_id,
+    };
+
+    let link_addr = register_content_to_group!({
+        entry: faux_entry,
+        target: input.app_id,
+    })?;
+
+    Ok(composition(
+	link_addr,
+	VALUE_MD
+    ))
+}
+
+#[hdk_extern]
+fn unremove_app(link_addr: ActionHash) -> ExternResult<Response<bool>> {
+    delete_link(link_addr)?;
+
+    Ok(composition(
+	true,
+	VALUE_MD
+    ))
+}
+
+
+
+//
+// Group CRUD
+//
+#[hdk_extern]
+pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
+    debug!("Creating new group entry: {:#?}", group );
+    let action_hash = create_group!( group )?;
+
+    Ok( action_hash )
+}
+
+
+#[hdk_extern]
+pub fn get_group(id: ActionHash) -> ExternResult<GroupEntry> {
+    debug!("Creating new group entry: {:#?}", id );
+    let group = get_group!( id )?;
+
+    Ok( group )
+}
+
+
+#[hdk_extern]
+pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionHash> {
+    debug!("Update group: {:#?}", input );
+    let action_hash = update_group!({
+        base: input.base,
+        entry: input.entry,
+    })?;
+
+    Ok( action_hash )
+}
+
+
+#[hdk_extern]
+fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
+    let removed_app_ids : Vec<ActionHash> = get_all_group_content_latest!({
+        group_id: group_id,
+    })?.into_iter()
+        .filter_map(|(origin, _latest)| {
+            Some( origin.into_action_hash()? )
+        })
+        .collect();
+    let apps = get_all_apps(())?.as_result()
+        .map_err(|err| guest_error!(format!("{:?}", err )))?
+        .into_iter()
+        .filter(|entity| !removed_app_ids.contains( &entity.id ) )
+        .collect();
+
+    Ok(composition(
+	apps,
 	ENTITY_COLLECTION_MD
     ))
 }
