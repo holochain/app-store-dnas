@@ -21,6 +21,8 @@ pub use appstore_types::{
 
     PublisherEntry,
     AppEntry,
+    ModeratorActionEntry,
+    GroupAnchorEntry,
 };
 
 
@@ -50,10 +52,16 @@ pub enum EntryTypes {
     Publisher(PublisherEntry),
     #[entry_def]
     App(AppEntry),
+    #[entry_def]
+    ModeratorAction(ModeratorActionEntry),
+    #[entry_def]
+    GroupAnchor(GroupAnchorEntry),
 }
 
 entry_model!( EntryTypes::Publisher( PublisherEntry ) );
 entry_model!( EntryTypes::App( AppEntry ) );
+entry_model!( EntryTypes::ModeratorAction( ModeratorActionEntry ) );
+entry_model!( EntryTypes::GroupAnchor( GroupAnchorEntry ) );
 
 
 #[hdk_link_types]
@@ -62,6 +70,8 @@ pub enum LinkTypes {
 
     Publisher,
     App,
+    ModeratorAction,
+    GroupAnchor,
 
     Anchor,
 }
@@ -77,6 +87,8 @@ impl<'de> Deserialize<'de> for LinkTypes {
 
 	    "Publisher" => Ok(LinkTypes::Publisher),
 	    "App" => Ok(LinkTypes::App),
+	    "ModeratorAction" => Ok(LinkTypes::ModeratorAction),
+	    "GroupAnchor" => Ok(LinkTypes::GroupAnchor),
 
 	    "Anchor" => Ok(LinkTypes::Anchor),
 

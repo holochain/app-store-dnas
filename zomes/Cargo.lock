@@ -95,6 +95,7 @@ name = "appstore_types"
 version = "0.1.0"
 dependencies = [
  "essence_payloads",
+ "hc_coop_content_sdk",
  "hc_crud_caps",
  "hdi",
  "rmpv",

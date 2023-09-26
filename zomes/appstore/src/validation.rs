@@ -31,6 +31,7 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 			ActionType::Create => validate_app_create( &op, content ),
 			_ => Ok(ValidateCallbackResult::Valid),
 		    },
+		    _ => Ok(ValidateCallbackResult::Valid),
 		};
 	    } else {
 		if let Entry::CapGrant(_) = store_entry.entry {
@@ -52,6 +53,7 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 			let original_entry : AppEntry = register_update.original_entry.unwrap().try_into()?;
 			validate_app_update( &op, content, original_entry )
 		    },
+		    _ => Ok(ValidateCallbackResult::Valid),
 		};
 	    }
 	},
@@ -63,6 +65,7 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 		return match entry_type {
 		    EntryTypes::Publisher(original_entry) => validate_publisher_delete( &op, original_entry ),
 		    EntryTypes::App(original_entry) => validate_app_delete( &op, original_entry ),
+		    _ => Ok(ValidateCallbackResult::Valid),
 		};
 	    }
 	},

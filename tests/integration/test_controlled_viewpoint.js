@@ -147,15 +147,17 @@ function group_tests () {
 	expect( apps			).to.have.length( 1 );
     });
 
-    let link_addr;
+    let ma_addr;
 
     it("should remove app from group view", async function () {
-	link_addr			= await clients.alice.call("appstore", "appstore_api", "remove_app", {
+	const moderator_action		= await clients.alice.call("appstore", "appstore_api", "remove_app", {
 	    "group_id": group_1,
 	    "app_id": app_1.$id,
+	    "message": "App fails to install and developer cannot be contacted",
 	});
+	ma_addr				= moderator_action.$id;
 
-	log.debug("Removed app: %s", link_addr );
+	log.debug("Removed app: %s", json.debug(moderator_action) );
 
 	const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1 );
 
@@ -165,7 +167,10 @@ function group_tests () {
     });
 
     it("should unremove app from group view", async function () {
-	const success			= await clients.alice.call("appstore", "appstore_api", "unremove_app", link_addr );
+	const success			= await clients.alice.call("appstore", "appstore_api", "unremove_app", {
+	    "moderator_action_base": ma_addr,
+	    "message": "Developer fixed the app",
+	});
 
 	log.debug("Unremoved app: %s", success );
 
@@ -174,6 +179,15 @@ function group_tests () {
 	log.debug( json.debug( apps ) );
 
 	expect( apps			).to.have.length( 1 );
+    });
+
+    it("should get moderator actions", async function () {
+	const moderator_actions		= await clients.alice.call("appstore", "appstore_api", "get_moderator_actions", {
+	    "group_id": group_1,
+	    "app_id": app_1.$id,
+	});
+
+	log.debug( json.debug( moderator_actions ) );
     });
 
 }
