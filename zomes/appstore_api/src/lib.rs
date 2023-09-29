@@ -41,16 +41,18 @@ use coop_content_sdk::{
     hdi_extensions,
     hdk_extensions,
     call_local_zome_decode,
-    create_group, get_group, update_group,
+    create_group, update_group,
     register_content_to_group,
     register_content_update_to_group,
     get_all_group_content_latest,
 };
 use hdi_extensions::{
     guest_error,
+    trace_origin_root,
 };
 use hdk_extensions::{
     UpdateEntryInput,
+    agent_id,
     exists,
     must_get,
     follow_evolutions,
@@ -128,11 +130,6 @@ fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Response<Ve
 	hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )
 	    .map_err(|e| e.into())
     );
-    let collection = collection.into_iter()
-	.filter(|entity : &Entity<PublisherEntry>| {
-	    entity.content.deprecation.is_none()
-	})
-	.collect();
 
     Ok(composition(
 	collection,
@@ -205,11 +202,6 @@ fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Response<Vec<Enti
 	hc_crud::get_entities( &pathhash, LinkTypes::App, None )
 	    .map_err(|e| e.into())
     );
-    let collection = collection.into_iter()
-	.filter(|entity : &Entity<AppEntry>| {
-	    entity.content.deprecation.is_none()
-	})
-	.collect();
 
     Ok(composition(
 	collection,
@@ -250,8 +242,7 @@ pub struct GetModeratorActionsInput {
     pub app_id: ActionHash,
 }
 
-#[hdk_extern]
-fn get_moderator_actions(input: GetModeratorActionsInput) -> ExternResult<Response<Vec<Vec<ModeratorActionEntry>>>> {
+fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> AppResult<Vec<Entity<ModeratorActionEntry>>> {
     // - Find group anchor
     // - Find moderator action link with tag 'app::<app_id>'
     // - Follow evolutions for group
@@ -267,128 +258,145 @@ fn get_moderator_actions(input: GetModeratorActionsInput) -> ExternResult<Respon
         Some( LinkTag::new( tag ) ),
     )?;
 
-    let action_histories = moderator_action_links
-        .into_iter()
-        .map(|link| {
+    let mayby_action_history = moderator_action_links
+        .iter()
+        .min_by_key( |link| link.timestamp );
+
+    Ok( match mayby_action_history {
+        Some(link) => {
             type Response = Vec<ActionHash>;
-            call_local_zome_decode!(
+            let history = call_local_zome_decode!(
                 Response,
                 "coop_content_csr",
                 "get_group_content_evolutions",
                 coop_content_sdk::GetGroupContentInput {
                     group_id: input.group_id.clone(),
-                    content_id: link.target,
+                    content_id: link.target.clone(),
                     full_trace: None,
                 }
-            )
-        })
-        .filter_map(|result| {
-            result.ok()
-        })
-        .map(|history| {
+            )?;
+
             history
                 .into_iter()
                 .filter_map(|addr| {
-                    ModeratorActionEntry::try_from( must_get( &addr ).ok()? ).ok()
+                    let entry = ModeratorActionEntry::try_from( must_get( &addr ).ok()? ).ok()?;
+                    Some(
+                        Entity {
+                            id: addr.clone(),
+                            address: hash_entry( entry.clone() ).ok()?,
+                            action: addr,
+                            ctype: entry.get_type(),
+                            content: entry,
+                        }
+                    )
                 })
                 .collect()
-        })
-        .collect();
+        },
+        None => vec![],
+    })
+}
+
+
+#[hdk_extern]
+fn get_moderator_actions(input: GetModeratorActionsInput) -> ExternResult<Response<Vec<Entity<ModeratorActionEntry>>>> {
+    let collection = catch!( get_moderator_actions_handler(input) );
 
     Ok(composition(
-	action_histories,
-	VALUE_MD
+	collection,
+	ENTITY_COLLECTION_MD
     ))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RemoveAppInput {
-    pub group_id: ActionHash,
-    pub app_id: ActionHash,
-    pub message: String,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
-}
-
 #[hdk_extern]
-fn remove_app(input: RemoveAppInput) -> ExternResult<Response<Entity<ModeratorActionEntry>>> {
-    // - Create a moderator action record
-    // - If not exists, create group anchor
-    // - Link moderator action to group anchor with tag 'app::<app_id>'
-    // - Add moderator action to group
-    let mut required_metadata = BTreeMap::new();
-    required_metadata.insert("remove".into(), (true).into() );
-
-    let group_rev = follow_evolutions( &input.group_id )?.last().unwrap().to_owned();
-    let moderator_action_entry = ModeratorActionEntry {
-        group_id: (input.group_id.clone(), group_rev),
-        message: input.message,
-        subject_id: input.app_id.clone(),
-        metadata: match input.metadata {
-            Some(mut metadata) => {
-                metadata.extend( required_metadata );
-                metadata
-            },
-            None => required_metadata,
-        },
-    };
-    let entity = hc_crud::create_entity( &moderator_action_entry )?;
-
-    let group_anchor_entry = GroupAnchorEntry {
-        group_id: input.group_id,
-    };
-    let group_anchor_hash = hash_entry( &group_anchor_entry )?;
-
-    if !exists( &group_anchor_hash )? {
-        let group_anchor_addr = create_entry( group_anchor_entry.to_input() )?;
-
-        register_content_to_group!({
-            entry: group_anchor_entry,
-            target: group_anchor_addr,
-        })?;
-    }
-
-    register_content_to_group!({
-        entry: moderator_action_entry,
-        target: entity.id.clone(),
-    })?;
-
-    let tag = format!("app::{}", input.app_id );
-    create_link( group_anchor_hash, entity.id.clone(), LinkTypes::ModeratorAction, tag.into_bytes() )?;
+fn get_moderated_state(input: GetModeratorActionsInput) -> ExternResult<Response<Option<Entity<ModeratorActionEntry>>>> {
+    let history = catch!( get_moderator_actions_handler(input) );
+    let state = history.last()
+        .map( |state| state.to_owned() );
 
     Ok(composition(
-	entity,
+	state,
 	ENTITY_MD
     ))
 }
 
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UnremoveAppInput {
-    pub moderator_action_base: ActionHash,
+pub struct UpdateModeratorActionInput {
+    pub group_id: ActionHash,
+    pub app_id: ActionHash,
     pub message: String,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: BTreeMap<String, serde_yaml::Value>,
 }
 
 #[hdk_extern]
-fn unremove_app(input: UnremoveAppInput) -> ExternResult<Response<ActionHash>> {
-    // - Update moderator action record
-    // - Add moderator action update to group
-    let mut ma_entry = ModeratorActionEntry::try_from( must_get( &input.moderator_action_base )? )?;
-    let group_rev = follow_evolutions( &ma_entry.group_id.0.clone() )?.last().unwrap().to_owned();
-    ma_entry.group_id = (ma_entry.group_id.0, group_rev);
-    ma_entry.message = input.message;
-    ma_entry.metadata.insert("remove".to_string(), serde_yaml::Value::Bool(false) );
-
-    let action_hash = update_entry( input.moderator_action_base, ma_entry.to_input() )?;
-
-    register_content_update_to_group!({
-        entry: ma_entry,
-        target: action_hash.clone(),
+fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Response<Entity<ModeratorActionEntry>>> {
+    let actions = get_moderator_actions_handler( GetModeratorActionsInput {
+        group_id: input.group_id.clone(),
+        app_id: input.app_id.clone(),
     })?;
 
-    Ok(composition(
-	action_hash,
-	VALUE_MD
-    ))
+    let group_rev = follow_evolutions( &input.group_id )?.last().unwrap().to_owned();
+    let ma_entry = ModeratorActionEntry {
+        group_id: (input.group_id.clone(), group_rev),
+        author: agent_id()?,
+        published_at: hc_crud::now()?,
+        message: input.message,
+        subject_id: input.app_id.clone(),
+        metadata: input.metadata,
+    };
+
+    if actions.len() > 0 {
+        let ma_latest = actions.last().unwrap();
+        let action_hash = update_entry( ma_latest.action.clone(), ma_entry.clone().to_input() )?;
+
+        register_content_update_to_group!({
+            entry: ma_entry.clone(),
+            target: action_hash.clone(),
+        })?;
+
+        let entity = Entity {
+            id: ma_latest.id.clone(),
+            address: hash_entry( ma_entry.clone() )?,
+            action: action_hash,
+            ctype: ma_entry.get_type(),
+            content: ma_entry,
+        };
+
+        Ok(composition(
+	    entity,
+	    ENTITY_MD
+        ))
+    }
+    else {
+        let entity = hc_crud::create_entity( &ma_entry )?;
+
+        let group_anchor_entry = GroupAnchorEntry {
+            group_id: input.group_id,
+        };
+        let group_anchor_hash = hash_entry( &group_anchor_entry )?;
+
+        if !exists( &group_anchor_hash )? {
+            let group_anchor_addr = create_entry( group_anchor_entry.to_input() )?;
+
+            register_content_to_group!({
+                entry: group_anchor_entry,
+                target: group_anchor_addr,
+            })?;
+        }
+
+        register_content_to_group!({
+            entry: ma_entry,
+            target: entity.id.clone(),
+        })?;
+
+        let tag = format!("app::{}", input.app_id );
+        create_link( group_anchor_hash, entity.id.clone(), LinkTypes::ModeratorAction, tag.into_bytes() )?;
+
+        Ok(composition(
+	    entity,
+	    ENTITY_MD
+        ))
+    }
 }
 
 
@@ -397,32 +405,73 @@ fn unremove_app(input: UnremoveAppInput) -> ExternResult<Response<ActionHash>> {
 // Group CRUD
 //
 #[hdk_extern]
-pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
+pub fn create_group(group: GroupEntry) -> ExternResult<Response<Entity<GroupEntry>>> {
     debug!("Creating new group entry: {:#?}", group );
     let action_hash = create_group!( group )?;
+    let record = must_get( &action_hash )?;
+    let group = GroupEntry::try_from( record )?;
 
-    Ok( action_hash )
+    let entity = Entity {
+        id: action_hash.clone(),
+        address: hash_entry( group.clone() )?,
+        action: action_hash,
+        ctype: "group".to_string(),
+        content: group,
+    };
+
+    Ok(composition(
+	entity,
+	ENTITY_MD
+    ))
 }
 
 
 #[hdk_extern]
-pub fn get_group(id: ActionHash) -> ExternResult<GroupEntry> {
+pub fn get_group(id: ActionHash) -> ExternResult<Response<Entity<GroupEntry>>> {
     debug!("Creating new group entry: {:#?}", id );
-    let group = get_group!( id )?;
+    let latest_addr = follow_evolutions( &id )?.last().unwrap().to_owned();
+    let record = must_get( &latest_addr )?;
+    let group = GroupEntry::try_from( &record )?;
 
-    Ok( group )
+    let entity = Entity {
+        id: id,
+        address: hash_entry( group.clone() )?,
+        action: latest_addr,
+        ctype: "group".to_string(),
+        content: group,
+    };
+
+    Ok(composition(
+	entity,
+	ENTITY_MD
+    ))
 }
 
 
 #[hdk_extern]
-pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionHash> {
+pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<Response<Entity<GroupEntry>>> {
     debug!("Update group: {:#?}", input );
     let action_hash = update_group!({
         base: input.base,
         entry: input.entry,
     })?;
+    let id = trace_origin_root( &action_hash )?.0;
 
-    Ok( action_hash )
+    let record = must_get( &action_hash )?;
+    let group = GroupEntry::try_from( record )?;
+
+    let entity = Entity {
+        id: id,
+        address: hash_entry( group.clone() )?,
+        action: action_hash,
+        ctype: "group".to_string(),
+        content: group,
+    };
+
+    Ok(composition(
+	entity,
+	ENTITY_MD
+    ))
 }
 
 
@@ -442,7 +491,7 @@ fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Response<Vec<Ent
         })
         .filter_map(|moderator_action| {
             match moderator_action.metadata.get("remove")? {
-                serde_yaml::Value::Bool(value) => match value == &true {
+                serde_yaml::Value::Bool(value) => match value {
                     true => Some( moderator_action.subject_id ),
                     false => None,
                 },
@@ -450,10 +499,51 @@ fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Response<Vec<Ent
             }
         })
         .collect();
+
+    debug!("Removed app IDs from viewpoint {}: {:#?}", group_id, removed_app_ids );
     let apps = get_all_apps(())?.as_result()
         .map_err(|err| guest_error!(format!("{:?}", err )))?
         .into_iter()
         .filter(|entity| !removed_app_ids.contains( &entity.id ) )
+        .collect();
+
+    Ok(composition(
+	apps,
+	ENTITY_COLLECTION_MD
+    ))
+}
+
+
+#[hdk_extern]
+fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
+    // - Derive group anchor
+    // - Get moderator action links
+    // - Get all group content
+    let removed_app_ids : Vec<ActionHash> = get_all_group_content_latest!({
+        group_id: group_id.clone(),
+    })?.into_iter()
+        .filter_map(|(_origin, latest)| {
+            debug!("Get latest group entry: {}", group_id );
+            let addr = latest.into_action_hash()?;
+            let record = must_get( &addr ).ok()?;
+            Some( ModeratorActionEntry::try_from( record ).ok()? )
+        })
+        .filter_map(|moderator_action| {
+            match moderator_action.metadata.get("remove")? {
+                serde_yaml::Value::Bool(value) => match value {
+                    true => Some( moderator_action.subject_id ),
+                    false => None,
+                },
+                _ => None,
+            }
+        })
+        .collect();
+
+    debug!("Removed app IDs from viewpoint {}: {:#?}", group_id, removed_app_ids );
+    let apps = get_all_apps(())?.as_result()
+        .map_err(|err| guest_error!(format!("{:?}", err )))?
+        .into_iter()
+        .filter(|entity| removed_app_ids.contains( &entity.id ) )
         .collect();
 
     Ok(composition(

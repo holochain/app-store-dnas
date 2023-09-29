@@ -123,8 +123,8 @@ tests/test.gz:
 # DNAs
 test-setup:			tests/node_modules
 
-test-integration:		test-setup test-appstore
-test-integration-debug:		test-setup test-appstore-debug
+test-integration:		test-setup test-appstore	test-viewpoint
+test-integration-debug:		test-setup test-appstore-debug	test-viewpoint-debug
 
 test-appstore:			test-setup $(APPSTORE_DNA)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_appstore.js

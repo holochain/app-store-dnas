@@ -1,3 +1,5 @@
+pub use coop_content_sdk;
+
 use std::collections::BTreeMap;
 use hdi::prelude::*;
 use coop_content_sdk::{
@@ -155,6 +157,8 @@ group_ref!( GroupAnchorEntry, group_id, group_id );
 #[derive(Clone)]
 pub struct ModeratorActionEntry {
     pub group_id: (ActionHash, ActionHash),
+    pub author: AgentPubKey,
+    pub published_at: u64,
     pub message: String,
     pub subject_id: ActionHash,
     pub metadata: BTreeMap<String, serde_yaml::Value>,

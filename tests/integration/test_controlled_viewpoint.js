@@ -125,11 +125,11 @@ function group_tests () {
 	    [
 		clients.alice.cellAgent(),
 	    ],
-	    clients.alice.cellAgent()
 	);
-	const group = group_1		= await clients.alice.call("appstore", "appstore_api", "create_group", group_input );
+	group_1				= await clients.alice.call("appstore", "appstore_api", "create_group", group_input );
 
-	log.debug( json.debug( group ) );
+	console.log( group_1 );
+	log.debug("Group: %s", json.debug( group_1 ) );
 
 	// expect( publisher.editors	).to.have.length( 2 );
     });
@@ -140,50 +140,80 @@ function group_tests () {
 
 	    expect( apps		).to.have.length( 1 );
 	}
-	const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1 );
+	const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1.$id );
 
 	log.debug( json.debug( apps ) );
 
 	expect( apps			).to.have.length( 1 );
+
+	const ma_state			= await clients.alice.call("appstore", "appstore_api", "get_moderated_state", {
+	    "group_id": group_1.$id,
+	    "app_id": app_1.$id,
+	});
+
+	expect( ma_state		).to.be.null;
     });
 
-    let ma_addr;
-
     it("should remove app from group view", async function () {
-	const moderator_action		= await clients.alice.call("appstore", "appstore_api", "remove_app", {
-	    "group_id": group_1,
+	const moderator_action		= await clients.alice.call("appstore", "appstore_api", "update_moderated_state", {
+	    "group_id": group_1.$id,
 	    "app_id": app_1.$id,
 	    "message": "App fails to install and developer cannot be contacted",
+	    "metadata": {
+		"remove": true,
+	    },
 	});
-	ma_addr				= moderator_action.$id;
 
 	log.debug("Removed app: %s", json.debug(moderator_action) );
 
-	const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1 );
+	{
+	    const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1.$id );
+	    log.debug( json.debug( apps ) );
+	    expect( apps		).to.have.length( 0 );
+	}
+	{
+	    const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_removed_apps", group_1.$id );
+	    log.debug( json.debug( apps ) );
+	    expect( apps		).to.have.length( 1 );
+	}
 
-	log.debug( json.debug( apps ) );
+	const ma_state			= await clients.alice.call("appstore", "appstore_api", "get_moderated_state", {
+	    "group_id": group_1.$id,
+	    "app_id": app_1.$id,
+	});
 
-	expect( apps			).to.have.length( 0 );
+	expect( ma_state.message	).to.equal( moderator_action.message );
     });
 
     it("should unremove app from group view", async function () {
-	const success			= await clients.alice.call("appstore", "appstore_api", "unremove_app", {
-	    "moderator_action_base": ma_addr,
+	const updated_ma_entry			= await clients.alice.call("appstore", "appstore_api", "update_moderated_state", {
+	    "group_id": group_1.$id,
+	    "app_id": app_1.$id,
 	    "message": "Developer fixed the app",
+	    "metadata": {
+		"remove": false,
+	    },
 	});
 
-	log.debug("Unremoved app: %s", success );
+	log.debug("Unremoved app: %s", json.debug(updated_ma_entry) );
 
-	const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1 );
+	const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1.$id );
 
 	log.debug( json.debug( apps ) );
 
 	expect( apps			).to.have.length( 1 );
+
+	const ma_state			= await clients.alice.call("appstore", "appstore_api", "get_moderated_state", {
+	    "group_id": group_1.$id,
+	    "app_id": app_1.$id,
+	});
+
+	expect( ma_state.message	).to.equal( updated_ma_entry.message );
     });
 
     it("should get moderator actions", async function () {
 	const moderator_actions		= await clients.alice.call("appstore", "appstore_api", "get_moderator_actions", {
-	    "group_id": group_1,
+	    "group_id": group_1.$id,
 	    "app_id": app_1.$id,
 	});
 
@@ -196,6 +226,20 @@ function group_tests () {
 const ICON_SIZE_LIMIT		= 204_800;
 
 function errors_tests () {
+
+    it("should fail to remove app because agent is not a group member", async function () {
+	await expect_reject( async () => {
+	    const moderator_action		= await clients.bobby.call("appstore", "appstore_api", "update_moderated_state", {
+		"group_id": group_1.$id,
+		"app_id": app_1.$id,
+		"message": "malicious",
+		"metadata": {
+		    "remove": true,
+		},
+	    });
+	}, "is not authorized to update content managed by group" );
+    });
+
 }
 
 describe("Controlled Viewpoint", () => {

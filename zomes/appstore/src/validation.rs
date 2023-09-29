@@ -4,12 +4,16 @@ use crate::{
 
     PublisherEntry,
     AppEntry,
+    ModeratorActionEntry,
 
     EntryTypes,
     // LinkTypes,
 };
 pub use mere_memory_types::{
     MemoryEntry,
+};
+use appstore_types::coop_content_sdk::{
+    validate_group_auth,
 };
 
 const ICON_SIZE_LIMIT : u64 = 204_800;
@@ -29,6 +33,10 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 		    },
 		    EntryTypes::App(content) => match op.action_type() {
 			ActionType::Create => validate_app_create( &op, content ),
+			_ => Ok(ValidateCallbackResult::Valid),
+		    },
+		    EntryTypes::ModeratorAction(content) => match op.action_type() {
+			ActionType::Create => validate_moderator_action_create( &op, content ),
 			_ => Ok(ValidateCallbackResult::Valid),
 		    },
 		    _ => Ok(ValidateCallbackResult::Valid),
@@ -52,6 +60,10 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 		    EntryTypes::App(content) => {
 			let original_entry : AppEntry = register_update.original_entry.unwrap().try_into()?;
 			validate_app_update( &op, content, original_entry )
+		    },
+		    EntryTypes::ModeratorAction(content) => {
+			let original_entry : ModeratorActionEntry = register_update.original_entry.unwrap().try_into()?;
+			validate_moderator_action_update( &op, content, original_entry, register_update.update.hashed.content )
 		    },
 		    _ => Ok(ValidateCallbackResult::Valid),
 		};
@@ -206,5 +218,30 @@ fn validate_app_update(op: &Op, entry: AppEntry, prev_entry: AppEntry) -> Extern
 }
 
 fn validate_app_delete(_op: &Op, _entry: AppEntry) -> ExternResult<ValidateCallbackResult> {
+    Ok(ValidateCallbackResult::Valid)
+}
+
+
+
+//
+// Moderator Action
+//
+fn validate_moderator_action_create(op: &Op, entry: ModeratorActionEntry) -> ExternResult<ValidateCallbackResult> {
+    if &entry.author != op.author() {
+        return Ok(ValidateCallbackResult::Invalid(format!("Entry author does not match Action author: {} != {}", entry.author, op.author() )));
+    }
+
+    Ok(ValidateCallbackResult::Valid)
+}
+
+fn validate_moderator_action_update(op: &Op, entry: ModeratorActionEntry, _prev_entry: ModeratorActionEntry, update: Update) -> ExternResult<ValidateCallbackResult> {
+    if &entry.author != op.author() {
+        return Ok(ValidateCallbackResult::Invalid(format!("Entry author does not match Action author: {} != {}", entry.author, op.author() )));
+    }
+
+    if let Err(message) = validate_group_auth( &entry, update ) {
+        return Ok(ValidateCallbackResult::Invalid(message));
+    }
+
     Ok(ValidateCallbackResult::Valid)
 }

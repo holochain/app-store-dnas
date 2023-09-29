@@ -122,7 +122,7 @@ function publisher_tests () {
 
 	{
 	    const publishers	= await clients.alice.call("appstore", "appstore_api", "get_my_publishers");
-	    expect( publishers	).to.have.length( 1 );
+	    expect( publishers	).to.have.length( 2 );
 	}
 	{
 	    const publishers	= await clients.alice.call("appstore", "appstore_api", "get_all_publishers");
@@ -213,7 +213,7 @@ function app_tests () {
 
 	{
 	    const apps		= await clients.alice.call("appstore", "appstore_api", "get_my_apps");
-	    expect( apps	).to.have.length( 1 );
+	    expect( apps	).to.have.length( 2 );
 	}
 	{
 	    const apps		= await clients.alice.call("appstore", "appstore_api", "get_all_apps");
