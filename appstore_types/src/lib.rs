@@ -1,5 +1,10 @@
+pub use coop_content_sdk;
+
 use std::collections::BTreeMap;
 use hdi::prelude::*;
+use coop_content_sdk::{
+    group_ref,
+};
 
 
 pub type EntityId = ActionHash;
@@ -130,3 +135,32 @@ impl<'a> CommonFields<'a> for AppEntry {
 	&self.metadata
     }
 }
+
+
+
+//
+// Group Anchor Entry
+//
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct GroupAnchorEntry {
+    pub group_id: ActionHash,
+}
+group_ref!( GroupAnchorEntry, group_id, group_id );
+
+
+
+//
+// Moderator Action Entry
+//
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct ModeratorActionEntry {
+    pub group_id: (ActionHash, ActionHash),
+    pub author: AgentPubKey,
+    pub published_at: u64,
+    pub message: String,
+    pub subject_id: ActionHash,
+    pub metadata: BTreeMap<String, serde_yaml::Value>,
+}
+group_ref!( ModeratorActionEntry, group_id );

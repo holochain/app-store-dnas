@@ -76,6 +76,7 @@ name = "appstore_api"
 version = "0.0.0"
 dependencies = [
  "appstore",
+ "hc_coop_content_sdk",
  "hc_crud_caps",
  "hc_portal_types",
  "hc_utils",
@@ -94,6 +95,7 @@ name = "appstore_types"
 version = "0.1.0"
 dependencies = [
  "essence_payloads",
+ "hc_coop_content_sdk",
  "hc_crud_caps",
  "hdi",
  "rmpv",
@@ -815,6 +817,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
  "ahash",
+]
+
+[[package]]
+name = "hc_coop_content_sdk"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fde02bf4c50b5d8ada1dd60ac8b69cba78c718bf4ed5a629b85cdac3795d27cf"
+dependencies = [
+ "rmpv",
+ "serde",
+ "thiserror",
+ "whi_hdk_extensions",
 ]
 
 [[package]]
@@ -2660,6 +2674,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "584aaf7a1ecf4d383bbe1a25eeab0cbb8ff96acc6796707ff65cde48f4632f15"
 dependencies = [
  "wast",
+]
+
+[[package]]
+name = "whi_hdi_extensions"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51e1ad6f1c90f4094c3ec18f63c96bae9ef60793ca1c4a528034ab13ff1f77c0"
+dependencies = [
+ "hdi",
+ "holo_hash",
+ "serde",
+]
+
+[[package]]
+name = "whi_hdk_extensions"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b600a7c72e7ee333aa5c55da930a0d189ecd2e8fe248ab9c8f27a2ed832975fc"
+dependencies = [
+ "hdk",
+ "serde",
+ "thiserror",
+ "whi_hdi_extensions",
 ]
 
 [[package]]

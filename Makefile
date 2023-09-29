@@ -20,6 +20,8 @@ APPSTORE_API_WASM	= zomes/appstore_api.wasm
 # External Zomes (WASM)
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
 MERE_MEMORY_API_WASM	= zomes/mere_memory_api.wasm
+COOP_CONTENT_WASM	= zomes/coop_content.wasm
+COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
 
 #
@@ -40,7 +42,8 @@ clean:
 	    $(APPSTORE_HAPP) \
 	    $(APPSTORE_DNA) $(PORTAL_DNA) \
 	    $(APPSTORE_WASM) $(APPSTORE_API_WASM) \
-	    $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM)
+	    $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM) \
+	    $(COOP_CONTENT_WASM) $(COOP_CONTENT_CSR_WASM)
 
 rebuild:			clean build
 build:				$(APPSTORE_HAPP)
@@ -49,7 +52,7 @@ build:				$(APPSTORE_HAPP)
 $(APPSTORE_HAPP):		$(APPSTORE_DNA) $(PORTAL_DNA) bundled/happ.yaml
 	hc app pack -o $@ ./bundled/
 
-$(APPSTORE_DNA):		$(APPSTORE_WASM) $(APPSTORE_API_WASM) $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM)
+$(APPSTORE_DNA):		$(APPSTORE_WASM) $(APPSTORE_API_WASM) $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM) $(COOP_CONTENT_WASM) $(COOP_CONTENT_CSR_WASM)
 $(PORTAL_DNA):
 	wget -O $@ "https://github.com/holochain/portal-dna/releases/download/v$(NEW_PORTAL_VERSION)/portal.dna"
 
@@ -72,6 +75,11 @@ $(MERE_MEMORY_WASM):
 	curl --fail -L "https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v$$(echo $(NEW_MM_VERSION))/mere_memory.wasm" --output $@
 $(MERE_MEMORY_API_WASM):
 	curl --fail -L "https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v$$(echo $(NEW_MM_VERSION))/mere_memory_api.wasm" --output $@
+
+$(COOP_CONTENT_WASM):
+	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$$(echo $(NEW_CC_VERSION))/coop_content.wasm" --output $@
+$(COOP_CONTENT_CSR_WASM):
+	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$$(echo $(NEW_CC_VERSION))/coop_content_csr.wasm" --output $@
 
 tests/devhub/%.dna:
 	wget -O $@ "https://github.com/holochain/devhub-dnas/releases/download/$(DEVHUB_VERSION)/$*.dna"
@@ -115,13 +123,18 @@ tests/test.gz:
 # DNAs
 test-setup:			tests/node_modules
 
-test-integration:		test-setup test-appstore
-test-integration-debug:		test-setup test-appstore-debug
+test-integration:		test-setup test-appstore	test-viewpoint
+test-integration-debug:		test-setup test-appstore-debug	test-viewpoint-debug
 
 test-appstore:			test-setup $(APPSTORE_DNA)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_appstore.js
 test-appstore-debug:		test-setup $(APPSTORE_DNA)
 	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_appstore.js
+
+test-viewpoint:			test-setup $(APPSTORE_DNA)
+	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_controlled_viewpoint.js
+test-viewpoint-debug:		test-setup $(APPSTORE_DNA)
+	cd tests; RUST_LOG=info LOG_LEVEL=silly npx mocha integration/test_controlled_viewpoint.js
 
 test-e2e:			test-setup test-multi
 test-e2e-debug:			test-setup test-multi-debug
@@ -159,6 +172,11 @@ NEW_CRUD_VERSION = "0.9.0"
 PRE_MM_VERSION = "0.87.0"
 NEW_MM_VERSION = "0.88.0"
 
+PRE_CC_VERSION = "0.2.0"
+NEW_CC_VERSION = "0.2.1"
+PRE_CCSDK_VERSION = "0.0.0"
+NEW_CCSDK_VERSION = "0.2.0"
+
 PRE_PORTAL_VERSION = "0.7.0"
 NEW_PORTAL_VERSION = "0.8.0"
 
@@ -175,6 +193,9 @@ update-crud-version:
 update-mere-memory-version:
 	rm -f zomes/mere_memory*.wasm
 	git grep -l $(PRE_MM_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_MM_VERSION)/$(NEW_MM_VERSION)/g'
+update-coop-content-version:
+	rm -f zomes/coop_content*.wasm
+	git grep -l $(PRE_CCSDK_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_CCSDK_VERSION)/$(NEW_CCSDK_VERSION)/g'
 update-portal-version:
 	git grep -l $(PRE_PORTAL_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_PORTAL_VERSION)/$(NEW_PORTAL_VERSION)/g'
 	rm -f $(PORTAL_DNA)
