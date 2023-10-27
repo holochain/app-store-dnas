@@ -50,8 +50,8 @@ $(APPSTORE_HAPP):		$(APPSTORE_DNA) $(PORTAL_DNA) bundled/happ.yaml
 	hc app pack -o $@ ./bundled/
 
 $(APPSTORE_DNA):		$(APPSTORE_WASM) $(APPSTORE_API_WASM) $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM)
-$(PORTAL_DNA):
-	cp ../portal-dna/bundled/portal.dna $@
+$(PORTAL_DNA):			../portal-dna/bundled/portal.dna
+	cp $< $@
 
 bundled/%.dna:			bundled/%/dna.yaml
 	@echo "Packaging '$*': $@"
@@ -145,14 +145,14 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
-PRE_HDK_VERSION = "0.1.3-beta-rc.1"
-NEW_HDK_VERSION = "0.1.4"
+PRE_HDK_VERSION = "0.1.4"
+NEW_HDK_VERSION = "0.1.5"
 
-PRE_HDI_VERSION = "0.2.3-beta-rc.0"
-NEW_HDI_VERSION = "0.2.4"
+PRE_HDI_VERSION = "0.2.4"
+NEW_HDI_VERSION = "0.2.5"
 
-PRE_CRUD_VERSION = rev = "10d042c36024e2d839008bdb621595a8c09f0b74"
-NEW_CRUD_VERSION = rev = "ccee03e7493cd45d73b2211f4f465cabde28e357"
+PRE_CRUD_VERSION = rev = "ccee03e7493cd45d73b2211f4f465cabde28e357"
+NEW_CRUD_VERSION = rev = "68fc3a029fa910fed74f625678ff92496ebf6742"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ hc_utils
 

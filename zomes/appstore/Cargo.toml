@@ -11,10 +11,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 appstore_types = {path = "../../appstore_types"}
 essence_payloads = "0.1"
-hc_crud_caps = { git = "https://github.com/mjbrisebois/rust-hc-crud-caps.git", rev = "ccee03e7493cd45d73b2211f4f465cabde28e357" }
+hc_crud_caps = { git = "https://github.com/mjbrisebois/rust-hc-crud-caps.git", rev = "68fc3a029fa910fed74f625678ff92496ebf6742" }
 hc_utils = {path = "../../hc_utils"}
-hdi = "0.2.4"
-hdk = "0.1.4"
+hdi = "0.2.5"
+hdk = "0.1.5"
 mere_memory_types = { git = "https://github.com/mjbrisebois/hc-zome-mere-memory.git", rev = "d369ef970ae4effa6ac580467c559eb0a48c42bb" }
 serde = "1"
 serde_yaml = "0.8.17"
