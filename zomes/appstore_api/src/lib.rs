@@ -17,15 +17,8 @@ pub use appstore::{
     GroupAnchorEntry,
 
     GetEntityInput, EntityId,
-    AppResult, Response, EntityResponse, Entity,
+    Response, EntityResponse, Entity,
     composition, catch,
-
-    AppError,
-    UserError,
-};
-pub use portal_types::{
-    HostEntry,
-    DnaZomeFunction,
 };
 pub use constants::{
     ENTITY_MD,
@@ -76,21 +69,6 @@ fn whoami(_: ()) -> ExternResult<Response<AgentInfo>> {
     Ok(composition( agent_info()?, VALUE_MD ))
 }
 
-pub fn save_bytes(bytes: &Vec<u8>) -> AppResult<EntryHash> {
-    let response = call(
-	CallTargetCell::Local,
-	"mere_memory_api",
-	"save_bytes".into(),
-	None, // CapSecret
-	bytes
-    )?;
-
-    let result = hc_utils::zome_call_response_as_result( response )?;
-    let essence_resp : Response<EntryHash> = result.decode()?;
-    debug!("Decoded result: {:#?}", essence_resp );
-
-    Ok( essence_resp.as_result()? )
-}
 
 // Publisher
 #[hdk_extern]
@@ -128,7 +106,6 @@ fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Response<Ve
     ]);
     let collection = catch!(
 	hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )
-	    .map_err(|e| e.into())
     );
 
     Ok(composition(
@@ -149,7 +126,6 @@ fn get_all_publishers(_: ()) -> ExternResult<Response<Vec<Entity<PublisherEntry>
     let (_, pathhash ) = hc_utils::path_base( ANCHOR_PUBLISHERS );
     let collection = catch!(
 	hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )
-	    .map_err(|e| e.into())
     );
     let collection = collection.into_iter()
 	.filter(|entity : &Entity<PublisherEntry>| {
@@ -200,7 +176,6 @@ fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Response<Vec<Enti
     ]);
     let collection = catch!(
 	hc_crud::get_entities( &pathhash, LinkTypes::App, None )
-	    .map_err(|e| e.into())
     );
 
     Ok(composition(
@@ -221,7 +196,6 @@ fn get_all_apps(_: ()) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
     let (_, pathhash ) = hc_utils::path_base( ANCHOR_APPS );
     let collection = catch!(
 	hc_crud::get_entities( &pathhash, LinkTypes::App, None )
-	    .map_err(|e| e.into())
     );
     let collection = collection.into_iter()
 	.filter(|entity : &Entity<AppEntry>| {
@@ -242,7 +216,7 @@ pub struct GetModeratorActionsInput {
     pub app_id: ActionHash,
 }
 
-fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> AppResult<Vec<Entity<ModeratorActionEntry>>> {
+fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> ExternResult<Vec<Entity<ModeratorActionEntry>>> {
     // - Find group anchor
     // - Find moderator action link with tag 'app::<app_id>'
     // - Follow evolutions for group

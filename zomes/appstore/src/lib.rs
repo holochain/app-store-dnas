@@ -1,4 +1,4 @@
-mod errors;
+// mod errors;
 mod validation;
 
 use hdi::prelude::*;
@@ -25,9 +25,6 @@ pub use appstore_types::{
     GroupAnchorEntry,
 };
 
-
-pub use errors::{ ErrorKinds, AppError, UserError };
-pub type AppResult<T> = Result<T, ErrorKinds>;
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -104,22 +101,15 @@ macro_rules! catch { // could change to "trap", "snare", or "capture"
     ( $r:expr ) => {
 	match $r {
 	    Ok(x) => x,
-	    Err(e) => {
-		let error = match e {
-		    appstore::ErrorKinds::AppError(e) => (&e).into(),
-		    appstore::ErrorKinds::UserError(e) => (&e).into(),
-		    appstore::ErrorKinds::HDKError(e) => (&e).into(),
-		    appstore::ErrorKinds::DnaUtilsError(e) => (&e).into(),
-		    appstore::ErrorKinds::FailureResponseError(e) => (&e).into(),
-		};
-		return Ok(appstore::Response::failure( error, None ))
+	    Err(error) => {
+		return Ok($crate::Response::failure( (&error).into(), None ))
 	    },
 	}
     };
     ( $r:expr, $e:expr ) => {
 	match $r {
 	    Ok(x) => x,
-	    Err(e) => return Ok(appstore::Response::failure( (&$e).into(), None )),
+	    Err(e) => return Ok($crate::Response::failure( (&$e).into(), None )),
 	}
     };
 }

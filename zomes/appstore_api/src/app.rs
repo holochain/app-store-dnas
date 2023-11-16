@@ -15,8 +15,6 @@ use appstore::{
     DeprecationNotice,
 };
 use crate::{
-    AppResult,
-
     ANCHOR_AGENTS,
     ANCHOR_PUBLISHERS,
     ANCHOR_APPS,
@@ -29,7 +27,7 @@ pub struct CreateInput {
     pub title: String,
     pub subtitle: String,
     pub description: String,
-    pub icon: SerializedBytes,
+    pub icon: EntryHash,
     pub publisher: EntityId,
     pub devhub_address: WebHappConfig,
 
@@ -42,7 +40,7 @@ pub struct CreateInput {
 }
 
 
-pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
+pub fn create(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Creating App: {}", input.title );
     let pubkey = agent_info()?.agent_initial_pubkey;
     let default_now = now()?;
@@ -54,13 +52,11 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
 	}
     }
 
-    let icon_addr = crate::save_bytes( input.icon.bytes() )?;
-
     let app = AppEntry {
 	title: input.title,
 	subtitle: input.subtitle,
 	description: input.description,
-	icon: icon_addr,
+	icon: input.icon,
 	publisher: input.publisher.clone(),
 	devhub_address: input.devhub_address,
 
@@ -106,7 +102,7 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
 }
 
 
-pub fn get(input: GetEntityInput) -> AppResult<Entity<AppEntry>> {
+pub fn get(input: GetEntityInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Get app: {}", input.id );
     let entity : Entity<AppEntry> = get_entity( &input.id )?;
 
@@ -128,7 +124,7 @@ pub struct UpdateProperties {
 }
 pub type UpdateInput = UpdateEntityInput<UpdateProperties>;
 
-pub fn update(input: UpdateInput) -> AppResult<Entity<AppEntry>> {
+pub fn update(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Updating App: {}", input.base );
     let props = input.properties.clone();
     let mut previous : Option<AppEntry> = None;
@@ -170,7 +166,7 @@ pub struct DeprecateInput {
     pub message: String,
 }
 
-pub fn deprecate(input: DeprecateInput) -> AppResult<Entity<AppEntry>> {
+pub fn deprecate(input: DeprecateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Deprecating hApp: {}", input.base );
     let entity = update_entity(
 	&input.base,

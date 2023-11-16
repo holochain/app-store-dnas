@@ -1,53 +1,108 @@
-const path				= require('path');
-const log				= require('@whi/stdlog')(path.basename( __filename ), {
-    level: process.env.LOG_LEVEL || 'fatal',
-});
+import { Logger }			from '@whi/weblogger';
+const log				= new Logger("test-app-store", process.env.LOG_LEVEL );
 
+import path				from 'path';
+import crypto				from 'crypto';
+import { expect }			from 'chai';
+// import why				from 'why-is-node-running';
 
-const fs				= require('fs');
-const crypto				= require('crypto');
-const expect				= require('chai').expect;
-// const why				= require('why-is-node-running');
+import json				from '@whi/json';
+import {
+    HoloHash,
+    DnaHash, AgentPubKey,
+    ActionHash, EntryHash,
+}					from '@spartan-hc/holo-hash';
+import CruxPayloadParser		from '@whi/crux-payload-parser';
+const { CruxConfig }			= CruxPayloadParser;
 
-const msgpack				= require('@msgpack/msgpack');
-const json				= require('@whi/json');
-const { ActionHash, AgentPubKey,
-	HoloHash }			= require('@whi/holo-hash');
-const { CruxConfig }			= require('@whi/crux-payload-parser');
-const { Holochain,
-	HolochainClientLib }		= require('@whi/holochain-backdrop');
-const { ConductorError,
-	...hc_client }			= HolochainClientLib;
+import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
+const { Holochain }			= HolochainBackdrop;
 
-const { expect_reject }			= require('../utils.js');
+import { MereMemoryZomelet }		from '@spartan-hc/mere-memory-zomelets';
+import {
+    AppInterfaceClient,
+}					from '@spartan-hc/app-interface-client';
+
+import {
+    expect_reject,
+    // linearSuite,
+    createAppInput,
+    createPublisherInput,
+}					from '../utils.js';
+
 
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 
+const __dirname				= path.dirname( new URL(import.meta.url).pathname );
 const APPSTORE_DNA_PATH			= path.join( __dirname, "../../bundled/appstore.dna" );
 const TEST_DNA_HASH			= "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5";
+const APP_PORT				= 23_567;
 
 const clients				= {};
+let client;
+let app_client;
+let alice_mm;
 
 
-function createPublisherInput ( overrides ) {
-    return Object.assign({
-	"name": "Holo",
-	"location": {
-	    "country": "Gibraltar",
-	    "region": "Gibraltar",
-	    "city": "Gibraltar",
-	},
-	"website": {
-	    "url": "https://github.com/holo-host",
-	    "context": "github",
-	},
-	"icon": crypto.randomBytes(1_000),
-	"email": "techservices@holo.host",
-	"editors": [
-	    new AgentPubKey( crypto.randomBytes(32) )
-	],
-    }, overrides );
-};
+describe("Appstore", () => {
+    const crux				= new CruxConfig();
+    const holochain			= new Holochain({
+	"timeout": 60_000,
+	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
+    });
+
+    before(async function () {
+	this.timeout( 60_000 );
+
+	const actors			= await holochain.backdrop({
+	    "test": {
+		"appstore":	APPSTORE_DNA_PATH,
+	    },
+	}, {
+	    "app_port": APP_PORT,
+	    "actors": [ "alice", "bobby" ],
+	});
+
+	for ( let name in actors ) {
+	    for ( let app_prefix in actors[ name ] ) {
+		log.info("Upgrade client for %s => %s", name, app_prefix );
+		const client		= clients[ name ]	= actors[ name ][ app_prefix ].client;
+
+		crux.upgrade( client );
+	    }
+	}
+
+	// Must call whoami on each cell to ensure that init has finished.
+	{
+	    let whoami			= await clients.alice.call( "appstore", "appstore_api", "whoami", null, 30_000 );
+	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
+	}
+	{
+	    let whoami			= await clients.bobby.call( "appstore", "appstore_api", "whoami", null, 30_000 );
+	    log.normal("Bobby whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
+	}
+
+	client				= new AppInterfaceClient( APP_PORT, {
+	    "logging": process.env.LOG_LEVEL || "normal",
+	});
+	app_client			= await client.app( "test-alice" );
+
+	alice_mm			= app_client.createZomeInterface(
+	    "appstore",
+	    "mere_memory_api",
+	    MereMemoryZomelet,
+	).functions;
+    });
+
+    describe("Publisher", publisher_tests.bind( this, holochain ) );
+    describe("App", app_tests.bind( this, holochain ) );
+    describe("Errors", errors_tests.bind( this, holochain ) );
+
+    after(async () => {
+	await holochain.destroy();
+    });
+
+});
 
 
 let publisher_1;
@@ -57,7 +112,7 @@ function publisher_tests () {
     it("should create publisher profile", async function () {
 	this.timeout( 10_000 );
 
-	const publisher = publisher_1	= await clients.alice.call("appstore", "appstore_api", "create_publisher", createPublisherInput() );
+	const publisher = publisher_1	= await clients.alice.call("appstore", "appstore_api", "create_publisher", await createPublisherInput( alice_mm ) );
 
 	// log.debug( json.debug( publisher ) );
 
@@ -104,7 +159,7 @@ function publisher_tests () {
     });
 
     it("should deprecate publisher", async function () {
-	const publisher		= await clients.alice.call("appstore", "appstore_api", "create_publisher", createPublisherInput() );
+	const publisher		= await clients.alice.call("appstore", "appstore_api", "create_publisher", await createPublisherInput( alice_mm ) );
 
 	{
 	    const publishers	= await clients.alice.call("appstore", "appstore_api", "get_my_publishers");
@@ -133,25 +188,6 @@ function publisher_tests () {
 }
 
 
-function createAppInput ( overrides ) {
-    return Object.assign({
-	"title": "Chess",
-	"subtitle": "The classic boardgame",
-	"description": "The boardgame known as Chess",
-	"icon": crypto.randomBytes(1_000),
-	"publisher": publisher_1.$id,
-	"devhub_address": {
-	    "dna": TEST_DNA_HASH,
-	    "happ": publisher_1.$id,
-	    "gui": publisher_1.$id,
-	},
-	"editors": [
-	    new AgentPubKey( crypto.randomBytes(32) )
-	],
-    }, overrides );
-};
-
-
 let app_1;
 
 function app_tests () {
@@ -159,7 +195,10 @@ function app_tests () {
     it("should create app profile", async function () {
 	this.timeout( 10_000 );
 
-	const app = app_1		= await clients.alice.call("appstore", "appstore_api", "create_app", createAppInput() );
+	const input			= await createAppInput( alice_mm, {
+	    "publisher": publisher_1.$id,
+	});
+	const app = app_1		= await clients.alice.call("appstore", "appstore_api", "create_app", input );
 
 	// log.debug( json.debug( app ) );
 
@@ -195,7 +234,10 @@ function app_tests () {
     });
 
     it("should deprecate app", async function () {
-	const app		= await clients.alice.call("appstore", "appstore_api", "create_app", createAppInput() );
+	const input		= await createAppInput( alice_mm, {
+	    "publisher": publisher_1.$id,
+	});
+	const app		= await clients.alice.call("appstore", "appstore_api", "create_app", input );
 
 	{
 	    const apps		= await clients.alice.call("appstore", "appstore_api", "get_my_apps");
@@ -237,7 +279,7 @@ function errors_tests () {
 		    "name": "Malicious",
 		},
 	    });
-	}, ConductorError, "InvalidCommit error: Previous entry author does not match Action author" );
+	}, "InvalidCommit error: Previous entry author does not match Action author" );
     });
 
     it("should fail to update app because bad author", async function () {
@@ -250,102 +292,61 @@ function errors_tests () {
 		    "name": "Malicious",
 		},
 	    });
-	}, ConductorError, "InvalidCommit error: Previous entry author does not match Action author" );
+	}, "InvalidCommit error: Previous entry author does not match Action author" );
     });
 
     it("should fail to create publisher because icon is too big", async function () {
 	this.timeout( 10_000 );
 
 	await expect_reject( async () => {
-	    const input			= createPublisherInput();
-	    input.icon			= new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0);
+	    const input			= await createPublisherInput( alice_mm, {
+		"icon": new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0),
+	    });
 	    await clients.alice.call("appstore", "appstore_api", "create_publisher", input );
-	}, ConductorError, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to update publisher because icon is too big", async function () {
 	this.timeout( 10_000 );
 
 	await expect_reject( async () => {
-	    const memory_addr		= await clients.alice.call("appstore", "mere_memory_api", "save_bytes", new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0) );
+	    const bytes			= new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0);
+	    const memory_addr		= await alice_mm.save( bytes );
+
 	    await clients.alice.call("appstore", "appstore_api", "update_publisher", {
 		"base": publisher_1.$action,
 		"properties": {
 		    "icon": memory_addr,
 		},
 	    });
-	}, ConductorError, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to create app because icon is too big", async function () {
 	this.timeout( 10_000 );
 
 	await expect_reject( async () => {
-	    const input			= createAppInput();
-	    input.icon			= new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0);
+	    const input			= await createAppInput( alice_mm, {
+		"icon": new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0),
+		"publisher": publisher_1.$id,
+	    });
 	    await clients.alice.call("appstore", "appstore_api", "create_app", input );
-	}, ConductorError, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to update app because icon is too big", async function () {
 	this.timeout( 10_000 );
 
 	await expect_reject( async () => {
-	    const memory_addr		= await clients.alice.call("appstore", "mere_memory_api", "save_bytes", new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0) );
+	    const bytes			= new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0);
+	    const memory_addr		= await alice_mm.save( bytes );
+
 	    await clients.alice.call("appstore", "appstore_api", "update_app", {
 		"base": app_1.$action,
 		"properties": {
 		    "icon": memory_addr,
 		},
 	    });
-	}, ConductorError, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 }
-
-describe("Appstore", () => {
-    const crux				= new CruxConfig();
-    const holochain			= new Holochain({
-	"timeout": 60_000,
-	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
-    });
-
-    before(async function () {
-	this.timeout( 60_000 );
-
-	const actors			= await holochain.backdrop({
-	    "test_happ": {
-		"appstore":	APPSTORE_DNA_PATH,
-	    },
-	}, {
-	    "actors": [ "alice", "bobby" ],
-	});
-
-	for ( let name in actors ) {
-	    for ( let app_prefix in actors[ name ] ) {
-		log.info("Upgrade client for %s => %s", name, app_prefix );
-		const client		= clients[ name ]	= actors[ name ][ app_prefix ].client;
-
-		crux.upgrade( client );
-	    }
-	}
-
-	// Must call whoami on each cell to ensure that init has finished.
-	{
-	    let whoami			= await clients.alice.call( "appstore", "appstore_api", "whoami", null, 30_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-	{
-	    let whoami			= await clients.bobby.call( "appstore", "appstore_api", "whoami", null, 30_000 );
-	    log.normal("Bobby whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-    });
-
-    describe("Publisher", publisher_tests.bind( this, holochain ) );
-    describe("App", app_tests.bind( this, holochain ) );
-    describe("Errors", errors_tests.bind( this, holochain ) );
-
-    after(async () => {
-	await holochain.destroy();
-    });
-
-});

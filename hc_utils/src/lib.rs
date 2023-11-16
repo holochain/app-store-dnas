@@ -1,7 +1,6 @@
 use hdk::prelude::*;
 use hdk::hash_path::path::{ Component };
 
-pub type UtilResult<T> = Result<T, String>;
 
 pub fn guest_err( message: String ) -> WasmError {
     wasm_error!(WasmErrorInner::Guest(message))
@@ -104,20 +103,20 @@ pub fn agentpubkey () -> ExternResult<AgentPubKey> {
     Ok( agent_info()?.agent_initial_pubkey )
 }
 
-pub fn agentid () -> UtilResult<String> {
+pub fn agentid () -> ExternResult<String> {
     Ok( format!("{}", agentpubkey()? ) )
 }
 
 
-pub fn zome_call_response_as_result(response: ZomeCallResponse) -> UtilResult<ExternIO> {
+pub fn zome_call_response_as_result(response: ZomeCallResponse) -> ExternResult<ExternIO> {
     Ok( match response {
 	ZomeCallResponse::Ok(bytes)
 	    => Ok(bytes),
 	ZomeCallResponse::Unauthorized(zome_call_auth, cell_id, zome, func, agent)
-	    => Err(format!("UnauthorizedError( {}, {}, {}, {}, {} )", zome_call_auth, cell_id, zome, func, agent )),
+	    => Err(guest_err(format!("UnauthorizedError( {}, {}, {}, {}, {} )", zome_call_auth, cell_id, zome, func, agent ))),
 	ZomeCallResponse::NetworkError(message)
-	    => Err(format!("NetworkError( {} )", message )),
+	    => Err(guest_err(format!("NetworkError( {} )", message ))),
 	ZomeCallResponse::CountersigningSession(message)
-	    => Err(format!("CountersigningSessionError( {} )", message )),
+	    => Err(guest_err(format!("CountersigningSessionError( {} )", message ))),
     }? )
 }

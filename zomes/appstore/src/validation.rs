@@ -132,8 +132,10 @@ where
 //
 fn validate_common_publisher_fields(_op: &Op, entry: &PublisherEntry) -> ExternResult<ValidateCallbackResult> {
     let memory : MemoryEntry = must_get_entry( entry.icon.to_owned() )?.try_into()?;
+    let icon_size = memory.uncompressed_size
+        .unwrap_or( memory.memory_size );
 
-    if memory.memory_size > ICON_SIZE_LIMIT {
+    if icon_size > ICON_SIZE_LIMIT {
 	Ok(ValidateCallbackResult::Invalid(format!("PublisherEntry icon cannot be larger than {}KB ({} bytes)", ICON_SIZE_LIMIT/1024, ICON_SIZE_LIMIT )))
     }
     else {
@@ -180,8 +182,10 @@ fn validate_publisher_delete(_op: &Op, _entry: PublisherEntry) -> ExternResult<V
 //
 fn validate_common_app_fields(_op: &Op, entry: &AppEntry) -> ExternResult<ValidateCallbackResult> {
     let memory : MemoryEntry = must_get_entry( entry.icon.to_owned() )?.try_into()?;
+    let icon_size = memory.uncompressed_size
+        .unwrap_or( memory.memory_size );
 
-    if memory.memory_size > ICON_SIZE_LIMIT {
+    if icon_size > ICON_SIZE_LIMIT {
 	Ok(ValidateCallbackResult::Invalid(format!("AppEntry icon cannot be larger than {}KB ({} bytes)", ICON_SIZE_LIMIT/1024, ICON_SIZE_LIMIT )))
     }
     else {
