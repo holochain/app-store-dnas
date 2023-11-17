@@ -6,6 +6,7 @@ use hc_crud::{
 };
 use appstore::{
     LinkTypes,
+    RmpvValue,
 
     PublisherEntry,
 
@@ -35,11 +36,12 @@ pub struct CreateInput {
 
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: Option<BTreeMap<String, RmpvValue>>,
 }
 
 
-pub fn create(mut input: CreateInput) -> ExternResult<Entity<PublisherEntry>> {
+#[hdk_extern]
+pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Creating Publisher: {}", input.name );
     let pubkey = agent_info()?.agent_initial_pubkey;
     let default_now = now()?;
@@ -94,7 +96,8 @@ pub fn create(mut input: CreateInput) -> ExternResult<Entity<PublisherEntry>> {
 }
 
 
-pub fn get(input: GetEntityInput) -> ExternResult<Entity<PublisherEntry>> {
+#[hdk_extern]
+pub fn get_publisher(input: GetEntityInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Get publisher: {}", input.id );
     let entity : Entity<PublisherEntry> = get_entity( &input.id )?;
 
@@ -113,11 +116,12 @@ pub struct UpdateProperties {
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: Option<BTreeMap<String, RmpvValue>>,
 }
 pub type UpdateInput = UpdateEntityInput<UpdateProperties>;
 
-pub fn update(input: UpdateInput) -> ExternResult<Entity<PublisherEntry>> {
+#[hdk_extern]
+pub fn update_publisher(input: UpdateInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Updating Publisher: {}", input.base );
     let props = input.properties.clone();
     let mut previous : Option<PublisherEntry> = None;
@@ -161,7 +165,8 @@ pub struct DeprecateInput {
     pub message: String,
 }
 
-pub fn deprecate(input: DeprecateInput) -> ExternResult<Entity<PublisherEntry>> {
+#[hdk_extern]
+pub fn deprecate_publisher(input: DeprecateInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Deprecating hApp: {}", input.base );
     let entity = update_entity(
 	&input.base,

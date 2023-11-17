@@ -8,6 +8,8 @@ use coop_content_sdk::{
 
 
 pub type EntityId = ActionHash;
+pub type RmpvValue = rmpv::Value;
+
 
 //
 // General-use Structs
@@ -52,7 +54,7 @@ pub trait CommonFields<'a> {
     fn author(&'a self) -> &'a AgentPubKey;
     fn published_at(&'a self) -> &'a u64;
     fn last_updated(&'a self) -> &'a u64;
-    fn metadata(&'a self) -> &'a BTreeMap<String, serde_yaml::Value>;
+    fn metadata(&'a self) -> &'a BTreeMap<String, RmpvValue>;
 }
 
 
@@ -72,7 +74,8 @@ pub struct PublisherEntry {
     pub author: AgentPubKey,
     pub published_at: u64,
     pub last_updated: u64,
-    pub metadata: BTreeMap<String, serde_yaml::Value>,
+    #[serde(default)]
+    pub metadata: BTreeMap<String, RmpvValue>,
 
     // optional
     pub description: Option<String>,
@@ -90,7 +93,7 @@ impl<'a> CommonFields<'a> for PublisherEntry {
     fn last_updated(&'a self) -> &'a u64 {
 	&self.last_updated
     }
-    fn metadata(&'a self) -> &'a BTreeMap<String, serde_yaml::Value> {
+    fn metadata(&'a self) -> &'a BTreeMap<String, RmpvValue> {
 	&self.metadata
     }
 }
@@ -115,7 +118,7 @@ pub struct AppEntry {
     pub author: AgentPubKey,
     pub published_at: u64,
     pub last_updated: u64,
-    pub metadata: BTreeMap<String, serde_yaml::Value>,
+    pub metadata: BTreeMap<String, RmpvValue>,
 
     // optional
     pub deprecation: Option<DeprecationNotice>,
@@ -131,7 +134,7 @@ impl<'a> CommonFields<'a> for AppEntry {
     fn last_updated(&'a self) -> &'a u64 {
 	&self.last_updated
     }
-    fn metadata(&'a self) -> &'a BTreeMap<String, serde_yaml::Value> {
+    fn metadata(&'a self) -> &'a BTreeMap<String, RmpvValue> {
 	&self.metadata
     }
 }
@@ -161,6 +164,6 @@ pub struct ModeratorActionEntry {
     pub published_at: u64,
     pub message: String,
     pub subject_id: ActionHash,
-    pub metadata: BTreeMap<String, serde_yaml::Value>,
+    pub metadata: BTreeMap<String, RmpvValue>,
 }
 group_ref!( ModeratorActionEntry, group_id );

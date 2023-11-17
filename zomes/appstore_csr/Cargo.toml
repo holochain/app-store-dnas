@@ -1,11 +1,11 @@
 [package]
-name = "appstore_api"
+name = "appstore_csr"
 version = "0.0.0"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2018"
 
 [lib]
-name = "appstore_api"
+name = "appstore_csr"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

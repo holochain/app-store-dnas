@@ -1,8 +1,10 @@
-.cargo
 target
-tests/node_modules
-tests/*.dna
-tests/devhub/*.dna
-zomes/*.wasm
-bundled/*.dna
-*.happ
+/.cargo
+/tests/node_modules
+/dnas/*/zomelets/node_modules
+/tests/*.dna
+/tests/*.happ
+/tests/devhub/*.dna
+/zomes/*.wasm
+/dnas/*.dna
+/happ/*.happ

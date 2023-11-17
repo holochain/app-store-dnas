@@ -6,6 +6,7 @@ use hc_crud::{
 };
 use appstore::{
     LinkTypes,
+    RmpvValue,
 
     AppEntry,
 
@@ -36,11 +37,11 @@ pub struct CreateInput {
 
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: Option<BTreeMap<String, RmpvValue>>,
 }
 
-
-pub fn create(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
+#[hdk_extern]
+pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Creating App: {}", input.title );
     let pubkey = agent_info()?.agent_initial_pubkey;
     let default_now = now()?;
@@ -102,7 +103,8 @@ pub fn create(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 }
 
 
-pub fn get(input: GetEntityInput) -> ExternResult<Entity<AppEntry>> {
+#[hdk_extern]
+pub fn get_app(input: GetEntityInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Get app: {}", input.id );
     let entity : Entity<AppEntry> = get_entity( &input.id )?;
 
@@ -120,11 +122,12 @@ pub struct UpdateProperties {
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: Option<BTreeMap<String, RmpvValue>>,
 }
 pub type UpdateInput = UpdateEntityInput<UpdateProperties>;
 
-pub fn update(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
+#[hdk_extern]
+pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Updating App: {}", input.base );
     let props = input.properties.clone();
     let mut previous : Option<AppEntry> = None;
@@ -166,7 +169,8 @@ pub struct DeprecateInput {
     pub message: String,
 }
 
-pub fn deprecate(input: DeprecateInput) -> ExternResult<Entity<AppEntry>> {
+#[hdk_extern]
+pub fn deprecate_app(input: DeprecateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Deprecating hApp: {}", input.base );
     let entity = update_entity(
 	&input.base,

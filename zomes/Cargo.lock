@@ -60,19 +60,17 @@ name = "appstore"
 version = "0.0.0"
 dependencies = [
  "appstore_types",
- "essence_payloads",
  "hc_crud_caps",
  "hc_utils",
  "hdi",
  "hdk",
  "mere_memory_types",
+ "rmpv",
  "serde",
- "serde_yaml",
- "thiserror",
 ]
 
 [[package]]
-name = "appstore_api"
+name = "appstore_csr"
 version = "0.0.0"
 dependencies = [
  "appstore",

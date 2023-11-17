@@ -34,8 +34,8 @@ export function linearSuite ( name, setup_fn, args_fn ) {
 }
 
 
-export async function createPublisherInput ( mm_zomelet, overrides ) {
-    const input			= Object.assign({
+export async function createPublisherInput ( overrides ) {
+    return Object.assign({
 	"name": "Holo",
 	"location": {
 	    "country": "Gibraltar",
@@ -52,17 +52,13 @@ export async function createPublisherInput ( mm_zomelet, overrides ) {
 	    new AgentPubKey( crypto.randomBytes(32) )
 	],
     }, overrides );
-
-    input.icon			= await mm_zomelet.save( input.icon );
-
-    return input;
 };
 
 
 const TEST_DNA_HASH			= "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5";
 
-export async function createAppInput ( mm_zomelet, overrides ) {
-    const input			= Object.assign({
+export async function createAppInput ( overrides ) {
+    return Object.assign({
 	"title": "Chess",
 	"subtitle": "The classic boardgame",
 	"description": "The boardgame known as Chess",
@@ -77,10 +73,18 @@ export async function createAppInput ( mm_zomelet, overrides ) {
 	    new AgentPubKey( crypto.randomBytes(32) )
 	],
     }, overrides );
+};
 
-    input.icon			= await mm_zomelet.save( input.icon );
 
-    return input;
+export async function createGroupInput ( admins, ...members ) {
+    return {
+	"admins": admins,
+	"members": [ ...members ],
+
+	"published_at":		Date.now(),
+	"last_updated":		Date.now(),
+	"metadata":		{},
+    };
 };
 
 
@@ -89,4 +93,5 @@ export default {
     linearSuite,
     createAppInput,
     createPublisherInput,
+    createGroupInput,
 };

@@ -10,6 +10,7 @@ use hc_crud::{
 pub use appstore::{
     LinkTypes,
     EntryTypes,
+    RmpvValue,
 
     AppEntry,
     PublisherEntry,
@@ -17,8 +18,7 @@ pub use appstore::{
     GroupAnchorEntry,
 
     GetEntityInput, EntityId,
-    Response, EntityResponse, Entity,
-    composition, catch,
+    Entity,
 };
 pub use constants::{
     ENTITY_MD,
@@ -65,148 +65,74 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 
 
 #[hdk_extern]
-fn whoami(_: ()) -> ExternResult<Response<AgentInfo>> {
-    Ok(composition( agent_info()?, VALUE_MD ))
+fn whoami(_: ()) -> ExternResult<AgentInfo> {
+    agent_info()
 }
 
 
 // Publisher
-#[hdk_extern]
-fn create_publisher(input: publisher::CreateInput) -> ExternResult<EntityResponse<PublisherEntry>> {
-    let entity = catch!( publisher::create( input ) );
-
-    Ok(composition( entity, ENTITY_MD ))
-}
 
 #[hdk_extern]
-fn get_publisher(input: GetEntityInput) -> ExternResult<EntityResponse<PublisherEntry>> {
-    let entity = catch!( publisher::get( input ) );
-
-    Ok(composition( entity, ENTITY_MD ))
-}
-
-#[hdk_extern]
-fn update_publisher(input: publisher::UpdateInput) -> ExternResult<EntityResponse<PublisherEntry>> {
-    let entity = catch!( publisher::update( input ) );
-
-    Ok(composition( entity, ENTITY_MD ))
-}
-
-#[hdk_extern]
-fn deprecate_publisher(input: publisher::DeprecateInput) -> ExternResult<EntityResponse<PublisherEntry>> {
-    let entity = catch!( publisher::deprecate( input ) );
-
-    Ok(composition( entity, ENTITY_MD ))
-}
-
-#[hdk_extern]
-fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Response<Vec<Entity<PublisherEntry>>>> {
+fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<PublisherEntry>>> {
     let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
 	input.for_agent.to_string(), ANCHOR_PUBLISHERS.to_string(),
     ]);
-    let collection = catch!(
-	hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )
-    );
+    let collection = hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )?;
 
-    Ok(composition(
-	collection,
-	ENTITY_COLLECTION_MD
-    ))
+    Ok( collection )
 }
 
 #[hdk_extern]
-fn get_my_publishers(_:()) -> ExternResult<Response<Vec<Entity<PublisherEntry>>>> {
+fn get_my_publishers(_:()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
     get_publishers_for_agent( GetForAgentInput {
 	for_agent: hc_utils::agentpubkey()?,
     })
 }
 
 #[hdk_extern]
-fn get_all_publishers(_: ()) -> ExternResult<Response<Vec<Entity<PublisherEntry>>>> {
+fn get_all_publishers(_: ()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
     let (_, pathhash ) = hc_utils::path_base( ANCHOR_PUBLISHERS );
-    let collection = catch!(
-	hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )
-    );
+    let collection = hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )?;
     let collection = collection.into_iter()
 	.filter(|entity : &Entity<PublisherEntry>| {
 	    entity.content.deprecation.is_none()
 	})
 	.collect();
 
-    Ok(composition(
-	collection,
-	ENTITY_COLLECTION_MD
-    ))
+    Ok( collection )
 }
 
 
 // App
-#[hdk_extern]
-fn create_app(input: app::CreateInput) -> ExternResult<EntityResponse<AppEntry>> {
-    let entity = catch!( app::create( input ) );
-
-    Ok(composition( entity, ENTITY_MD ))
-}
 
 #[hdk_extern]
-fn get_app(input: GetEntityInput) -> ExternResult<EntityResponse<AppEntry>> {
-    let entity = catch!( app::get( input ) );
-
-    Ok(composition( entity, ENTITY_MD ))
-}
-
-#[hdk_extern]
-fn update_app(input: app::UpdateInput) -> ExternResult<EntityResponse<AppEntry>> {
-    let entity = catch!( app::update( input ) );
-
-    Ok(composition( entity, ENTITY_MD ))
-}
-
-#[hdk_extern]
-fn deprecate_app(input: app::DeprecateInput) -> ExternResult<EntityResponse<AppEntry>> {
-    let entity = catch!( app::deprecate( input ) );
-
-    Ok(composition( entity, ENTITY_MD ))
-}
-
-#[hdk_extern]
-fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
+fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<AppEntry>>> {
     let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
 	input.for_agent.to_string(), ANCHOR_APPS.to_string(),
     ]);
-    let collection = catch!(
-	hc_crud::get_entities( &pathhash, LinkTypes::App, None )
-    );
+    let collection = hc_crud::get_entities( &pathhash, LinkTypes::App, None )?;
 
-    Ok(composition(
-	collection,
-	ENTITY_COLLECTION_MD
-    ))
+    Ok( collection )
 }
 
 #[hdk_extern]
-fn get_my_apps(_:()) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
+fn get_my_apps(_:()) -> ExternResult<Vec<Entity<AppEntry>>> {
     get_apps_for_agent( GetForAgentInput {
 	for_agent: hc_utils::agentpubkey()?,
     })
 }
 
 #[hdk_extern]
-fn get_all_apps(_: ()) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
+fn get_all_apps(_: ()) -> ExternResult<Vec<Entity<AppEntry>>> {
     let (_, pathhash ) = hc_utils::path_base( ANCHOR_APPS );
-    let collection = catch!(
-	hc_crud::get_entities( &pathhash, LinkTypes::App, None )
-    );
+    let collection = hc_crud::get_entities( &pathhash, LinkTypes::App, None )?;
     let collection = collection.into_iter()
 	.filter(|entity : &Entity<AppEntry>| {
 	    entity.content.deprecation.is_none()
 	})
 	.collect();
 
-    Ok(composition(
-	collection,
-	ENTITY_COLLECTION_MD
-    ))
+    Ok( collection )
 }
 
 
@@ -272,25 +198,19 @@ fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> ExternResul
 
 
 #[hdk_extern]
-fn get_moderator_actions(input: GetModeratorActionsInput) -> ExternResult<Response<Vec<Entity<ModeratorActionEntry>>>> {
-    let collection = catch!( get_moderator_actions_handler(input) );
+fn get_moderator_actions(input: GetModeratorActionsInput) -> ExternResult<Vec<Entity<ModeratorActionEntry>>> {
+    let collection = get_moderator_actions_handler(input)?;
 
-    Ok(composition(
-	collection,
-	ENTITY_COLLECTION_MD
-    ))
+    Ok( collection )
 }
 
 #[hdk_extern]
-fn get_moderated_state(input: GetModeratorActionsInput) -> ExternResult<Response<Option<Entity<ModeratorActionEntry>>>> {
-    let history = catch!( get_moderator_actions_handler(input) );
+fn get_moderated_state(input: GetModeratorActionsInput) -> ExternResult<Option<Entity<ModeratorActionEntry>>> {
+    let history = get_moderator_actions_handler(input)?;
     let state = history.last()
         .map( |state| state.to_owned() );
 
-    Ok(composition(
-	state,
-	ENTITY_MD
-    ))
+    Ok( state )
 }
 
 
@@ -299,11 +219,11 @@ pub struct UpdateModeratorActionInput {
     pub group_id: ActionHash,
     pub app_id: ActionHash,
     pub message: String,
-    pub metadata: BTreeMap<String, serde_yaml::Value>,
+    pub metadata: BTreeMap<String, RmpvValue>,
 }
 
 #[hdk_extern]
-fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Response<Entity<ModeratorActionEntry>>> {
+fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Entity<ModeratorActionEntry>> {
     let actions = get_moderator_actions_handler( GetModeratorActionsInput {
         group_id: input.group_id.clone(),
         app_id: input.app_id.clone(),
@@ -336,10 +256,7 @@ fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Res
             content: ma_entry,
         };
 
-        Ok(composition(
-	    entity,
-	    ENTITY_MD
-        ))
+        Ok( entity )
     }
     else {
         let entity = hc_crud::create_entity( &ma_entry )?;
@@ -366,10 +283,7 @@ fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Res
         let tag = format!("app::{}", input.app_id );
         create_link( group_anchor_hash, entity.id.clone(), LinkTypes::ModeratorAction, tag.into_bytes() )?;
 
-        Ok(composition(
-	    entity,
-	    ENTITY_MD
-        ))
+        Ok( entity )
     }
 }
 
@@ -379,7 +293,7 @@ fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Res
 // Group CRUD
 //
 #[hdk_extern]
-pub fn create_group(group: GroupEntry) -> ExternResult<Response<Entity<GroupEntry>>> {
+pub fn create_group(group: GroupEntry) -> ExternResult<Entity<GroupEntry>> {
     debug!("Creating new group entry: {:#?}", group );
     let action_hash = create_group!( group )?;
     let record = must_get( &action_hash )?;
@@ -393,15 +307,12 @@ pub fn create_group(group: GroupEntry) -> ExternResult<Response<Entity<GroupEntr
         content: group,
     };
 
-    Ok(composition(
-	entity,
-	ENTITY_MD
-    ))
+    Ok( entity )
 }
 
 
 #[hdk_extern]
-pub fn get_group(id: ActionHash) -> ExternResult<Response<Entity<GroupEntry>>> {
+pub fn get_group(id: ActionHash) -> ExternResult<Entity<GroupEntry>> {
     debug!("Creating new group entry: {:#?}", id );
     let latest_addr = follow_evolutions( &id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
@@ -415,15 +326,12 @@ pub fn get_group(id: ActionHash) -> ExternResult<Response<Entity<GroupEntry>>> {
         content: group,
     };
 
-    Ok(composition(
-	entity,
-	ENTITY_MD
-    ))
+    Ok( entity )
 }
 
 
 #[hdk_extern]
-pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<Response<Entity<GroupEntry>>> {
+pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<Entity<GroupEntry>> {
     debug!("Update group: {:#?}", input );
     let action_hash = update_group!({
         base: input.base,
@@ -442,15 +350,12 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<Respons
         content: group,
     };
 
-    Ok(composition(
-	entity,
-	ENTITY_MD
-    ))
+    Ok( entity )
 }
 
 
 #[hdk_extern]
-fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
+fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<AppEntry>>> {
     // - Derive group anchor
     // - Get moderator action links
     // - Get all group content
@@ -465,7 +370,7 @@ fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Response<Vec<Ent
         })
         .filter_map(|moderator_action| {
             match moderator_action.metadata.get("remove")? {
-                serde_yaml::Value::Bool(value) => match value {
+                RmpvValue::Boolean(value) => match value {
                     true => Some( moderator_action.subject_id ),
                     false => None,
                 },
@@ -475,21 +380,17 @@ fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Response<Vec<Ent
         .collect();
 
     debug!("Removed app IDs from viewpoint {}: {:#?}", group_id, removed_app_ids );
-    let apps = get_all_apps(())?.as_result()
-        .map_err(|err| guest_error!(format!("{:?}", err )))?
+    let apps = get_all_apps(())?
         .into_iter()
         .filter(|entity| !removed_app_ids.contains( &entity.id ) )
         .collect();
 
-    Ok(composition(
-	apps,
-	ENTITY_COLLECTION_MD
-    ))
+    Ok( apps )
 }
 
 
 #[hdk_extern]
-fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Response<Vec<Entity<AppEntry>>>> {
+fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<AppEntry>>> {
     // - Derive group anchor
     // - Get moderator action links
     // - Get all group content
@@ -504,7 +405,7 @@ fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Response
         })
         .filter_map(|moderator_action| {
             match moderator_action.metadata.get("remove")? {
-                serde_yaml::Value::Bool(value) => match value {
+                RmpvValue::Boolean(value) => match value {
                     true => Some( moderator_action.subject_id ),
                     false => None,
                 },
@@ -514,14 +415,10 @@ fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Response
         .collect();
 
     debug!("Removed app IDs from viewpoint {}: {:#?}", group_id, removed_app_ids );
-    let apps = get_all_apps(())?.as_result()
-        .map_err(|err| guest_error!(format!("{:?}", err )))?
+    let apps = get_all_apps(())?
         .into_iter()
         .filter(|entity| removed_app_ids.contains( &entity.id ) )
         .collect();
 
-    Ok(composition(
-	apps,
-	ENTITY_COLLECTION_MD
-    ))
+    Ok( apps )
 }
