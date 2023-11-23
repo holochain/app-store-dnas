@@ -178,26 +178,26 @@ export const AppStoreCSRZomelet		= new Zomelet({
     //
     async get_webapp_package ( input ) {
 	const app			= await this.functions.get_app( input );
-	const apphub			= this.getCellInterface( "apphub", app.devhub_address.dna );
+	const apphub			= this.getCellInterface( "apphub", app.apphub_hrl.dna );
 
 	return await apphub.apphub_csr.get_webapp_package(
-	    app.devhub_address.webapp_package
+	    app.apphub_hrl.target
 	);
     },
     async get_webapp_package_versions ( input ) {
 	const app			= await this.functions.get_app( input );
-	const apphub			= this.getCellInterface( "apphub", app.devhub_address.dna );
+	const apphub			= this.getCellInterface( "apphub", app.apphub_hrl.dna );
 
 	return await apphub.apphub_csr.get_webapp_package_versions_sorted(
-	    app.devhub_address.webapp_package
+	    app.apphub_hrl.target
 	);
     },
     async get_webapp_package_latest_bundle ( input ) {
 	const app			= await this.functions.get_app( input );
-	const apphub			= this.getCellInterface( "apphub", app.devhub_address.dna );
+	const apphub			= this.getCellInterface( "apphub", app.apphub_hrl.dna );
 
 	const versions			= await apphub.apphub_csr.get_webapp_package_versions_sorted(
-	    app.devhub_address.webapp_package
+	    app.apphub_hrl.target
 	);
 
 	return await apphub.apphub_csr.get_webhapp_bundle(

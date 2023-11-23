@@ -15,9 +15,9 @@ pub type RmpvValue = rmpv::Value;
 // General-use Structs
 //
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct WebHappConfig {
+pub struct HRL {
     pub dna: DnaHash,
-    pub webapp_package: EntityId,
+    pub target: AnyDhtHash,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -106,7 +106,7 @@ pub struct AppEntry {
     pub description: String,
     pub icon: EntryHash,
     pub publisher: EntityId,
-    pub devhub_address: WebHappConfig,
+    pub apphub_hrl: HRL,
     pub editors: Vec<AgentPubKey>,
 
     // common fields

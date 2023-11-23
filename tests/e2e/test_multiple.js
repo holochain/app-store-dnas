@@ -266,9 +266,9 @@ async function setup () {
 
     const app_input			= createAppInput({
 	"publisher": publisher.$id,
-	"devhub_address": {
+	"apphub_hrl": {
 	    "dna": bobby_client.roles.apphub,
-	    "webapp_package": pack_v1.$id,
+	    "target": pack_v1.$id,
 	},
     });
     app					= await alice_appstore_csr.create_app( app_input );

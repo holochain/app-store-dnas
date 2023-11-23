@@ -37,8 +37,7 @@ INT_SOURCE_FILES	= $(COMMON_SOURCE_FILES) \
 				zomes/%/Cargo.toml zomes/%/src/*.rs \
 				zomes/%/src/**
 CSR_SOURCE_FILES	= $(COMMON_SOURCE_FILES) $(INT_SOURCE_FILES) \
-				zomes/%_csr/Cargo.toml zomes/%_csr/src/*.rs \
-				dnas/%/sdk/Cargo.toml dnas/%/sdk/src/*.rs
+				zomes/%_csr/Cargo.toml zomes/%_csr/src/*.rs
 
 
 

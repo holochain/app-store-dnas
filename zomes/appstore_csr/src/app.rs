@@ -8,12 +8,12 @@ use appstore::{
     LinkTypes,
     RmpvValue,
 
+    HRL,
+    DeprecationNotice,
     AppEntry,
 
     EntityId,
     GetEntityInput, UpdateEntityInput,
-    WebHappConfig,
-    DeprecationNotice,
 };
 use crate::{
     ANCHOR_AGENTS,
@@ -30,7 +30,7 @@ pub struct CreateInput {
     pub description: String,
     pub icon: EntryHash,
     pub publisher: EntityId,
-    pub devhub_address: WebHappConfig,
+    pub apphub_hrl: HRL,
 
     // optional
     pub editors: Option<Vec<AgentPubKey>>,
@@ -59,7 +59,7 @@ pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 	description: input.description,
 	icon: input.icon,
 	publisher: input.publisher.clone(),
-	devhub_address: input.devhub_address,
+	apphub_hrl: input.apphub_hrl,
 
 	editors: input.editors
 	    .unwrap_or( default_editors ),
@@ -118,7 +118,7 @@ pub struct UpdateProperties {
     pub subtitle: Option<String>,
     pub description: Option<String>,
     pub icon: Option<EntryHash>,
-    pub devhub_address: Option<WebHappConfig>,
+    pub apphub_hrl: Option<HRL>,
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
@@ -143,8 +143,8 @@ pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
 		.unwrap_or( current.subtitle );
 	    current.description = props.description
 		.unwrap_or( current.description );
-	    current.devhub_address = props.devhub_address
-		.unwrap_or( current.devhub_address );
+	    current.apphub_hrl = props.apphub_hrl
+		.unwrap_or( current.apphub_hrl );
 	    current.icon = props.icon
 		.unwrap_or( current.icon );
 	    current.published_at = props.published_at

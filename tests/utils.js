@@ -55,8 +55,6 @@ export function createPublisherInput ( overrides ) {
 };
 
 
-const TEST_DNA_HASH			= "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5";
-
 export function createAppInput ( overrides ) {
     return Object.assign({
 	"title": "Chess",
@@ -64,9 +62,9 @@ export function createAppInput ( overrides ) {
 	"description": "The boardgame known as Chess",
 	"icon": crypto.randomBytes(1_000),
 	"publisher": new ActionHash( crypto.randomBytes(32) ),
-	"devhub_address": {
-	    "dna": TEST_DNA_HASH,
-	    "webapp_package": new ActionHash( crypto.randomBytes(32) ),
+	"apphub_hrl": {
+	    "dna": new DnaHash( crypto.randomBytes(32) ),
+	    "target": new ActionHash( crypto.randomBytes(32) ),
 	},
 	"editors": [
 	    new AgentPubKey( crypto.randomBytes(32) )

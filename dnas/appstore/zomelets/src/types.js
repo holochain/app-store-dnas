@@ -1,7 +1,8 @@
 
 import {
-    AgentPubKey, HoloHash,
-    ActionHash, EntryHash, DnaHash,
+    HoloHash, AnyDhtHash,
+    AgentPubKey, DnaHash,
+    ActionHash, EntryHash,
 }					from '@spartan-hc/holo-hash';
 import {
     ScopedEntity,
@@ -28,10 +29,10 @@ export const DeprecationNoticeStruct = {
     "recommended_alternatives":	OptionType( VecType( ActionHash ) ),
 };
 
-export const WebHappConfigStruct = {
+export const HRLStruct = {
     "dna":			DnaHash,
-    "webapp_package":		ActionHash,
-};
+    "target":			AnyDhtHash,
+}
 
 
 
@@ -103,7 +104,7 @@ export const AppStruct = {
     "description":		String,
     "icon":			EntryHash,
     "publisher":		ActionHash,
-    "devhub_address":		WebHappConfigStruct,
+    "apphub_hrl":		HRLStruct,
     "editors":			VecType( AgentPubKey ),
 
     // common fields
