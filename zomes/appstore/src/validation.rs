@@ -160,7 +160,7 @@ fn validate_publisher_update(op: &Op, entry: PublisherEntry, prev_entry: Publish
 	return Ok(ValidateCallbackResult::Invalid(message));
     }
 
-    if prev_entry.deprecation.is_some() {
+    if prev_entry.deprecation.is_some() && entry.deprecation.is_some() {
 	return Ok(ValidateCallbackResult::Invalid("Cannot update deprecated app".to_string()));
     }
 
@@ -210,7 +210,7 @@ fn validate_app_update(op: &Op, entry: AppEntry, prev_entry: AppEntry) -> Extern
 	return Ok(ValidateCallbackResult::Invalid(message));
     }
 
-    if prev_entry.deprecation.is_some() {
+    if prev_entry.deprecation.is_some() && entry.deprecation.is_some() {
 	return Ok(ValidateCallbackResult::Invalid("Cannot update deprecated app".to_string()));
     }
 

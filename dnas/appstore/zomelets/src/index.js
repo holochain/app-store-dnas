@@ -9,6 +9,14 @@ import {
 }					from '@spartan-hc/zomelets'; // approx. 7kb
 import { MereMemoryZomelet }		from '@spartan-hc/mere-memory-zomelets'; // approx. 33kb
 import {
+    PortalCell,
+}					from '@holochain/portal-zomelets';
+import {
+    AppHubCell,
+    DnaHubCell,
+    ZomeHubCell,
+}					from '@holochain/apphub-zomelets';
+import {
     Publisher,
     App,
     Group,
@@ -77,6 +85,11 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return new Publisher( result, this );
     },
+    async undeprecate_publisher ( input ) {
+	const result			= await this.call( input );
+
+	return new Publisher( result, this );
+    },
 
     //
     // App
@@ -122,6 +135,11 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return new App( result, this );
     },
+    async undeprecate_app ( input ) {
+	const result			= await this.call( input );
+
+	return new App( result, this );
+    },
 
     //
     // Group
@@ -158,9 +176,51 @@ export const AppStoreCSRZomelet		= new Zomelet({
     //
     // Virtual functions
     //
+    async get_webapp_package ( input ) {
+	const app			= await this.functions.get_app( input );
+	const apphub			= this.getCellInterface( "apphub", app.devhub_address.dna );
+
+	return await apphub.apphub_csr.get_webapp_package(
+	    app.devhub_address.webapp_package
+	);
+    },
+    async get_webapp_package_versions ( input ) {
+	const app			= await this.functions.get_app( input );
+	const apphub			= this.getCellInterface( "apphub", app.devhub_address.dna );
+
+	return await apphub.apphub_csr.get_webapp_package_versions_sorted(
+	    app.devhub_address.webapp_package
+	);
+    },
+    async get_webapp_package_latest_bundle ( input ) {
+	const app			= await this.functions.get_app( input );
+	const apphub			= this.getCellInterface( "apphub", app.devhub_address.dna );
+
+	const versions			= await apphub.apphub_csr.get_webapp_package_versions_sorted(
+	    app.devhub_address.webapp_package
+	);
+
+	return await apphub.apphub_csr.get_webhapp_bundle(
+	    versions[0].webapp
+	);
+    },
+    async call_apphub_zome_function ( input ) {
+	const apphub			= this.getCellInterface( "apphub", input.dna );
+
+	return await apphub[ input.zome ][ input.function ](
+	    input.args
+	);
+    },
 }, {
     "zomes": {
 	"mere_memory_api": MereMemoryZomelet,
+    },
+    "virtual": {
+	"cells": {
+	    "apphub": AppHubCell,
+	    "dnahub": DnaHubCell,
+	    "zomehub": ZomeHubCell,
+	},
     },
 });
 

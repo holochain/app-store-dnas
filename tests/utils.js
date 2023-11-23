@@ -34,7 +34,7 @@ export function linearSuite ( name, setup_fn, args_fn ) {
 }
 
 
-export async function createPublisherInput ( overrides ) {
+export function createPublisherInput ( overrides ) {
     return Object.assign({
 	"name": "Holo",
 	"location": {
@@ -57,7 +57,7 @@ export async function createPublisherInput ( overrides ) {
 
 const TEST_DNA_HASH			= "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5";
 
-export async function createAppInput ( overrides ) {
+export function createAppInput ( overrides ) {
     return Object.assign({
 	"title": "Chess",
 	"subtitle": "The classic boardgame",
@@ -66,8 +66,7 @@ export async function createAppInput ( overrides ) {
 	"publisher": new ActionHash( crypto.randomBytes(32) ),
 	"devhub_address": {
 	    "dna": TEST_DNA_HASH,
-	    "happ": new ActionHash( crypto.randomBytes(32) ),
-	    "gui": new ActionHash( crypto.randomBytes(32) ),
+	    "webapp_package": new ActionHash( crypto.randomBytes(32) ),
 	},
 	"editors": [
 	    new AgentPubKey( crypto.randomBytes(32) )
@@ -76,7 +75,7 @@ export async function createAppInput ( overrides ) {
 };
 
 
-export async function createGroupInput ( admins, ...members ) {
+export function createGroupInput ( admins, ...members ) {
     return {
 	"admins": admins,
 	"members": [ ...members ],

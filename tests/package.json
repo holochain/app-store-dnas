@@ -9,19 +9,17 @@
   "license": "ISC",
   "dependencies": {
     "@faker-js/faker": "^7.3.0",
-    "@holochain/apphub-zomelets": "^0.1.1",
+    "@holochain/apphub-zomelets": "^0.2.0",
     "@holochain/appstore-zomelets": "file:../dnas/appstore/zomelets",
-    "@holochain/portal-zomelets": "^0.1.1",
-    "@spartan-hc/app-interface-client": "^0.2.1",
+    "@holochain/portal-zomelets": "^0.1.2",
+    "@spartan-hc/app-interface-client": "^0.2.2",
+    "@spartan-hc/bundles": "^0.2.2",
     "@spartan-hc/holo-hash": "^0.6.1",
     "@spartan-hc/holochain-backdrop": "^2.2.3",
-    "@spartan-hc/mere-memory-zomelets": "^0.3.0",
     "@whi/json": "^0.1.5",
-    "@whi/weblogger": "^0.2.1",
-    "ws": "^8.2.2"
+    "@whi/weblogger": "^0.2.1"
   },
   "devDependencies": {
-    "@whi/crux-payload-parser": "^0.3.2",
     "chai": "^4.3.4",
     "mocha": "^10.1.0",
     "why-is-node-running": "^2.2.0"

@@ -181,3 +181,23 @@ pub fn deprecate_publisher(input: DeprecateInput) -> ExternResult<Entity<Publish
 
     Ok( entity )
 }
+
+
+#[derive(Debug, Deserialize)]
+pub struct UndeprecateInput {
+    pub base: ActionHash,
+}
+
+#[hdk_extern]
+pub fn undeprecate_publisher(input: UndeprecateInput) -> ExternResult<Entity<PublisherEntry>> {
+    debug!("Deprecating hApp: {}", input.base );
+    let entity = update_entity(
+	&input.base,
+	|mut current : PublisherEntry, _| {
+	    current.deprecation = None;
+
+	    Ok( current )
+	})?;
+
+    Ok( entity )
+}

@@ -1,233 +1,333 @@
-const path				= require('path');
-const log				= require('@whi/stdlog')(path.basename( __filename ), {
-    level: process.env.LOG_LEVEL || 'fatal',
+import { Logger }			from '@whi/weblogger';
+const log				= new Logger("test-multiple", process.env.LOG_LEVEL );
+
+import * as fs				from 'node:fs/promises';
+import path				from 'path';
+import crypto				from 'crypto';
+import { expect }			from 'chai';
+import { faker }			from '@faker-js/faker';
+// import why				from 'why-is-node-running';
+
+import json				from '@whi/json';
+import {
+    Bundle,
+}					from '@spartan-hc/bundles';
+import {
+    HoloHash,
+    DnaHash, AgentPubKey,
+    ActionHash, EntryHash,
+}					from '@spartan-hc/holo-hash';
+
+import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
+const {
+    Holochain,
+    HolochainClientLib,
+}					= HolochainBackdrop;
+
+import {
+    AppHubCell,
+    DnaHubCell,
+    ZomeHubCell,
+}					from '@holochain/apphub-zomelets';
+import {
+    AppStoreCell,
+}					from '@holochain/appstore-zomelets';
+import {
+    PortalCell,
+}					from '@holochain/portal-zomelets';
+import {
+    AppInterfaceClient,
+}					from '@spartan-hc/app-interface-client';
+
+import {
+    expect_reject,
+    linearSuite,
+    createAppInput,
+    createPublisherInput,
+}					from '../utils.js';
+
+
+const __dirname				= path.dirname( new URL(import.meta.url).pathname );
+const DEVHUB_PATH			= path.join( __dirname, "../devhub.happ" );
+const APPSTORE_PATH			= path.join( __dirname, "../../happ/appstore.happ" );
+const APPSTORE_DNA_PATH			= path.join( __dirname, "../../dnas/appstore.dna" );
+const PORTAL_DNA_PATH			= path.join( __dirname, "../../dnas/portal.dna" );
+const APP_PORT				= 23_567;
+
+const network_seed			= crypto.randomBytes( 8 ).toString("hex");
+const holochain				= new Holochain({
+    "timeout": 60_000,
+    "default_stdout_loggers": log.level_rank > 3,
+});
+
+let client;
+let alice_client;
+let bobby_client;
+let carol_client;
+
+let alice_appstore_csr;
+let alice_portal_csr;
+
+let bobby_zomehub_csr;
+let bobby_dnahub_csr;
+let bobby_apphub_csr;
+let bobby_portal_csr;
+
+let carol_zomehub_csr;
+let carol_dnahub_csr;
+let carol_apphub_csr;
+let carol_portal_csr;
+
+
+describe("App Store + DevHub", () => {
+
+    before(async function () {
+	this.timeout( 120_000 );
+
+	await holochain.backdrop({
+	    "devhub":		DEVHUB_PATH,
+	}, {
+	    "app_port": APP_PORT,
+	    "actors": [
+		"bobby",
+		"carol",
+	    ],
+	    network_seed,
+	});
+
+	client				= new AppInterfaceClient( APP_PORT, {
+	    "logging": process.env.LOG_LEVEL || "normal",
+	});
+
+	bobby_client			= await client.app( "devhub-bobby" );
+	carol_client			= await client.app( "devhub-carol" );
+
+	{
+	    const {
+		zomehub,
+		dnahub,
+		apphub,
+		portal,
+	    }				= bobby_client.createInterface({
+		"zomehub":	ZomeHubCell,
+		"dnahub":	DnaHubCell,
+		"apphub":	AppHubCell,
+		"portal":	PortalCell,
+	    });
+
+	    bobby_zomehub_csr		= zomehub.zomes.zomehub_csr.functions;
+	    bobby_dnahub_csr		= dnahub.zomes.dnahub_csr.functions;
+	    bobby_apphub_csr		= apphub.zomes.apphub_csr.functions;
+	    bobby_portal_csr		= portal.zomes.portal_csr.functions;
+	}
+
+	{
+	    const {
+		zomehub,
+		dnahub,
+		apphub,
+		portal,
+	    }				= carol_client.createInterface({
+		"zomehub":	ZomeHubCell,
+		"dnahub":	DnaHubCell,
+		"apphub":	AppHubCell,
+		"portal":	PortalCell,
+	    });
+
+	    carol_zomehub_csr		= zomehub.zomes.zomehub_csr.functions;
+	    carol_dnahub_csr		= dnahub.zomes.dnahub_csr.functions;
+	    carol_apphub_csr		= apphub.zomes.apphub_csr.functions;
+	    carol_portal_csr		= portal.zomes.portal_csr.functions;
+	}
+
+	const install			= await holochain.setupApp(
+	    APP_PORT,
+	    "appstore",
+	    "alice",
+	    await holochain.admin.generateAgent(),
+	    APPSTORE_PATH,
+	    {
+		network_seed,
+	    }
+	);
+
+	alice_client			= await client.app( "appstore-alice" );
+
+	{
+	    const {
+		appstore,
+		portal,
+	    }				= alice_client.createInterface({
+		"appstore":	AppStoreCell,
+		"portal":	PortalCell,
+	    })
+
+	    alice_appstore_csr		= appstore.zomes.appstore_csr.functions;
+	    alice_portal_csr		= portal.zomes.portal_csr.functions;
+	}
+
+	const portal_proxy		= async function ( role, dna, zome, func, args, options ) {
+	    // 'this' == CallContext instance
+	    this.log.trace("[virtual] cell (%s) call input:", ...arguments );
+	    return await alice_portal_csr.remote_call.call( this, {
+		"dna": dna,
+		"zome": zome,
+		"function": func,
+		"payload": args,
+	    });
+	};
+
+	// Create the proxies for virtual cells
+	alice_client.createVirtualCells({
+	    "apphub": portal_proxy,
+	    "dnahub": portal_proxy,
+	    "zomehub": portal_proxy,
+	});
+
+	// Must call whoami for all of bobby and carol's cells to ensure that inits have registered
+	// them as hosts in portal
+	await bobby_portal_csr.whoami();
+	await bobby_zomehub_csr.whoami();
+	await bobby_dnahub_csr.whoami();
+	await bobby_apphub_csr.whoami();
+
+	await carol_portal_csr.whoami();
+	await carol_zomehub_csr.whoami();
+	await carol_dnahub_csr.whoami();
+	await carol_apphub_csr.whoami();
+
+	// Call each whoami to ensure inits are complete for more predictable test timing
+	await alice_portal_csr.whoami();
+	await alice_appstore_csr.whoami();
+
+	await setup();
+
+	await holochain.admin.disableApp("devhub-carol");
+    });
+
+    linearSuite("Download", download_tests.bind( this ) );
+    linearSuite("Errors", errors_tests.bind( this ) );
+
+    after(async function () {
+	this.timeout( 10_000 );
+	await holochain.destroy();
+    });
+
 });
 
 
-const fs				= require('fs');
-const crypto				= require('crypto');
-const expect				= require('chai').expect;
-// const why				= require('why-is-node-running');
-
-const msgpack				= require('@msgpack/msgpack');
-const json				= require('@whi/json');
-const { ActionHash, EntryHash, AgentPubKey,
-	HoloHash }			= require('@whi/holo-hash');
-const { Holochain,
-	HolochainClientLib,
-	Config }			= require('@whi/holochain-backdrop');
-const { CruxConfig,
-	Translator }			= require('@whi/crux-payload-parser');
-const { AdminClient,
-	TimeoutError,
-	...hc_client }			= HolochainClientLib;
-
-const { expect_reject }			= require('../utils.js');
-
-const delay				= (n) => new Promise(f => setTimeout(f, n));
-
-const DEVHUB_PATH			= path.join( __dirname, "../devhub.happ" );
-const APPSTORE_PATH			= path.join( __dirname, "../../appstore.happ" );
-const APPSTORE_DNA_PATH			= path.join( __dirname, "../../bundled/appstore.dna" );
-const PORTAL_DNA_PATH			= path.join( __dirname, "../../bundled/portal.dna" );
-
-const clients				= {};
-
-let DNAREPO_DNA_HASH;
-let HAPPS_DNA_HASH;
-let WEBASSETS_DNA_HASH;
-
+let webapp_v1;
+let pack_v1;
+let version_v1;
 
 async function setup () {
-    let hdk_version			= "v0.1.0";
-    let zome				= await clients.bobby.devhub.call("dnarepo", "dna_library", "create_zome", {
-	"name": "appstore",
-	"description": "",
-    });
-    let zome_version			= await clients.bobby.devhub.call("dnarepo", "dna_library", "create_zome_version", {
-	"for_zome": zome.$id,
-	"version": "1",
-	"ordering": 1,
-	"zome_bytes": fs.readFileSync( path.resolve(__dirname, "../../zomes/appstore.wasm") ),
-	hdk_version,
-    });
-
-    let dna				= await clients.bobby.devhub.call("dnarepo", "dna_library", "create_dna", {
-	"name": "appstore",
-	"description": "",
-    });
-    let dna_version			= await clients.bobby.devhub.call("dnarepo", "dna_library", "create_dna_version", {
-	"for_dna": dna.$id,
-	"version": "1",
-	"ordering": 1,
-	hdk_version,
-	"integrity_zomes": [{
-	    "name": "appstore",
-	    "zome": new ActionHash( zome_version.for_zome ),
-	    "version": zome_version.$id,
-	    "resource": new EntryHash( zome_version.mere_memory_addr ),
-	    "resource_hash": zome_version.mere_memory_hash,
-	}],
-	"zomes": [],
-	"origin_time": "2022-02-11T23:05:19.470323Z",
-    });
-
-    let gui_file			= await clients.bobby.devhub.call("web_assets", "web_assets", "create_file", {
-	"file_bytes": crypto.randomBytes( 1_000 ),
-    });
-    let gui				= await clients.bobby.devhub.call("happs", "happ_library", "create_gui", {
-	"name": "Appstore",
-	"description": "",
-    });
-    let gui_release			= await clients.bobby.devhub.call("happs", "happ_library", "create_gui_release", {
-	"version": "1",
-	"changelog": "",
-	"for_gui": gui.$id,
-	"for_happ_releases": [],
-	"web_asset_id": gui_file.$id,
-    });
-
-    let happ				= await clients.bobby.devhub.call("happs", "happ_library", "create_happ", {
-	"title": "Appstore",
-	"subtitle": "",
-	"description": "",
-    });
-    let happ_release			= await clients.bobby.devhub.call("happs", "happ_library", "create_happ_release", {
-	"version": "1",
-	"description": "",
-	"for_happ": happ.$id,
-	"official_gui": gui.$id,
-	"ordering": 1,
-	"manifest": {
-	    "manifest_version": "1",
-	    "roles": [
-		{
-		    "name": "test_dna",
-		    "dna": {
-			"path": "./this/does/not/matter.dna",
-		    },
-		    "clone_limit": 0,
-		},
-	    ],
+    const bundle			= Bundle.createWebhapp({
+	"name": "fake-webhapp-1",
+	"ui": {
+	    "bytes": new Uint8Array( Array( 1_000 ).fill( 1 ) ),
 	},
-	hdk_version,
-	"dnas": [
-	    {
-		"role_name": "appstore",
-		"dna": dna.$id,
-		"version": dna_version.$id,
-		"wasm_hash": dna_version.wasm_hash,
-	    }
-	],
+	"happ_manifest": {
+	    "bytes": await fs.readFile( APPSTORE_PATH ),
+	},
+    });
+    const bundle_bytes			= bundle.toBytes();
+
+    webapp_v1				= await bobby_apphub_csr.save_webapp( bundle_bytes );
+    log.normal("WebApp entry: %s", json.debug(webapp_v1) );
+
+    pack_v1				= await bobby_apphub_csr.create_webapp_package({
+	"title": faker.commerce.productName(),
+	"subtitle": faker.lorem.sentence(),
+	"description": faker.lorem.paragraphs( 2 ),
+	"icon": crypto.randomBytes( 1_000 ),
+	"source_code_uri": faker.internet.url(),
+    });
+    log.normal("WebApp Package: %s", json.debug(pack_v1) );
+
+    version_v1				= await bobby_apphub_csr.create_webapp_package_version({
+	"version": "0.1.0",
+	"for_package": pack_v1.$id,
+	"webapp": webapp_v1.$addr,
+	"source_code_revision_uri": faker.internet.url(),
+    });
+    log.normal("WebApp Package Version [v0.1.0]: %s", json.debug(version_v1) );
+
+    await bobby_apphub_csr.create_webapp_package_version({
+	"version": "0.2.0",
+	"for_package": pack_v1.$id,
+	"webapp": webapp_v1.$addr,
+	"source_code_revision_uri": faker.internet.url(),
     });
 
-    const publisher			= await clients.alice.appstore.call("appstore", "appstore_api", "create_publisher", {
-	"name": "Holochain",
-	"location": {
-	    "country": "Gibraltar",
-	    "region": "Gibraltar",
-	    "city": "Gibraltar",
-	},
-	"website": {
-	    "url": "https://github.com/holochain",
-	    "context": "github",
-	},
-	"icon": new ActionHash( crypto.randomBytes(32) ),
-    });
+    const publisher			= await alice_appstore_csr.create_publisher(
+	createPublisherInput()
+    );
+    log.normal("Publisher: %s", json.debug(publisher) );
 
-    app					= await clients.alice.appstore.call("appstore", "appstore_api", "create_app", {
-	"title": "Chess",
-	"subtitle": "The classic boardgame",
-	"description": "The boardgame known as Chess",
-	"icon": new ActionHash( crypto.randomBytes(32) ),
+    const app_input			= createAppInput({
 	"publisher": publisher.$id,
 	"devhub_address": {
-	    "dna": HAPPS_DNA_HASH,
-	    "happ": happ.$id,
-	    "gui": null,
+	    "dna": bobby_client.roles.apphub,
+	    "webapp_package": pack_v1.$id,
 	},
     });
+    app					= await alice_appstore_csr.create_app( app_input );
+    log.normal("App: %s", json.debug(app) );
 }
 
 let app;
 function download_tests () {
-    let available_host;
 
-    async function portal_call ( dna, zome, func, payload, timeout ) {
-	if ( available_host === undefined ) {
-	    // Get hosts of ...
-	    let hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_hosts_for_zome_function", {
-		"dna": dna,
-		"zome": zome,
-		"function": func,
-	    });
-	    log.info("Found %s hosts for API %s::%s->%s()", hosts.length, dna, zome, func );
+    it("should find 2 host for AppHub", async function () {
+	let hosts			= await alice_portal_csr.get_registered_hosts( bobby_client.roles.apphub );
 
-	    // Ping hosts ...
-	    available_host		= await Promise.any(
-		hosts.map(async host => {
-		    await clients.alice.appstore.call("portal", "portal_api", "ping", host.author, 1_000 );
-		    return new AgentPubKey( host.author );
-		})
-	    );
-	    log.info("Set available host: %s", available_host );
-	}
+	expect( hosts			).to.have.length( 2 );
+    });
 
-	return await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
-	    "host": available_host,
-	    "call": {
-		"dna": HAPPS_DNA_HASH,
-		"zome": zome,
-		"function": func,
-		"payload": payload,
-	    },
-	}, timeout );
-    }
-
-    it("should find 2 host for happ_library GUI methods", async function () {
-	let hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_hosts_for_zome_function", {
-	    "dna": HAPPS_DNA_HASH,
-	    "zome": "happ_library",
-	    "function": "get_gui_releases",
+    it("should find 2 hosts for AppHub zome/function", async function () {
+	let hosts			= await alice_portal_csr.get_hosts_for_zome_function({
+	    "dna": bobby_client.roles.apphub,
+	    "zome": "apphub_csr",
+	    "function": "get_webapp_package_entry",
 	});
 
 	expect( hosts			).to.have.length( 2 );
     });
 
     it("should get hApp info", async function () {
-	this.timeout( 10_000 );
+	const pack			= await app.$getWebAppPackage();
 
-	const happ			= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_happ", {
-	    "id": app.devhub_address.happ,
-	}, 10_000 );
+	log.normal("App's WebApp Package: %s", json.debug(pack) );
 
-	expect( happ.title		).to.be.a("string");
+	expect( pack.title		).to.be.a("string");
+    });
+
+    it("should check for new versions", async function () {
+	const versions			= await app.$getWebAppPackageVersions();
+
+	log.normal("App's WebApp Package Versions (sorted): %s", json.debug(versions) );
+
+	expect( versions		).to.have.length( 2 );
     });
 
     it("should download DevHub webapp package", async function () {
-	this.timeout( 60_000 );
+	this.timeout( 30_000 );
 
-	const happ_releases		= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_happ_releases", {
-	    "for_happ": app.devhub_address.happ,
-	}, 10_000 );
+	const bundle_bytes		= await app.$getLatestBundle();
+	const bundle			= new Bundle( bundle_bytes, "webhapp" );
 
-	expect( happ_releases		).to.have.length( 1 );
+	log.normal("App's latest webhapp bundle: %s", json.debug(bundle) );
+    });
 
-	const gui_releases		= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_gui_releases", {
-	    "for_gui": happ_releases[0].official_gui,
-	}, 10_000 );
+    it("should get ui entry", async function () {
+	const ui_entry			= await alice_appstore_csr.call_apphub_zome_function({
+	    "dna": bobby_client.roles.apphub,
+	    "zome": "apphub_csr",
+	    "function": "get_ui_entry",
+	    "args": webapp_v1.manifest.ui.ui_entry,
+	});
 
-	expect( gui_releases		).to.have.length( 1 );
-
-	// Get webhapp package from first host
-	const bytes			= await portal_call( HAPPS_DNA_HASH, "happ_library", "get_webhapp_package", {
-	    "name": app.title,
-	    "happ_release_id": happ_releases[0].$id,
-	    "gui_release_id": gui_releases[0].$id,
-	}, 30_000 );
-	log.info("Received app pacakge with %s bytes", bytes.length );
-
-	expect( bytes.length		).to.be.a("number");
+	log.normal("UI entry: %s", json.debug(ui_entry) );
     });
 
 }
@@ -235,8 +335,8 @@ function download_tests () {
 let admin;
 function errors_tests () {
     it("should fail because 0 hosts registered", async function () {
-	const hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_registered_hosts", {
-	    "dna": DNAREPO_DNA_HASH,
+	const hosts			= await alice_portal_csr.get_registered_hosts({
+	    "dna": alice_client.roles.appstore,
 	});
 
 	expect( hosts			).to.have.length( 0 );
@@ -246,12 +346,12 @@ function errors_tests () {
 	this.timeout( 30_000 );
 
 	await expect_reject( async () => {
-	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
-		"host": clients.bobby.devhub.cellAgent(),
+	    await alice_portal_csr.custom_remote_call({
+		"host": bobby_client.agent_id,
 		"call": {
-		    "dna": DNAREPO_DNA_HASH,
-		    "zome": "dna_library",
-		    "function": "get_dna",
+		    "dna": alice_client.roles.appstore,
+		    "zome": "appstore_csr",
+		    "function": "get_app",
 		    "payload": null,
 		},
 	    });
@@ -261,11 +361,11 @@ function errors_tests () {
     it("should fail because not unrestricted access", async function () {
 	this.timeout( 30_000 );
 
-	await clients.bobby.devhub.call("portal", "portal_api", "register_host", {
-	    "dna": DNAREPO_DNA_HASH,
-	    "granted_functions": {
-		"Listed": [
-		    [ "dna_library", "get_dna" ],
+	await bobby_portal_csr.register_host({
+	    "dna": bobby_client.roles.portal,
+	    "zomes": {
+		"conditional_zome": [
+		    "some_func",
 		],
 	    },
 	    "cap_access": {
@@ -276,12 +376,12 @@ function errors_tests () {
 	});
 
 	await expect_reject( async () => {
-	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
-		"host": clients.bobby.devhub.cellAgent(),
+	    await alice_portal_csr.custom_remote_call({
+		"host": bobby_client.agent_id,
 		"call": {
-		    "dna": DNAREPO_DNA_HASH,
-		    "zome": "dna_library",
-		    "function": "get_dna",
+		    "dna": bobby_client.roles.portal,
+		    "zome": "conditional_zome",
+		    "function": "some_func",
 		    "payload": null,
 		},
 	    });
@@ -292,12 +392,12 @@ function errors_tests () {
 	this.timeout( 30_000 );
 
 	await expect_reject( async () => {
-	    await clients.alice.appstore.call("portal", "portal_api", "custom_remote_call", {
-		"host": clients.bobby.devhub.cellAgent(),
+	    await alice_portal_csr.custom_remote_call({
+		"host": bobby_client.agent_id,
 		"call": {
-		    "dna": HAPPS_DNA_HASH,
-		    "zome": "happ_library",
-		    "function": "create_app",
+		    "dna": bobby_client.roles.apphub,
+		    "zome": "apphub_csr",
+		    "function": "create_webapp",
 		    "payload": null,
 		},
 	    });
@@ -307,161 +407,10 @@ function errors_tests () {
     it("should fail because all hosts were unreachable", async function () {
 	this.timeout( 60_000 );
 
-	await admin.disableApp("devhub-bobby");
+	await holochain.admin.disableApp("devhub-bobby");
 
-	let hosts			= await clients.alice.appstore.call("portal", "portal_api", "get_registered_hosts", {
-	    "dna": HAPPS_DNA_HASH,
-	});
-	log.info("Found %s hosts of the '%s' DNA", hosts.length, HAPPS_DNA_HASH );
-
-	expect( hosts			).to.have.length( 2 );
-
-	const pings			= hosts.map(host => {
-	    return clients.alice.appstore.call("portal", "portal_api", "ping", host.author, 1_000 );
-	});
-
-	for ( let p of pings ) {
-	    try {
-		await p
-	    } catch ( err ) {
-		if ( !(err instanceof TimeoutError)
-		     && !err.message.includes("Disconnected")
-		     && !err.message.includes("agent is likely offline") )
-		    throw new TypeError(`Expected ping result to be TimeoutError; not type '${err}'`);
-	    }
-	}
+	await expect_reject( async () => {
+	    await alice_appstore_csr.get_webapp_package( app.$id );
+	}, "hosts are unavailable");
     });
 }
-
-const crux				= new CruxConfig();
-const interpreter			= new Translator([]);
-function organize_clients ( actors ) {
-    for ( let name in actors ) {
-	if ( clients[ name ] === undefined )
-	    clients[ name ]		= {};
-
-	for ( let app_prefix in actors[ name ] ) {
-	    log.info("Upgrade client for %s => %s", name, app_prefix );
-	    const installation			= actors[ name ][ app_prefix ];
-	    const client			= installation.client;
-	    clients[ name ][ app_prefix ]	= client;
-
-	    for ( let role_name in installation.dnas ) {
-		log.normal("%s new cell : %s (%s)", name, role_name, installation.dnas[ role_name ] );
-	    }
-
-	    client.addProcessor("output", (essence, req) => {
-		if ( !( req.dna === "portal"
-			&& req.zome === "portal_api"
-			&& req.func === "custom_remote_call"
-		      ) )
-		    return essence;
-
-		let pack;
-		try {
-		    log.debug("Portal wrapper (%s) with metadata: %s", essence.type, essence.metadata, essence.payload );
-		    pack			= interpreter.parse( essence );
-		} catch ( err ) {
-		    log.error("Error unwrapping portal response response:", err );
-		    return essence;
-		}
-
-		const payload		= pack.value();
-
-		if ( payload instanceof Error )
-		    throw payload;
-
-		return payload;
-	    });
-
-	    crux.upgrade( client );
-	}
-    }
-}
-
-describe("App Store + DevHub", () => {
-    const holochain			= new Holochain({
-	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
-	"timeout": 30_000,
-    });
-
-    before(async function () {
-	this.timeout( 120_000 );
-
-	const network_seed		= crypto.randomBytes( 8 ).toString("hex");
-	const actors			= await holochain.backdrop({
-	    "devhub":		DEVHUB_PATH,
-	}, {
-	    "actors": [
-		"bobby",
-		"carol",
-	    ],
-	    network_seed,
-	});
-	organize_clients( actors );
-
-	const install			= await holochain.setupApp(
-	    actors.bobby.devhub.app_port,
-	    "appstore",
-	    "alice",
-	    await holochain.admin.generateAgent(),
-	    APPSTORE_PATH,
-	    {
-		network_seed,
-	    }
-	);
-	organize_clients({
-	    "alice": {
-		"appstore": install,
-	    },
-	});
-
-	DNAREPO_DNA_HASH		= clients.bobby.devhub._app_schema._dnas.dnarepo._hash;
-	HAPPS_DNA_HASH			= clients.bobby.devhub._app_schema._dnas.happs._hash;
-	WEBASSETS_DNA_HASH		= clients.bobby.devhub._app_schema._dnas.web_assets._hash;
-
-	// Must call whoami on each cell to ensure that init has finished.
-	{
-	    let whoami			= await clients.alice.appstore.call("appstore", "appstore_api", "whoami", null, 30_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-	{
-	    let whoami			= await clients.alice.appstore.call("portal", "portal_api", "whoami", null, 30_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-	{
-	    let whoami			= await clients.bobby.devhub.call("dnarepo", "dna_library", "whoami", null, 30_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-	{
-	    let whoami			= await clients.carol.devhub.call("dnarepo", "dna_library", "whoami", null, 30_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-	{
-	    let whoami			= await clients.bobby.devhub.call("happs", "happ_library", "whoami", null, 30_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-	{
-	    let whoami			= await clients.carol.devhub.call("happs", "happ_library", "whoami", null, 30_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-
-	await setup();
-
-	{
-	    const port			= holochain.adminPorts()[0];
-	    admin			= new AdminClient( port );
-	}
-
-	await admin.disableApp("devhub-carol");
-   });
-
-    describe("Download", download_tests.bind( this ) );
-    describe("Errors", errors_tests.bind( this ) );
-
-    after(async function () {
-	this.timeout( 10_000 );
-	await holochain.destroy();
-    });
-
-});

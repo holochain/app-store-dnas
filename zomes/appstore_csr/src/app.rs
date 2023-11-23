@@ -185,3 +185,23 @@ pub fn deprecate_app(input: DeprecateInput) -> ExternResult<Entity<AppEntry>> {
 
     Ok( entity )
 }
+
+
+#[derive(Debug, Deserialize)]
+pub struct UndeprecateInput {
+    pub base: ActionHash,
+}
+
+#[hdk_extern]
+pub fn undeprecate_app(input: UndeprecateInput) -> ExternResult<Entity<AppEntry>> {
+    debug!("Deprecating hApp: {}", input.base );
+    let entity = update_entity(
+	&input.base,
+	|mut current : AppEntry, _| {
+	    current.deprecation = None;
+
+	    Ok( current )
+	})?;
+
+    Ok( entity )
+}

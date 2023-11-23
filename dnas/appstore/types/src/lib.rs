@@ -17,12 +17,7 @@ pub type RmpvValue = rmpv::Value;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebHappConfig {
     pub dna: DnaHash,
-    // pub entry: ActionHash,
-    pub happ: ActionHash,
-    pub gui: Option<ActionHash>,
-
-    // // optional
-    // pub action: Option<ActionHash>,
+    pub webapp_package: EntityId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

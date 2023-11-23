@@ -18,7 +18,6 @@ const { Holochain }			= HolochainBackdrop;
 
 import {
     AppStoreCell,
-    MereMemoryZomelet,
 }					from '@holochain/appstore-zomelets';
 import {
     AppInterfaceClient,
@@ -33,17 +32,16 @@ import {
 }					from '../utils.js';
 
 
-const delay				= (n) => new Promise(f => setTimeout(f, n));
-
 const __dirname				= path.dirname( new URL(import.meta.url).pathname );
 const APPSTORE_DNA_PATH			= path.join( __dirname, "../../dnas/appstore.dna" );
-const TEST_DNA_HASH			= "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5";
 const APP_PORT				= 23_567;
 
 let client;
-let app_client, bobby_client;
-let appstore, appstore_csr;
-let bobby_appstore, bobby_appstore_csr;
+let app_client
+let bobby_client;
+
+let appstore_csr;
+let bobby_appstore_csr;
 
 
 describe("Controlled Viewpoint", () => {
@@ -70,16 +68,21 @@ describe("Controlled Viewpoint", () => {
 	app_client			= await client.app( "test-alice" );
 	bobby_client			= await client.app( "test-bobby" );
 
-	({
-	    appstore,
-	}				= app_client.createInterface({
-	    "appstore":	AppStoreCell,
-	}));
+	{
+	    const {
+		appstore,
+	    }				= app_client.createInterface({
+		"appstore":	AppStoreCell,
+	    });
 
-	bobby_appstore			= bobby_client.createCellInterface( "appstore", AppStoreCell );
+	    appstore_csr		= appstore.zomes.appstore_csr.functions;
+	}
 
-	appstore_csr			= appstore.zomes.appstore_csr.functions;
-	bobby_appstore_csr		= bobby_appstore.zomes.appstore_csr.functions;
+	{
+	    const bobby_appstore	= bobby_client.createCellInterface( "appstore", AppStoreCell );
+
+	    bobby_appstore_csr		= bobby_appstore.zomes.appstore_csr.functions;
+	}
 
 	// Must call whoami on each cell to ensure that init has finished.
 	await appstore_csr.whoami();
@@ -98,15 +101,15 @@ describe("Controlled Viewpoint", () => {
 });
 
 
-let publisher_1;
+let publisher1;
 
 function publisher_tests () {
 
     it("should create publisher profile", async function () {
 	this.timeout( 10_000 );
 
-	const publisher = publisher_1	= await appstore_csr.create_publisher(
-	    await createPublisherInput()
+	const publisher = publisher1	= await appstore_csr.create_publisher(
+	    createPublisherInput()
 	);
 
 	// log.debug( json.debug( publisher ) );
@@ -117,17 +120,17 @@ function publisher_tests () {
 }
 
 
-let app_1;
+let app1;
 
 function app_tests () {
 
     it("should create app profile", async function () {
 	this.timeout( 10_000 );
 
-	const input			= await createAppInput({
-	    "publisher": publisher_1.$id,
+	const input			= createAppInput({
+	    "publisher": publisher1.$id,
 	});
-	const app = app_1		= await appstore_csr.create_app( input );
+	const app = app1		= await appstore_csr.create_app( input );
 
 	log.normal("App ID: %s", json.debug( app.$id ) );
 
@@ -137,23 +140,23 @@ function app_tests () {
 }
 
 
-let group_1;
+let group1;
 
 function group_tests () {
 
     it("should create group viewpoint", async function () {
 	this.timeout( 10_000 );
 
-	const group_input		= await createGroupInput(
+	const group_input		= createGroupInput(
 	    [
 		app_client.agent_id,
 	    ],
 	);
-	group_1				= await appstore_csr.create_group( group_input );
+	group1				= await appstore_csr.create_group( group_input );
 
-	log.debug("Group: %s", json.debug( group_1 ) );
+	log.debug("Group: %s", json.debug( group1 ) );
 
-	// expect( publisher.editors	).to.have.length( 2 );
+	expect( group1.admins		).to.have.length( 1 );
     });
 
     it("should create group viewpoint", async function () {
@@ -162,82 +165,62 @@ function group_tests () {
 
 	    expect( apps		).to.have.length( 1 );
 	}
-	const apps			= await appstore_csr.viewpoint_get_all_apps( group_1.$id );
+	const apps			= await group1.$getAllApps();
 
 	log.debug( json.debug( apps ) );
 
 	expect( apps			).to.have.length( 1 );
 
-	const ma_state			= await appstore_csr.get_moderated_state({
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	});
+	const ma_state			= await group1.$getAppModeratedState( app1.$id );
 
 	expect( ma_state		).to.be.null;
     });
 
     it("should remove app from group view", async function () {
-	const moderator_action		= await appstore_csr.update_moderated_state({
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	    "message": "App fails to install and developer cannot be contacted",
-	    "metadata": {
-		"remove": true,
-	    },
-	});
+	const moderator_action		= await group1.$removeApp(
+	    app1.$id,
+	    "App fails to install and developer cannot be contacted"
+	);
 
 	log.debug("Removed app: %s", json.debug(moderator_action) );
 
 	{
-	    const apps			= await appstore_csr.viewpoint_get_all_apps( group_1.$id );
+	    const apps			= await group1.$getAllApps();
 	    log.debug( json.debug( apps ) );
 	    expect( apps		).to.have.length( 0 );
 	}
 	{
-	    const apps			= await appstore_csr.viewpoint_get_all_removed_apps( group_1.$id );
+	    const apps			= await group1.$getAllRemovedApps();
 	    log.debug( json.debug( apps ) );
 	    expect( apps		).to.have.length( 1 );
 	}
 
-	const ma_state			= await appstore_csr.get_moderated_state({
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	});
+	const ma_state			= await group1.$getAppModeratedState( app1.$id );
 
 	expect( ma_state.message	).to.equal( moderator_action.message );
     });
 
     it("should unremove app from group view", async function () {
-	const updated_ma_entry			= await appstore_csr.update_moderated_state({
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	    "message": "Developer fixed the app",
-	    "metadata": {
-		"remove": false,
-	    },
-	});
+	const updated_ma_entry			= await group1.$unremoveApp(
+	    app1.$id,
+	    "Developer fixed the app"
+	);
 
 	log.debug("Unremoved app: %s", json.debug(updated_ma_entry) );
 
-	const apps			= await appstore_csr.viewpoint_get_all_apps( group_1.$id );
+	const apps			= await group1.$getAllApps();
 
 	log.debug( json.debug( apps ) );
 
 	expect( apps			).to.have.length( 1 );
 
-	const ma_state			= await appstore_csr.get_moderated_state({
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	});
+	const ma_state			= await group1.$getAppModeratedState( app1.$id );
 
 	expect( ma_state.message	).to.equal( updated_ma_entry.message );
     });
 
     it("should get moderator actions", async function () {
-	const moderator_actions		= await appstore_csr.get_moderator_actions({
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	});
+	const moderator_actions		= await group1.$getAppModeratedActions( app1.$id );
 
 	log.debug( json.debug( moderator_actions ) );
     });
@@ -252,8 +235,8 @@ function errors_tests () {
     it("should fail to remove app because agent is not a group member", async function () {
 	await expect_reject( async () => {
 	    const moderator_action		= await bobby_appstore_csr.update_moderated_state({
-		"group_id": group_1.$id,
-		"app_id": app_1.$id,
+		"group_id": group1.$id,
+		"app_id": app1.$id,
 		"message": "malicious",
 		"metadata": {
 		    "remove": true,

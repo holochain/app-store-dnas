@@ -157,10 +157,21 @@ npm-reinstall-local:
 	cd tests; npm uninstall $(NPM_PACKAGE); npm i --save $(LOCAL_PATH)
 npm-reinstall-public:
 	cd tests; npm uninstall $(NPM_PACKAGE); npm i --save $(NPM_PACKAGE)
+
 npm-use-app-interface-client-public:
 npm-use-app-interface-client-local:
 npm-use-app-interface-client-%:
 	NPM_PACKAGE=@spartan-hc/app-interface-client LOCAL_PATH=../../app-interface-client-js make npm-reinstall-$*
+
+npm-use-apphub-zomelets-public:
+npm-use-apphub-zomelets-local:
+npm-use-apphub-zomelets-%:
+	NPM_PACKAGE=@holochain/apphub-zomelets LOCAL_PATH=../../devhub-dnas/dnas/apphub/zomelets make npm-reinstall-$*
+
+npm-use-portal-zomelets-public:
+npm-use-portal-zomelets-local:
+npm-use-portal-zomelets-%:
+	NPM_PACKAGE=@holochain/portal-zomelets LOCAL_PATH=../../portal-dna/zomelets make npm-reinstall-$*
 
 
 
@@ -174,11 +185,6 @@ npm-use-app-interface-client-%:
 	touch $@
 test-setup:		tests/node_modules \
 			dnas/appstore/zomelets/node_modules
-
-tests/test.dna:
-	cp $(APPSTORE_DNA) $@
-tests/test.gz:
-	gzip -kc $(APPSTORE_DNA) > $@
 
 test:
 	make test-unit
@@ -194,19 +200,12 @@ test-crate:
 	fi
 test-unit:
 	SRC=zomes make test-crate
-	make test-appstore-unit
+	make test-unit-appstore
 
-test-%hub-unit:
-	SRC=dnas/$*hub make test-crate
+test-unit-%:
+	SRC=dnas/$* make test-crate
 test-zome-unit-%:
 	cd zomes; cargo test -p $* --quiet
-
-# test:				test-unit test-integration		test-e2e
-# test-debug:			test-unit test-integration-debug	test-e2e-debug
-
-# test-unit:			test-unit-appstore
-# test-unit-%:
-# 	cd zomes;		RUST_BACKTRACE=1 cargo test $* -- --nocapture
 
 # Integration tests
 test-integration:
