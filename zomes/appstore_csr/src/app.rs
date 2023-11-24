@@ -1,9 +1,10 @@
+use crate::{
+    hdk,
+    path, path_base,
+};
+
 use std::collections::BTreeMap;
 use hdk::prelude::*;
-use hc_crud::{
-    now, create_entity, get_entity, update_entity,
-    Entity,
-};
 use appstore::{
     LinkTypes,
     RmpvValue,
@@ -12,8 +13,12 @@ use appstore::{
     DeprecationNotice,
     AppEntry,
 
-    EntityId,
-    GetEntityInput, UpdateEntityInput,
+    hc_crud::{
+        now, create_entity, get_entity, update_entity,
+        Entity,
+        EntityId,
+        GetEntityInput, UpdateEntityInput,
+    },
 };
 use crate::{
     ANCHOR_AGENTS,
@@ -79,8 +84,7 @@ pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 
     { // Path via Agent's Apps
 	for agent in entity.content.editors.iter() {
-	    let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
-		// hc_utils::agentid()?,
+	    let (_, pathhash ) = path( ANCHOR_AGENTS, vec![
 		agent.to_string(),
 		ANCHOR_APPS.to_string(),
 	    ]);
@@ -88,14 +92,14 @@ pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 	}
     }
     { // Path via Publisher's Apps
-	let (_, pathhash) = hc_utils::path( ANCHOR_PUBLISHERS, vec![
+	let (_, pathhash) = path( ANCHOR_PUBLISHERS, vec![
 	    input.publisher.to_string(),
 	    ANCHOR_APPS.to_string(),
 	]);
 	entity.link_from( &pathhash, LinkTypes::App, None )?;
     }
     { // Path via All Apps
-	let (_, pathhash) = hc_utils::path_base( ANCHOR_APPS );
+	let (_, pathhash) = path_base( ANCHOR_APPS );
 	entity.link_from( &pathhash, LinkTypes::App, None )?;
     }
 
@@ -194,7 +198,7 @@ pub struct UndeprecateInput {
 
 #[hdk_extern]
 pub fn undeprecate_app(input: UndeprecateInput) -> ExternResult<Entity<AppEntry>> {
-    debug!("Deprecating hApp: {}", input.base );
+    debug!("Undeprecating hApp: {}", input.base );
     let entity = update_entity(
 	&input.base,
 	|mut current : AppEntry, _| {

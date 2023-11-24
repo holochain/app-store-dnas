@@ -134,7 +134,7 @@ NEW_PSDK_VERSION = hc_portal_sdk = "0.1.3"
 
 DEVHUB_VERSION = v0.12.0
 
-GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ hc_utils
+GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/
 
 update-hdk-version:
 	git grep -l '$(PRE_HDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDK_VERSION)|$(NEW_HDK_VERSION)|g'

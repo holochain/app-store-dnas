@@ -2,43 +2,13 @@ mod constants;
 mod publisher;
 mod app;
 
+pub use hdk_extensions::hdk;
+pub use constants::*;
+pub use appstore::*;
+
 use std::collections::BTreeMap;
 use hdk::prelude::*;
-use hc_crud::{
-    EntryModel,
-};
-pub use appstore::{
-    LinkTypes,
-    EntryTypes,
-    RmpvValue,
-
-    AppEntry,
-    PublisherEntry,
-    ModeratorActionEntry,
-    GroupAnchorEntry,
-
-    GetEntityInput, EntityId,
-    Entity,
-};
-pub use constants::{
-    ENTITY_MD,
-    ENTITY_COLLECTION_MD,
-    VALUE_MD,
-
-    ANCHOR_AGENTS,
-    ANCHOR_PUBLISHERS,
-    ANCHOR_APPS,
-};
-use coop_content_sdk::{
-    GroupEntry,
-    hdi_extensions,
-    hdk_extensions,
-    call_local_zome_decode,
-    create_group, update_group,
-    register_content_to_group,
-    register_content_update_to_group,
-    get_all_group_content_latest,
-};
+use hdk::hash_path::path::{ Component };
 use hdi_extensions::{
     guest_error,
     trace_origin_root,
@@ -50,12 +20,53 @@ use hdk_extensions::{
     must_get,
     follow_evolutions,
 };
+use hc_crud::{
+    EntryModel,
+    Entity,
+};
+use coop_content_sdk::{
+    GroupEntry,
+    call_local_zome_decode,
+    create_group, update_group,
+    register_content_to_group,
+    register_content_update_to_group,
+    get_all_group_content_latest,
+};
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetForAgentInput {
     pub for_agent: AgentPubKey,
 }
 
+
+pub fn path_base( base: &str ) -> (Path, EntryHash) {
+    path( base, Vec::<String>::new() )
+}
+
+
+pub fn path<T>( base: &str, segments: T ) -> (Path, EntryHash)
+where
+    T: IntoIterator,
+    T::Item: std::fmt::Display,
+{
+    let mut components : Vec<Component> = vec![];
+
+    for seg in base.split(".") {
+	let component = Component::from( format!("{}", seg ).as_bytes().to_vec() );
+	components.push( component );
+    }
+
+    for seg in segments {
+	let component = Component::from( format!("{}", seg ).as_bytes().to_vec() );
+	components.push( component );
+    }
+
+    let path = Path::from( components );
+    let hash = path.path_entry_hash().unwrap();
+
+    ( path, hash )
+}
 
 
 #[hdk_extern]
@@ -74,7 +85,7 @@ fn whoami(_: ()) -> ExternResult<AgentInfo> {
 
 #[hdk_extern]
 fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<PublisherEntry>>> {
-    let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
+    let (_, pathhash ) = path( ANCHOR_AGENTS, vec![
 	input.for_agent.to_string(), ANCHOR_PUBLISHERS.to_string(),
     ]);
     let collection = hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )?;
@@ -85,13 +96,13 @@ fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<
 #[hdk_extern]
 fn get_my_publishers(_:()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
     get_publishers_for_agent( GetForAgentInput {
-	for_agent: hc_utils::agentpubkey()?,
+	for_agent: agent_id()?,
     })
 }
 
 #[hdk_extern]
 fn get_all_publishers(_: ()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
-    let (_, pathhash ) = hc_utils::path_base( ANCHOR_PUBLISHERS );
+    let (_, pathhash ) = path_base( ANCHOR_PUBLISHERS );
     let collection = hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )?;
     let collection = collection.into_iter()
 	.filter(|entity : &Entity<PublisherEntry>| {
@@ -107,7 +118,7 @@ fn get_all_publishers(_: ()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
 
 #[hdk_extern]
 fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<AppEntry>>> {
-    let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
+    let (_, pathhash ) = path( ANCHOR_AGENTS, vec![
 	input.for_agent.to_string(), ANCHOR_APPS.to_string(),
     ]);
     let collection = hc_crud::get_entities( &pathhash, LinkTypes::App, None )?;
@@ -118,13 +129,13 @@ fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<AppEnt
 #[hdk_extern]
 fn get_my_apps(_:()) -> ExternResult<Vec<Entity<AppEntry>>> {
     get_apps_for_agent( GetForAgentInput {
-	for_agent: hc_utils::agentpubkey()?,
+	for_agent: agent_id()?,
     })
 }
 
 #[hdk_extern]
 fn get_all_apps(_: ()) -> ExternResult<Vec<Entity<AppEntry>>> {
-    let (_, pathhash ) = hc_utils::path_base( ANCHOR_APPS );
+    let (_, pathhash ) = path_base( ANCHOR_APPS );
     let collection = hc_crud::get_entities( &pathhash, LinkTypes::App, None )?;
     let collection = collection.into_iter()
 	.filter(|entity : &Entity<AppEntry>| {

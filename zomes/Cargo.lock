@@ -61,12 +61,9 @@ version = "0.0.0"
 dependencies = [
  "appstore_types",
  "hc_crud_caps",
- "hc_utils",
- "hdi",
- "hdk",
  "mere_memory_types",
- "rmpv",
  "serde",
+ "whi_hdi_extensions",
 ]
 
 [[package]]
@@ -75,16 +72,8 @@ version = "0.0.0"
 dependencies = [
  "appstore",
  "hc_coop_content_sdk",
- "hc_crud_caps",
- "hc_utils",
- "hdk",
- "hex",
- "mere_memory_types",
- "rmp-serde 1.1.1",
- "rmpv",
  "serde",
- "serde_yaml",
- "thiserror",
+ "whi_hdk_extensions",
 ]
 
 [[package]]
@@ -862,19 +851,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hc_utils"
-version = "0.9.0"
-dependencies = [
- "essence_payloads",
- "hc_crud_caps",
- "hdi",
- "hdk",
- "serde",
- "serde_yaml",
- "thiserror",
-]
-
-[[package]]
 name = "hdi"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -991,7 +967,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9805b3e01e7b5c144782a0823db4dc895fec18a9ccd45a492ce7c7bf157a9e38"
 dependencies = [
  "holochain_serialized_bytes_derive",
- "rmp-serde 0.15.5",
+ "rmp-serde",
  "serde",
  "serde-transcode",
  "serde_bytes",
@@ -1829,17 +1805,6 @@ name = "rmp-serde"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "723ecff9ad04f4ad92fe1c8ca6c20d2196d9286e9c60727c4cb5511629260e9d"
-dependencies = [
- "byteorder",
- "rmp",
- "serde",
-]
-
-[[package]]
-name = "rmp-serde"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
 dependencies = [
  "byteorder",
  "rmp",

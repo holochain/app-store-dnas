@@ -1,19 +1,24 @@
+use crate::{
+    hdk,
+    path, path_base,
+};
+
 use std::collections::BTreeMap;
 use hdk::prelude::*;
-use hc_crud::{
-    now, create_entity, get_entity, update_entity,
-    Entity,
-};
 use appstore::{
     LinkTypes,
     RmpvValue,
-
-    PublisherEntry,
-
-    GetEntityInput, UpdateEntityInput,
     LocationTriplet,
     WebAddress,
     DeprecationNotice,
+
+    PublisherEntry,
+
+    hc_crud::{
+        now, create_entity, get_entity, update_entity,
+        Entity,
+        GetEntityInput, UpdateEntityInput,
+    },
 };
 use crate::{
     ANCHOR_AGENTS,
@@ -79,8 +84,7 @@ pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<Publisher
 
     { // Path via Agent's Publishers
 	for agent in entity.content.editors.iter() {
-	    let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
-		// hc_utils::agentid()?,
+	    let (_, pathhash ) = path( ANCHOR_AGENTS, vec![
 		agent.to_string(),
 		ANCHOR_PUBLISHERS.to_string(),
 	    ]);
@@ -88,7 +92,7 @@ pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<Publisher
 	}
     }
     { // Path via All Publishers
-	let (_, pathhash) = hc_utils::path_base( ANCHOR_PUBLISHERS );
+	let (_, pathhash) = path_base( ANCHOR_PUBLISHERS );
 	entity.link_from( &pathhash, LinkTypes::Publisher, None )?;
     }
 
@@ -167,7 +171,7 @@ pub struct DeprecateInput {
 
 #[hdk_extern]
 pub fn deprecate_publisher(input: DeprecateInput) -> ExternResult<Entity<PublisherEntry>> {
-    debug!("Deprecating hApp: {}", input.base );
+    debug!("Deprecating publisher: {}", input.base );
     let entity = update_entity(
 	&input.base,
 	|mut current : PublisherEntry, _| {
@@ -190,7 +194,7 @@ pub struct UndeprecateInput {
 
 #[hdk_extern]
 pub fn undeprecate_publisher(input: UndeprecateInput) -> ExternResult<Entity<PublisherEntry>> {
-    debug!("Deprecating hApp: {}", input.base );
+    debug!("Undeprecating publisher: {}", input.base );
     let entity = update_entity(
 	&input.base,
 	|mut current : PublisherEntry, _| {

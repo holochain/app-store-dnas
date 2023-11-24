@@ -11,13 +11,5 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 appstore = {path = "../appstore"}
 hc_coop_content_sdk = "0.2.1"
-hc_crud_caps = "0.10.3"
-hc_utils = {path = "../../hc_utils"}
-hdk = "0.2.2"
-hex = "0"
-mere_memory_types = "0.91.0"
-rmp-serde = "1.1.1"
-rmpv = { version = "1.0.0", features = ["with-serde"] }
 serde = "1"
-serde_yaml = "0.8.17"
-thiserror = "1"
+whi_hdk_extensions = "0.4"
