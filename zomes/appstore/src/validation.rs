@@ -14,9 +14,6 @@ use hdi::prelude::*;
 use hdi_extensions::{
     valid, invalid,
 };
-pub use mere_memory_types::{
-    MemoryEntry,
-};
 
 
 #[hdk_extern]

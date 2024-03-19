@@ -22,12 +22,12 @@
     "url": "https://github.com/holochain/app-store-dnas/"
   },
   "dependencies": {
-    "@holochain/apphub-zomelets": "^0.2.0",
-    "@holochain/portal-zomelets": "^0.1.2",
+    "@holochain/apphub-zomelets": "file:../../../../devhub-dnas/dnas/apphub/zomelets",
+    "@holochain/portal-zomelets": "^0.1.4",
     "@spartan-hc/caps-entities": "^0.3.1",
     "@spartan-hc/holo-hash": "^0.6.1",
-    "@spartan-hc/mere-memory-zomelets": "^0.3.0",
-    "@spartan-hc/zomelets": "^0.1.3"
+    "@spartan-hc/mere-memory-zomelets": "^0.3.1",
+    "@spartan-hc/zomelets": "^0.2.0"
   },
   "devDependencies": {
     "webpack": "^5.88.2",

@@ -3,14 +3,15 @@ SHELL			= bash
 NAME			= appstore
 
 # External WASM dependencies
-MERE_MEMORY_VERSION	= 0.91.0
+MERE_MEMORY_VERSION	= 0.93.0
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
 MERE_MEMORY_API_WASM	= zomes/mere_memory_api.wasm
+COOP_CONTENT_VERSION	= 0.3.0
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
 COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
 # External DNA dependencies
-PORTAL_VERSION		= 0.9.2
+PORTAL_VERSION		= 0.11.0
 PORTAL_DNA		= dnas/portal.dna
 
 # External hApp dependencies
@@ -107,50 +108,53 @@ $(MERE_MEMORY_API_WASM):
 	curl --fail -L "https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory_api.wasm" --output $@
 
 $(COOP_CONTENT_WASM):
-	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$$(echo $(NEW_CC_VERSION))/coop_content.wasm" --output $@
+	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content.wasm" --output $@
 $(COOP_CONTENT_CSR_WASM):
-	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$$(echo $(NEW_CC_VERSION))/coop_content_csr.wasm" --output $@
+	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content_csr.wasm" --output $@
 
 
-PRE_HDK_VERSION = "=0.2.1"
-NEW_HDK_VERSION = "0.2.2"
+PRE_MM_VERSION = mere_memory_types = "0.91.0"
+NEW_MM_VERSION = mere_memory_types = "0.93"
 
-PRE_HDI_VERSION = "=0.3.1"
-NEW_HDI_VERSION = "0.3.2"
+PRE_CRUD_VERSION = hc_crud_caps = "0.10.3"
+NEW_CRUD_VERSION = hc_crud_caps = "0.12"
 
-PRE_CRUD_VERSION = hc_crud_caps = "0.9.0"
-NEW_CRUD_VERSION = hc_crud_caps = "0.10.3"
+PRE_HDI_VERSION = hdi = "0.3.2"
+NEW_HDI_VERSION = hdi = "0.4.0-beta-dev.30"
 
-PRE_MM_VERSION = mere_memory_types = "0.88.0"
-NEW_MM_VERSION = mere_memory_types = "0.91.0"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.4.2"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.6"
 
-PRE_CC_VERSION = "0.2.1"
-NEW_CC_VERSION = "0.2.2"
-PRE_CCSDK_VERSION = "0.2.0"
-NEW_CCSDK_VERSION = "0.2.1"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.4"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.6"
 
-PRE_PSDK_VERSION = hc_portal_types = "0.8.0"
-NEW_PSDK_VERSION = hc_portal_sdk = "0.1.3"
+# PRE_PSDK_VERSION = hc_portal_sdk = "0.1.3"
+# NEW_PSDK_VERSION = hc_portal_sdk = "0.3"
 
-DEVHUB_VERSION = v0.12.0
+PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.2.1"
+NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.3.0"
 
-GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/
+# DEVHUB_VERSION = v0.12.0
 
-update-hdk-version:
-	git grep -l '$(PRE_HDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDK_VERSION)|$(NEW_HDK_VERSION)|g'
-update-hdi-version:
-	git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDI_VERSION)|$(NEW_HDI_VERSION)|g'
-update-crud-version:
-	git grep -l '$(PRE_CRUD_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CRUD_VERSION)|$(NEW_CRUD_VERSION)|g'
+GG_REPLACE_LOCATIONS = ':(exclude)*.lock' dnas/*/types zomes/*/
+
 update-mere-memory-version:
 	rm -f zomes/mere_memory*.wasm
 	git grep -l '$(PRE_MM_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_MM_VERSION)|$(NEW_MM_VERSION)|g'
+update-crud-version:
+	git grep -l '$(PRE_CRUD_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CRUD_VERSION)|$(NEW_CRUD_VERSION)|g'
+update-hdi-version:
+	git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDI_VERSION)|$(NEW_HDI_VERSION)|g'
+update-hdk-extensions-version:
+	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
+update-hdi-extensions-version:
+	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
+# update-portal-version:
+# 	git grep -l '$(PRE_PSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_PSDK_VERSION)|$(NEW_PSDK_VERSION)|g'
+# 	rm -f $(PORTAL_DNA)
 update-coop-content-version:
 	rm -f zomes/coop_content*.wasm
 	git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
-update-portal-version:
-	git grep -l '$(PRE_PSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_PSDK_VERSION)|$(NEW_PSDK_VERSION)|g'
-	rm -f $(PORTAL_DNA)
 
 npm-reinstall-local:
 	cd tests; npm uninstall $(NPM_PACKAGE); npm i --save $(LOCAL_PATH)
@@ -186,8 +190,9 @@ test-setup:		tests/node_modules \
 			dnas/appstore/zomelets/node_modules
 
 test:
-	make test-unit
-	make test-integration
+	make -s test-unit
+	make -s test-integration
+	make -s test-e2e
 
 # Unit tests
 CRATE_DEBUG_LEVELS	= normal info debug trace
@@ -199,7 +204,7 @@ test-crate:
 	fi
 test-unit:
 	SRC=zomes make test-crate
-	make test-unit-appstore
+	make -s test-unit-appstore
 
 test-unit-%:
 	SRC=dnas/$* make test-crate
@@ -208,23 +213,24 @@ test-zome-unit-%:
 
 # Integration tests
 test-integration:
-	make test-appstore
-	make test-viewpoint
+	make -s test-appstore
+	make -s test-viewpoint
 
 DEBUG_LEVEL	       ?= warn
 TEST_ENV_VARS		= LOG_LEVEL=$(DEBUG_LEVEL)
+MOCHA_OPTS		= -n enable-source-maps
 
 test-appstore:			test-setup $(APPSTORE_DNA)
-	cd tests; $(TEST_ENV_VARS) npx mocha ./integration/test_appstore.js
+	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./integration/test_appstore.js
 test-viewpoint:			test-setup $(APPSTORE_DNA)
-	cd tests; $(TEST_ENV_VARS) npx mocha ./integration/test_controlled_viewpoint.js
+	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./integration/test_controlled_viewpoint.js
 
 # End-2-end tests
 test-e2e:
-	make test-multi
+	make -s test-multi
 
 test-multi:			test-setup $(APPSTORE_HAPP) $(DEVHUB_HAPP)
-	cd tests; $(TEST_ENV_VARS) npx mocha ./e2e/test_multiple.js
+	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./e2e/test_multiple.js
 
 
 

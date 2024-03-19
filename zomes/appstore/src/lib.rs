@@ -21,16 +21,16 @@ use mere_memory_types::{
 
 
 
-#[hdk_entry_defs]
+#[hdk_entry_types]
 #[unit_enum(EntryTypesUnit)]
 pub enum EntryTypes {
-    #[entry_def]
+    #[entry_type]
     Publisher(PublisherEntry),
-    #[entry_def]
+    #[entry_type]
     App(AppEntry),
-    #[entry_def]
+    #[entry_type]
     ModeratorAction(ModeratorActionEntry),
-    #[entry_def]
+    #[entry_type]
     GroupAnchor(GroupAnchorEntry),
 }
 

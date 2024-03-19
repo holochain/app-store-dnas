@@ -8,7 +8,6 @@ pub use appstore::*;
 
 use std::collections::BTreeMap;
 use hdk::prelude::*;
-use hdk::hash_path::path::{ Component };
 use hdi_extensions::{
     guest_error,
     trace_origin_root,
@@ -164,9 +163,12 @@ fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> ExternResul
 
     let tag = format!("app::{}", input.app_id );
     let moderator_action_links = get_links(
-        group_anchor_hash,
-        LinkTypes::ModeratorAction,
-        Some( LinkTag::new( tag ) ),
+        GetLinksInputBuilder::try_new(
+            group_anchor_hash.clone(),
+            LinkTypes::ModeratorAction,
+        )?
+            .tag_prefix( LinkTag::new(tag) )
+            .build()
     )?;
 
     let mayby_action_history = moderator_action_links
