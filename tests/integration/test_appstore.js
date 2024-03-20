@@ -33,8 +33,8 @@ import {
 
 const __dirname				= path.dirname( new URL(import.meta.url).pathname );
 const APPSTORE_DNA_PATH			= path.join( __dirname, "../../dnas/appstore.dna" );
-const APP_PORT				= 23_567;
 
+let app_port;
 let client;
 let app_client
 let bobby_client;
@@ -57,11 +57,12 @@ describe("Appstore", () => {
 		"appstore":	APPSTORE_DNA_PATH,
 	    },
 	}, {
-	    "app_port": APP_PORT,
 	    "actors": [ "alice", "bobby" ],
 	});
 
-	client				= new AppInterfaceClient( APP_PORT, {
+	app_port			= await holochain.appPorts()[0];
+
+	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "normal",
 	});
 	app_client			= await client.app( "test-alice" );

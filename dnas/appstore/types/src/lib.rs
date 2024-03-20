@@ -107,6 +107,7 @@ pub struct AppEntry {
     pub icon: EntryHash,
     pub publisher: EntityId,
     pub apphub_hrl: HRL,
+    pub apphub_hrl_hash: EntryHash,
     pub editors: Vec<AgentPubKey>,
 
     // common fields

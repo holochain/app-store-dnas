@@ -66,6 +66,7 @@ export function createAppInput ( overrides ) {
 	    "dna": new DnaHash( crypto.randomBytes(32) ),
 	    "target": new ActionHash( crypto.randomBytes(32) ),
 	},
+	"apphub_hrl_hash": new EntryHash( crypto.randomBytes(32) ),
 	"editors": [
 	    new AgentPubKey( crypto.randomBytes(32) )
 	],

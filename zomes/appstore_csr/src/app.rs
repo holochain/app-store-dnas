@@ -20,6 +20,9 @@ use appstore::{
         GetEntityInput, UpdateEntityInput,
     },
 };
+use apphub_types::{
+    WebAppPackageEntry,
+};
 use crate::{
     ANCHOR_AGENTS,
     ANCHOR_PUBLISHERS,
@@ -36,6 +39,7 @@ pub struct CreateInput {
     pub icon: EntryHash,
     pub publisher: EntityId,
     pub apphub_hrl: HRL,
+    pub apphub_hrl_hash: EntryHash,
 
     // optional
     pub editors: Option<Vec<AgentPubKey>>,
@@ -65,6 +69,7 @@ pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 	icon: input.icon,
 	publisher: input.publisher.clone(),
 	apphub_hrl: input.apphub_hrl,
+	apphub_hrl_hash: input.apphub_hrl_hash,
 
 	editors: input.editors
 	    .unwrap_or( default_editors ),
@@ -123,6 +128,7 @@ pub struct UpdateProperties {
     pub description: Option<String>,
     pub icon: Option<EntryHash>,
     pub apphub_hrl: Option<HRL>,
+    pub apphub_hrl_hash: Option<EntryHash>,
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
@@ -149,6 +155,8 @@ pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
 		.unwrap_or( current.description );
 	    current.apphub_hrl = props.apphub_hrl
 		.unwrap_or( current.apphub_hrl );
+	    current.apphub_hrl_hash = props.apphub_hrl_hash
+		.unwrap_or( current.apphub_hrl_hash );
 	    current.icon = props.icon
 		.unwrap_or( current.icon );
 	    current.published_at = props.published_at
@@ -208,4 +216,11 @@ pub fn undeprecate_app(input: UndeprecateInput) -> ExternResult<Entity<AppEntry>
 	})?;
 
     Ok( entity )
+}
+
+
+#[hdk_extern]
+pub fn hash_webapp_package_entry(input: WebAppPackageEntry) -> ExternResult<EntryHash> {
+    debug!("WebAppPackageEntry: {:#?}", input );
+    hash_entry( input )
 }

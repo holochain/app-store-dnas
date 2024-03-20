@@ -105,6 +105,7 @@ export const AppStruct = {
     "icon":			EntryHash,
     "publisher":		ActionHash,
     "apphub_hrl":		HRLStruct,
+    "apphub_hrl_hash":		EntryHash,
     "editors":			VecType( AgentPubKey ),
 
     // common fields

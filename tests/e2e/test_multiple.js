@@ -52,7 +52,6 @@ const DEVHUB_PATH			= path.join( __dirname, "../devhub.happ" );
 const APPSTORE_PATH			= path.join( __dirname, "../../happ/appstore.happ" );
 const APPSTORE_DNA_PATH			= path.join( __dirname, "../../dnas/appstore.dna" );
 const PORTAL_DNA_PATH			= path.join( __dirname, "../../dnas/portal.dna" );
-const APP_PORT				= 23_567;
 
 const network_seed			= crypto.randomBytes( 8 ).toString("hex");
 const holochain				= new Holochain({
@@ -60,6 +59,7 @@ const holochain				= new Holochain({
     "default_stdout_loggers": log.level_rank > 3,
 });
 
+let app_port;
 let client;
 let alice_client;
 let bobby_client;
@@ -87,7 +87,6 @@ describe("App Store + DevHub", () => {
 	await holochain.backdrop({
 	    "devhub":		DEVHUB_PATH,
 	}, {
-	    "app_port": APP_PORT,
 	    "actors": [
 		"bobby",
 		"carol",
@@ -95,7 +94,9 @@ describe("App Store + DevHub", () => {
 	    network_seed,
 	});
 
-	client				= new AppInterfaceClient( APP_PORT, {
+	app_port			= await holochain.appPorts()[0];
+
+	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "normal",
 	});
 
@@ -141,7 +142,7 @@ describe("App Store + DevHub", () => {
 	}
 
 	const install			= await holochain.setupApp(
-	    APP_PORT,
+	    app_port,
 	    "appstore",
 	    "alice",
 	    await holochain.admin.generateAgent(),
@@ -270,6 +271,7 @@ async function setup () {
 	    "dna": bobby_client.roles.apphub,
 	    "target": pack_v1.$id,
 	},
+	"apphub_hrl_hash": pack_v1.$addr,
     });
     app					= await alice_appstore_csr.create_app( app_input );
     log.normal("App: %s", json.debug(app) );
@@ -402,6 +404,33 @@ function errors_tests () {
 		},
 	    });
 	}, "No capability granted for DNA zome/function" );
+    });
+
+    it("should fail because requested entry was corrupted", async function () {
+	this.timeout( 30_000 );
+
+	const app_entry			= await alice_appstore_csr.get_app( app.$id );
+	const target_hash		= app_entry.apphub_hrl_hash;
+
+	const webapp_package		= await alice_appstore_csr.call_apphub_zome_function({
+	    "dna":		app_entry.apphub_hrl.dna,
+	    "zome":		"apphub_csr",
+	    "function":		"get_webapp_package",
+	    "args":		app_entry.apphub_hrl.target,
+	});
+	const good_hash			= await alice_appstore_csr.hash_webapp_package_entry(
+	    webapp_package
+	);
+
+	expect( target_hash		).to.deep.equal( good_hash );
+
+	webapp_package.title		= "corrupted";
+
+	const bad_hash			= await alice_appstore_csr.hash_webapp_package_entry(
+	    webapp_package
+	);
+
+	expect( target_hash		).to.deep.not.equal( bad_hash );
     });
 
     it("should fail because all hosts were unreachable", async function () {

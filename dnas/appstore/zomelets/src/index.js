@@ -166,6 +166,11 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return new Group( result, this );
     },
+    async hash_webapp_package_entry ( input ) {
+	const result			= await this.call( input );
+
+	return new EntryHash( result );
+    },
     "get_moderator_actions":		true,
     "get_moderated_state":		true,
     "update_moderated_state":		true,
@@ -180,9 +185,19 @@ export const AppStoreCSRZomelet		= new Zomelet({
 	const app			= await this.functions.get_app( input );
 	const apphub			= this.getCellInterface( "apphub", app.apphub_hrl.dna );
 
-	return await apphub.apphub_csr.get_webapp_package(
+	const webapp_package		= await apphub.apphub_csr.get_webapp_package(
 	    app.apphub_hrl.target
 	);
+	const recv_hash			= await this.functions.hash_webapp_package_entry(
+	    webapp_package
+	);
+
+	const target_hash		= app.apphub_hrl_hash;
+
+	if ( String(target_hash) !== String(recv_hash) )
+	    throw new Error(`Hashes do not match: ${app.apphub_hrl.target} !== ${recv_hash}`);
+
+	return webapp_package;
     },
     async get_webapp_package_versions ( input ) {
 	const app			= await this.functions.get_app( input );

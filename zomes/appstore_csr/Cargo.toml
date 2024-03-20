@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 appstore = { path = "../appstore" }
+hc_apphub_types = { path = "../../../devhub-dnas/dnas/apphub/types" }
 hc_coop_content_sdk = "0.3.0"
 serde = "1"
 whi_hdk_extensions = "0.6"
