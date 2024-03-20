@@ -77,7 +77,7 @@ name = "appstore_csr"
 version = "0.0.0"
 dependencies = [
  "appstore",
- "hc_apphub_types",
+ "hc_apphub_sdk",
  "hc_coop_content_sdk",
  "serde",
  "whi_hdk_extensions",
@@ -929,6 +929,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 
 [[package]]
+name = "hc_apphub_sdk"
+version = "0.2.0"
+dependencies = [
+ "hc_apphub_types",
+ "hc_devhub_sdk",
+ "hc_dnahub_sdk",
+ "serde",
+]
+
+[[package]]
 name = "hc_apphub_types"
 version = "0.2.0"
 dependencies = [
@@ -972,6 +982,24 @@ checksum = "e1424e00da7afb98b28f8853867208da7b3deca91e47fd978fc4fcbfbb2a6c4e"
 dependencies = [
  "serde",
  "whi_hdk_extensions",
+]
+
+[[package]]
+name = "hc_devhub_sdk"
+version = "0.1.0"
+dependencies = [
+ "hc_crud_caps",
+ "serde",
+ "whi_hdk_extensions",
+]
+
+[[package]]
+name = "hc_dnahub_sdk"
+version = "0.2.0"
+dependencies = [
+ "hc_devhub_sdk",
+ "hc_dnahub_types",
+ "serde",
 ]
 
 [[package]]

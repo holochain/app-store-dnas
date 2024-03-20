@@ -23,6 +23,13 @@ import {
 }					from './types.js';
 
 
+async function hash_entry ( input ) {
+    const result			= await this.call( input );
+
+    return new EntryHash( result );
+}
+
+
 export const AppStoreCSRZomelet		= new Zomelet({
     "whoami": {
 	output ( response ) {
@@ -166,11 +173,14 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return new Group( result, this );
     },
-    async hash_webapp_package_entry ( input ) {
-	const result			= await this.call( input );
+    "hash_ui_entry":				hash_entry,
+    "hash_app_entry":				hash_entry,
+    "hash_webapp_entry":			hash_entry,
+    "hash_webapp_package_entry":		hash_entry,
+    "hash_webapp_package_version_entry":	hash_entry,
+    "hash_mere_memory_entry":			hash_entry,
+    "hash_mere_memory_block_entry":		hash_entry,
 
-	return new EntryHash( result );
-    },
     "get_moderator_actions":		true,
     "get_moderated_state":		true,
     "update_moderated_state":		true,
@@ -181,23 +191,75 @@ export const AppStoreCSRZomelet		= new Zomelet({
     //
     // Virtual functions
     //
-    async get_webapp_package ( input ) {
-	const app			= await this.functions.get_app( input );
-	const apphub			= this.getCellInterface( "apphub", app.apphub_hrl.dna );
-
-	const webapp_package		= await apphub.apphub_csr.get_webapp_package(
-	    app.apphub_hrl.target
-	);
-	const recv_hash			= await this.functions.hash_webapp_package_entry(
-	    webapp_package
-	);
-
-	const target_hash		= app.apphub_hrl_hash;
-
-	if ( String(target_hash) !== String(recv_hash) )
-	    throw new Error(`Hashes do not match: ${app.apphub_hrl.target} !== ${recv_hash}`);
-
-	return webapp_package;
+    async get_apphub_memory ( input ) {
+	return await this.functions.get_apphub_entry({
+	    "dna":			input.dna,
+	    "zome":			"mere_memory_api",
+	    "function":			"get_memory_entry",
+	    "args":			input.target,
+	    "hash_function_name":	"hash_mere_memory_entry",
+	    "expected_hash":		input.hash || input.target,
+	});
+    },
+    async get_apphub_memory_block ( input ) {
+	return await this.functions.get_apphub_entry({
+	    "dna":			input.dna,
+	    "zome":			"mere_memory_api",
+	    "function":			"get_memory_block_entry",
+	    "args":			input.target,
+	    "hash_function_name":	"hash_mere_memory_block_entry",
+	    "expected_hash":		input.hash || input.target,
+	});
+    },
+    async get_apphub_ui ( input ) {
+	return await this.functions.get_apphub_entry({
+	    "dna":			input.dna,
+	    "zome":			"apphub_csr",
+	    "function":			"get_ui_entry",
+	    "args":			input.target,
+	    "hash_function_name":	"hash_ui_entry",
+	    "expected_hash":		input.hash || input.target,
+	});
+    },
+    async get_apphub_app ( input ) {
+	return await this.functions.get_apphub_entry({
+	    "dna":			input.dna,
+	    "zome":			"apphub_csr",
+	    "function":			"get_app_entry",
+	    "args":			input.target,
+	    "hash_function_name":	"hash_app_entry",
+	    "expected_hash":		input.hash || input.target,
+	});
+    },
+    async get_apphub_webapp ( input ) {
+	return await this.functions.get_apphub_entry({
+	    "dna":			input.dna,
+	    "zome":			"apphub_csr",
+	    "function":			"get_webapp_entry",
+	    "args":			input.target,
+	    "hash_function_name":	"hash_webapp_entry",
+	    "expected_hash":		input.hash || input.target,
+	});
+    },
+    async get_apphub_webapp_package ( input ) {
+	return await this.functions.get_apphub_entry({
+	    "dna":			input.dna,
+	    "zome":			"apphub_csr",
+	    "function":			"get_webapp_package_entry",
+	    "args":			input.target,
+	    "hash_function_name":	"hash_webapp_package_entry",
+	    "expected_hash":		input.hash || input.target,
+	});
+    },
+    async get_apphub_webapp_package_version ( input ) {
+	return await this.functions.get_apphub_entry({
+	    "dna":			input.dna,
+	    "zome":			"apphub_csr",
+	    "function":			"get_webapp_package_version_entry",
+	    "args":			input.target,
+	    "hash_function_name":	"hash_webapp_package_version_entry",
+	    "expected_hash":		input.hash || input.target,
+	});
     },
     async get_webapp_package_versions ( input ) {
 	const app			= await this.functions.get_app( input );
@@ -218,6 +280,19 @@ export const AppStoreCSRZomelet		= new Zomelet({
 	return await apphub.apphub_csr.get_webhapp_bundle(
 	    versions[0].webapp
 	);
+    },
+    async get_apphub_entry ( input ) {
+	const entry			= await this.functions.call_apphub_zome_function( input );
+
+	this.log.normal("Checking AppHub entry with '%s':", input.hash_function_name, entry );
+	const recv_hash			= await this.functions[ input.hash_function_name ](
+	    entry
+	);
+
+	if ( String(input.expected_hash) !== String(recv_hash) )
+	    throw new Error(`Hashes do not match: ${input.expected_hash} !== ${recv_hash}`);
+
+	return entry;
     },
     async call_apphub_zome_function ( input ) {
 	const apphub			= this.getCellInterface( "apphub", input.dna );

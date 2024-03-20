@@ -137,7 +137,11 @@ export class App extends ScopedEntity {
     }
 
     async $getWebAppPackage () {
-	return await this.zome.get_webapp_package( this.$id );
+	return await this.zome.get_apphub_webapp_package({
+	    "dna":		this.apphub_hrl.dna,
+	    "target":		this.apphub_hrl.target,
+	    "hash":		this.apphub_hrl_hash,
+	});
     }
 
     async $getWebAppPackageVersions () {

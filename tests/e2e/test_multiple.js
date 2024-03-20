@@ -296,6 +296,56 @@ function download_tests () {
 	expect( hosts			).to.have.length( 2 );
     });
 
+    it("should get webapp package from apphub", async function () {
+	const webapp_package_entry	= await alice_appstore_csr.get_apphub_webapp_package({
+	    "dna":		app.apphub_hrl.dna,
+	    "target":		app.apphub_hrl.target,
+	    "hash":		app.apphub_hrl_hash,
+	});
+
+	log.normal("WebApp Package entry: %s", json.debug(webapp_package_entry) );
+    });
+
+    it("should get webapp package version, webapp and app entry from apphub", async function () {
+	const webapp_version_entry	= await alice_appstore_csr.get_apphub_webapp_package_version({
+	    "dna":	bobby_client.roles.apphub,
+	    "target":	version_v1.$action,
+	    "hash":	version_v1.$addr,
+	});
+
+	log.normal("WebApp Package Version entry: %s", json.debug(webapp_version_entry) );
+
+	const webapp_entry		= await alice_appstore_csr.get_apphub_webapp({
+	    "dna":	bobby_client.roles.apphub,
+	    "target":	webapp_version_entry.webapp,
+	});
+
+	log.normal("WebApp entry: %s", json.debug(webapp_entry) );
+
+	const app_entry			= await alice_appstore_csr.get_apphub_app({
+	    "dna":	bobby_client.roles.apphub,
+	    "target":	webapp_entry.manifest.happ_manifest.app_entry,
+	});
+
+	log.normal("App entry: %s", json.debug(app_entry) );
+    });
+
+    it("should get UI and memory entry from apphub", async function () {
+	const ui_entry			= await alice_appstore_csr.get_apphub_ui({
+	    "dna":	bobby_client.roles.apphub,
+	    "target":	webapp_v1.manifest.ui.ui_entry,
+	});
+
+	log.normal("UI entry: %s", json.debug(ui_entry) );
+
+	const memory_entry		= await alice_appstore_csr.get_apphub_memory({
+	    "dna":	bobby_client.roles.apphub,
+	    "target":	ui_entry.mere_memory_addr,
+	});
+
+	log.normal("Mere Memory entry: %s", json.debug(memory_entry) );
+    });
+
     it("should get hApp info", async function () {
 	const pack			= await app.$getWebAppPackage();
 
@@ -319,17 +369,6 @@ function download_tests () {
 	const bundle			= new Bundle( bundle_bytes, "webhapp" );
 
 	log.normal("App's latest webhapp bundle: %s", json.debug(bundle) );
-    });
-
-    it("should get ui entry", async function () {
-	const ui_entry			= await alice_appstore_csr.call_apphub_zome_function({
-	    "dna": bobby_client.roles.apphub,
-	    "zome": "apphub_csr",
-	    "function": "get_ui_entry",
-	    "args": webapp_v1.manifest.ui.ui_entry,
-	});
-
-	log.normal("UI entry: %s", json.debug(ui_entry) );
     });
 
 }
@@ -439,7 +478,11 @@ function errors_tests () {
 	await holochain.admin.disableApp("devhub-bobby");
 
 	await expect_reject( async () => {
-	    await alice_appstore_csr.get_webapp_package( app.$id );
+	    await alice_appstore_csr.get_apphub_webapp_package({
+		"dna":		app.apphub_hrl.dna,
+		"target":	app.apphub_hrl.target,
+		"hash":		app.apphub_hrl_hash,
+	    });
 	}, "hosts are unavailable");
     });
 }

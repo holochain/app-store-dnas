@@ -20,8 +20,22 @@ use appstore::{
         GetEntityInput, UpdateEntityInput,
     },
 };
-use apphub_types::{
-    WebAppPackageEntry,
+use apphub_sdk::{
+    AppEntryInput as AppHubAppEntryInput,
+    WebAppEntryInput,
+    WebAppPackageEntryInput,
+    WebAppPackageVersionEntryInput,
+    apphub_types::{
+        UiEntry,
+        AppEntry as AppHubAppEntry,
+        WebAppEntry,
+        WebAppPackageEntry,
+        WebAppPackageVersionEntry,
+        mere_memory_types::{
+            MemoryEntry,
+            MemoryBlockEntry,
+        },
+    },
 };
 use crate::{
     ANCHOR_AGENTS,
@@ -220,7 +234,49 @@ pub fn undeprecate_app(input: UndeprecateInput) -> ExternResult<Entity<AppEntry>
 
 
 #[hdk_extern]
-pub fn hash_webapp_package_entry(input: WebAppPackageEntry) -> ExternResult<EntryHash> {
+pub fn hash_ui_entry(input: UiEntry) -> ExternResult<EntryHash> {
+    debug!("UiEntry: {:#?}", input );
+    hash_entry( input )
+}
+
+
+#[hdk_extern]
+pub fn hash_app_entry(input: AppHubAppEntryInput) -> ExternResult<EntryHash> {
+    debug!("AppHubAppEntry: {:#?}", input );
+    hash_entry( AppHubAppEntry::from( input ) )
+}
+
+
+#[hdk_extern]
+pub fn hash_webapp_entry(input: WebAppEntryInput) -> ExternResult<EntryHash> {
+    debug!("WebAppEntry: {:#?}", input );
+    hash_entry( WebAppEntry::from( input ) )
+}
+
+
+#[hdk_extern]
+pub fn hash_webapp_package_entry(input: WebAppPackageEntryInput) -> ExternResult<EntryHash> {
     debug!("WebAppPackageEntry: {:#?}", input );
+    hash_entry( WebAppPackageEntry::from( input ) )
+}
+
+
+#[hdk_extern]
+pub fn hash_webapp_package_version_entry(input: WebAppPackageVersionEntryInput) -> ExternResult<EntryHash> {
+    debug!("WebAppPackageVersionEntry: {:#?}", input );
+    hash_entry( WebAppPackageVersionEntry::from( input ) )
+}
+
+
+#[hdk_extern]
+pub fn hash_mere_memory_entry(input: MemoryEntry) -> ExternResult<EntryHash> {
+    debug!("MemoryEntry: {:#?}", input );
+    hash_entry( input )
+}
+
+
+#[hdk_extern]
+pub fn hash_mere_memory_block_entry(input: MemoryBlockEntry) -> ExternResult<EntryHash> {
+    debug!("MemoryBlockEntry: {:#?}", input );
     hash_entry( input )
 }
