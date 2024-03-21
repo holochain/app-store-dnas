@@ -74,6 +74,19 @@ export function createAppInput ( overrides ) {
 };
 
 
+export function createAppVersionInput ( overrides ) {
+    return Object.assign({
+	"version": "0.1.0",
+	"for_app": new ActionHash( crypto.randomBytes(32) ),
+	"apphub_hrl": {
+	    "dna": new DnaHash( crypto.randomBytes(32) ),
+	    "target": new ActionHash( crypto.randomBytes(32) ),
+	},
+	"apphub_hrl_hash": new EntryHash( crypto.randomBytes(32) ),
+    }, overrides );
+};
+
+
 export function createGroupInput ( admins, ...members ) {
     return {
 	"admins": admins,
@@ -90,6 +103,7 @@ export default {
     expect_reject,
     linearSuite,
     createAppInput,
+    createAppVersionInput,
     createPublisherInput,
     createGroupInput,
 };

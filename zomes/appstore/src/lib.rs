@@ -29,6 +29,8 @@ pub enum EntryTypes {
     #[entry_type]
     App(AppEntry),
     #[entry_type]
+    AppVersion(AppVersionEntry),
+    #[entry_type]
     ModeratorAction(ModeratorActionEntry),
     #[entry_type]
     GroupAnchor(GroupAnchorEntry),
@@ -43,6 +45,10 @@ scoped_type_connector!(
     EntryTypes::App( AppEntry )
 );
 scoped_type_connector!(
+    EntryTypesUnit::AppVersion,
+    EntryTypes::AppVersion( AppVersionEntry )
+);
+scoped_type_connector!(
     EntryTypesUnit::ModeratorAction,
     EntryTypes::ModeratorAction( ModeratorActionEntry )
 );
@@ -54,6 +60,7 @@ scoped_type_connector!(
 // Entity implementations
 entry_model!( EntryTypes::Publisher( PublisherEntry ) );
 entry_model!( EntryTypes::App( AppEntry ) );
+entry_model!( EntryTypes::AppVersion( AppVersionEntry ) );
 entry_model!( EntryTypes::ModeratorAction( ModeratorActionEntry ) );
 entry_model!( EntryTypes::GroupAnchor( GroupAnchorEntry ) );
 
@@ -64,6 +71,7 @@ pub enum LinkTypes {
 
     Publisher,
     App,
+    AppVersion,
     ModeratorAction,
     GroupAnchor,
 
@@ -81,6 +89,7 @@ impl<'de> Deserialize<'de> for LinkTypes {
 
 	    "Publisher" => Ok(LinkTypes::Publisher),
 	    "App" => Ok(LinkTypes::App),
+	    "AppVersion" => Ok(LinkTypes::AppVersion),
 	    "ModeratorAction" => Ok(LinkTypes::ModeratorAction),
 	    "GroupAnchor" => Ok(LinkTypes::GroupAnchor),
 

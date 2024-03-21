@@ -136,20 +136,19 @@ export class App extends ScopedEntity {
 	return this;
     }
 
-    async $getWebAppPackage () {
-	return await this.zome.get_apphub_webapp_package({
-	    "dna":		this.apphub_hrl.dna,
-	    "target":		this.apphub_hrl.target,
-	    "hash":		this.apphub_hrl_hash,
+    async $getVersions () {
+	return await this.zome.get_app_versions_for_app({
+	    "for_app":		this.$id,
 	});
     }
 
-    async $getWebAppPackageVersions () {
-	return await this.zome.get_webapp_package_versions( this.$id );
-    }
+    async $getLatestVersion () {
+	const versions		= await this.$getVersions();
 
-    async $getLatestBundle () {
-	return await this.zome.get_webapp_package_latest_bundle( this.$id );
+	if ( versions.length === 0 )
+	    throw new Error(`There are no versions for App (${this.$id})`);
+
+	return versions[0];
     }
 
     async $getModeratedState ( group_id ) {
@@ -189,6 +188,66 @@ export class App extends ScopedEntity {
 	return this;
     }
 
+    //
+    // "apphub" methods
+    //
+    async $getWebAppPackage () {
+	return await this.zome.get_apphub_webapp_package({
+	    "dna":		this.apphub_hrl.dna,
+	    "target":		this.apphub_hrl.target,
+	    "hash":		this.apphub_hrl_hash,
+	});
+    }
+
+    async $getWebAppPackageVersions () {
+	return await this.zome.get_apphub_webapp_package_versions( this.$id );
+    }
+
+}
+
+
+
+export const BundleHashesStruct = {
+    "hash":			String,
+    "ui_hash":			String,
+    "happ_hash":		String,
+};
+
+export const AppVersionStruct = {
+    "version":			String,
+    "for_app":			ActionHash,
+    "apphub_hrl":		HRLStruct,
+    "apphub_hrl_hash":		EntryHash,
+    "bundle_hashes":		BundleHashesStruct,
+
+    // common fields
+    "author":			AgentPubKey,
+    "published_at":		Number,
+    "last_updated":		Number,
+    "metadata":			MapType( String, AnyType ),
+};
+
+export function AppVersionEntry ( entry ) {
+    return intoStruct( entry, AppVersionStruct );
+}
+
+export class AppVersion extends ScopedEntity {
+    static STRUCT		= AppVersionStruct;
+
+    //
+    // "apphub" methods
+    //
+    async $getWebAppPackageVersion () {
+	return await this.zome.get_apphub_webapp_package_version({
+	    "dna":		this.apphub_hrl.dna,
+	    "target":		this.apphub_hrl.target,
+	    "hash":		this.apphub_hrl_hash,
+	});
+    }
+
+    async $getBundle () {
+	return await this.zome.get_apphub_webapp_package_version_bundle( this.$id );
+    }
 }
 
 
@@ -272,6 +331,10 @@ export default {
     AppStruct,
     AppEntry,
     App,
+
+    AppVersionStruct,
+    AppVersionEntry,
+    AppVersion,
 
     GroupStruct,
     GroupEntry,

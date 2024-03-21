@@ -43,6 +43,7 @@ import {
     expect_reject,
     linearSuite,
     createAppInput,
+    createAppVersionInput,
     createPublisherInput,
 }					from '../utils.js';
 
@@ -220,6 +221,8 @@ describe("App Store + DevHub", () => {
 let webapp_v1;
 let pack_v1;
 let version_v1;
+let app_v1;
+let app_version_v1;
 
 async function setup () {
     const bundle			= Bundle.createWebhapp({
@@ -273,11 +276,22 @@ async function setup () {
 	},
 	"apphub_hrl_hash": pack_v1.$addr,
     });
-    app					= await alice_appstore_csr.create_app( app_input );
-    log.normal("App: %s", json.debug(app) );
+    app_v1				= await alice_appstore_csr.create_app( app_input );
+    log.normal("App: %s", json.debug(app_v1) );
+
+    const app_version_input		= createAppVersionInput({
+	"version": version_v1.version,
+	"for_app": app_v1.$id,
+	"apphub_hrl": {
+	    "dna": bobby_client.roles.apphub,
+	    "target": version_v1.$id,
+	},
+	"apphub_hrl_hash": version_v1.$addr,
+    });
+    app_version_v1			= await alice_appstore_csr.create_app_version( app_version_input );
+    log.normal("App Version: %s", json.debug(app_version_v1) );
 }
 
-let app;
 function download_tests () {
 
     it("should find 2 host for AppHub", async function () {
@@ -298,9 +312,9 @@ function download_tests () {
 
     it("should get webapp package from apphub", async function () {
 	const webapp_package_entry	= await alice_appstore_csr.get_apphub_webapp_package({
-	    "dna":		app.apphub_hrl.dna,
-	    "target":		app.apphub_hrl.target,
-	    "hash":		app.apphub_hrl_hash,
+	    "dna":		app_v1.apphub_hrl.dna,
+	    "target":		app_v1.apphub_hrl.target,
+	    "hash":		app_v1.apphub_hrl_hash,
 	});
 
 	log.normal("WebApp Package entry: %s", json.debug(webapp_package_entry) );
@@ -347,7 +361,7 @@ function download_tests () {
     });
 
     it("should get hApp info", async function () {
-	const pack			= await app.$getWebAppPackage();
+	const pack			= await app_v1.$getWebAppPackage();
 
 	log.normal("App's WebApp Package: %s", json.debug(pack) );
 
@@ -355,17 +369,26 @@ function download_tests () {
     });
 
     it("should check for new versions", async function () {
-	const versions			= await app.$getWebAppPackageVersions();
+	const versions			= await app_v1.$getWebAppPackageVersions();
 
 	log.normal("App's WebApp Package Versions (sorted): %s", json.debug(versions) );
 
 	expect( versions		).to.have.length( 2 );
     });
 
+    it("should get app versions", async function () {
+	const versions			= await app_v1.$getVersions();
+
+	log.normal("App's Versions (sorted): %s", json.debug(versions) );
+
+	expect( versions		).to.have.length( 1 );
+    });
+
     it("should download DevHub webapp package", async function () {
 	this.timeout( 30_000 );
 
-	const bundle_bytes		= await app.$getLatestBundle();
+	const latest_version		= await app_v1.$getLatestVersion();
+	const bundle_bytes		= await latest_version.$getBundle();
 	const bundle			= new Bundle( bundle_bytes, "webhapp" );
 
 	log.normal("App's latest webhapp bundle: %s", json.debug(bundle) );
@@ -448,7 +471,7 @@ function errors_tests () {
     it("should fail because requested entry was corrupted", async function () {
 	this.timeout( 30_000 );
 
-	const app_entry			= await alice_appstore_csr.get_app( app.$id );
+	const app_entry			= await alice_appstore_csr.get_app( app_v1.$id );
 	const target_hash		= app_entry.apphub_hrl_hash;
 
 	const webapp_package		= await alice_appstore_csr.call_apphub_zome_function({
@@ -479,9 +502,9 @@ function errors_tests () {
 
 	await expect_reject( async () => {
 	    await alice_appstore_csr.get_apphub_webapp_package({
-		"dna":		app.apphub_hrl.dna,
-		"target":	app.apphub_hrl.target,
-		"hash":		app.apphub_hrl_hash,
+		"dna":		app_v1.apphub_hrl.dna,
+		"target":	app_v1.apphub_hrl.target,
+		"hash":		app_v1.apphub_hrl_hash,
 	    });
 	}, "hosts are unavailable");
     });

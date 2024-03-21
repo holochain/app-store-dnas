@@ -60,6 +60,9 @@ pub fn validation(
 
             valid!()
         },
+        EntryTypes::AppVersion(_entry) => {
+            valid!()
+        },
         EntryTypes::ModeratorAction(entry) => {
             if entry.author != update.author {
                 invalid!(format!(

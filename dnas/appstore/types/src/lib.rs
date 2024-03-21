@@ -1,4 +1,5 @@
 mod app_entry;
+mod app_version_entry;
 mod publisher_entry;
 mod group_anchor_entry;
 mod moderator_entry;
@@ -6,6 +7,7 @@ mod moderator_entry;
 pub use coop_content_sdk;
 
 pub use app_entry::*;
+pub use app_version_entry::*;
 pub use publisher_entry::*;
 pub use group_anchor_entry::*;
 pub use moderator_entry::*;

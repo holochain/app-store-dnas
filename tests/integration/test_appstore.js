@@ -27,6 +27,7 @@ import {
     expect_reject,
     linearSuite,
     createAppInput,
+    createAppVersionInput,
     createPublisherInput,
 }					from '../utils.js';
 
@@ -91,6 +92,7 @@ describe("Appstore", () => {
 
     linearSuite("Publisher", publisher_tests.bind( this, holochain ) );
     linearSuite("App", app_tests.bind( this, holochain ) );
+    linearSuite("App Version", app_version_tests.bind( this, holochain ) );
     linearSuite("Errors", errors_tests.bind( this, holochain ) );
 
     after(async () => {
@@ -212,6 +214,14 @@ function app_tests () {
 	expect( apps		).to.have.length( 1 );
     });
 
+    it("should get apps for publisher", async function () {
+	const apps			= await appstore_csr.get_apps_for_publisher({
+	    "for_publisher": publisher1.$id,
+	});
+
+	expect( apps		).to.have.length( 1 );
+    });
+
     it("should get my apps", async function () {
 	const apps		= await appstore_csr.get_my_apps();
 
@@ -251,6 +261,38 @@ function app_tests () {
 	}
 
 	await app1.$undeprecate();
+    });
+
+}
+
+
+let app_version1;
+
+function app_version_tests () {
+
+    it("should create app version", async function () {
+	this.timeout( 10_000 );
+
+	const input			= createAppVersionInput({
+	    "version": "0.1.0",
+	    "for_app": app1.$id,
+	    "bundle_hashes": {
+		"hash": "",
+		"ui_hash": "",
+		"happ_hash": "",
+	    },
+	});
+	app_version1			= await appstore_csr.create_app_version( input );
+
+	log.normal("%s", json.debug( app_version1 ) );
+    });
+
+    it("should get versions for app", async function () {
+	this.timeout( 10_000 );
+
+	const versions			= await app1.$getVersions();
+
+	expect( versions		).to.have.length( 1 );
     });
 
 }

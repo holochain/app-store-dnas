@@ -1,6 +1,7 @@
 mod constants;
 mod publisher;
 mod app;
+mod app_version;
 
 pub use hdk_extensions::hdk;
 pub use constants::*;
@@ -23,6 +24,23 @@ use hc_crud::{
     EntryModel,
     Entity,
 };
+use apphub_sdk::{
+    AppEntryInput as AppHubAppEntryInput,
+    WebAppEntryInput,
+    WebAppPackageEntryInput,
+    WebAppPackageVersionEntryInput,
+    apphub_types::{
+        UiEntry,
+        AppEntry as AppHubAppEntry,
+        WebAppEntry,
+        WebAppPackageEntry,
+        WebAppPackageVersionEntry,
+        mere_memory_types::{
+            MemoryEntry,
+            MemoryBlockEntry,
+        },
+    },
+};
 use coop_content_sdk::{
     GroupEntry,
     call_local_zome_decode,
@@ -36,6 +54,18 @@ use coop_content_sdk::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetForAgentInput {
     pub for_agent: AgentPubKey,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetForPublisherInput {
+    pub for_publisher: EntityId,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetForAppInput {
+    pub for_app: EntityId,
 }
 
 
@@ -126,6 +156,17 @@ fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<AppEnt
 }
 
 #[hdk_extern]
+fn get_apps_for_publisher(input: GetForPublisherInput) -> ExternResult<Vec<Entity<AppEntry>>> {
+    let (_, pathhash) = path( ANCHOR_PUBLISHERS, vec![
+	input.for_publisher.to_string(),
+	ANCHOR_APPS.to_string(),
+    ]);
+    let collection = hc_crud::get_entities( &pathhash, LinkTypes::App, None )?;
+
+    Ok( collection )
+}
+
+#[hdk_extern]
 fn get_my_apps(_:()) -> ExternResult<Vec<Entity<AppEntry>>> {
     get_apps_for_agent( GetForAgentInput {
 	for_agent: agent_id()?,
@@ -144,6 +185,17 @@ fn get_all_apps(_: ()) -> ExternResult<Vec<Entity<AppEntry>>> {
 
     Ok( collection )
 }
+
+
+// App Version
+
+#[hdk_extern]
+fn get_app_versions_for_app(input: GetForAppInput) -> ExternResult<Vec<Entity<AppVersionEntry>>> {
+    let collection = hc_crud::get_entities( &input.for_app, LinkTypes::AppVersion, None )?;
+
+    Ok( collection )
+}
+
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -434,4 +486,54 @@ fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Vec<Enti
         .collect();
 
     Ok( apps )
+}
+
+
+
+#[hdk_extern]
+pub fn hash_webapp_package_entry(input: WebAppPackageEntryInput) -> ExternResult<EntryHash> {
+    // debug!("WebAppPackageEntry: {:#?}", input );
+    hash_entry( WebAppPackageEntry::from( input ) )
+}
+
+
+#[hdk_extern]
+pub fn hash_webapp_package_version_entry(input: WebAppPackageVersionEntryInput) -> ExternResult<EntryHash> {
+    // debug!("WebAppPackageVersionEntry: {:#?}", input );
+    hash_entry( WebAppPackageVersionEntry::from( input ) )
+}
+
+
+#[hdk_extern]
+pub fn hash_webapp_entry(input: WebAppEntryInput) -> ExternResult<EntryHash> {
+    // debug!("WebAppEntry: {:#?}", input );
+    hash_entry( WebAppEntry::from( input ) )
+}
+
+
+#[hdk_extern]
+pub fn hash_ui_entry(input: UiEntry) -> ExternResult<EntryHash> {
+    // debug!("UiEntry: {:#?}", input );
+    hash_entry( input )
+}
+
+
+#[hdk_extern]
+pub fn hash_app_entry(input: AppHubAppEntryInput) -> ExternResult<EntryHash> {
+    // debug!("AppHubAppEntry: {:#?}", input );
+    hash_entry( AppHubAppEntry::from( input ) )
+}
+
+
+#[hdk_extern]
+pub fn hash_mere_memory_entry(input: MemoryEntry) -> ExternResult<EntryHash> {
+    // debug!("MemoryEntry: {:#?}", input );
+    hash_entry( input )
+}
+
+
+#[hdk_extern]
+pub fn hash_mere_memory_block_entry(input: MemoryBlockEntry) -> ExternResult<EntryHash> {
+    // debug!("MemoryBlockEntry: {:#?}", input );
+    hash_entry( input )
 }

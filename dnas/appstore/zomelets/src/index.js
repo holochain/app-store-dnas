@@ -15,10 +15,13 @@ import {
     AppHubCell,
     DnaHubCell,
     ZomeHubCell,
+    Bundle,
+    semverReverseSort,
 }					from '@holochain/apphub-zomelets';
 import {
     Publisher,
     App,
+    AppVersion,
     Group,
 }					from './types.js';
 
@@ -126,9 +129,26 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return new App( result, this );
     },
-    "get_apps_for_agent":		true,
-    "get_my_apps":			true,
-    "get_all_apps":			true,
+    async get_apps_for_publisher ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( app => new App( app, this ) );
+    },
+    async get_apps_for_agent ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( app => new App( app, this ) );
+    },
+    async get_my_apps ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( app => new App( app, this ) );
+    },
+    async get_all_apps ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( app => new App( app, this ) );
+    },
     async update_app ( input ) {
 	if ( input.properties.icon && input.properties.icon.length > 39 )
 	    input.properties.icon	= await this.zomes.mere_memory_api.save( input.properties.icon );
@@ -146,6 +166,48 @@ export const AppStoreCSRZomelet		= new Zomelet({
 	const result			= await this.call( input );
 
 	return new App( result, this );
+    },
+
+    //
+    // App Version
+    //
+    async create_app_version ( input ) {
+	if ( input.bundle_hashes === undefined ) {
+	    input.bundle_hashes		= await this.functions.get_apphub_webapp_bundle_hashes({
+		"dna":		input.apphub_hrl.dna,
+		"target":	input.apphub_hrl.target,
+		"hash":		input.apphub_hrl_hash,
+	    });
+	}
+
+	const result			= await this.call( input );
+
+	return new AppVersion( result, this );
+    },
+    async get_app_version ( input ) {
+	const result			= await this.call({
+	    "id": new ActionHash( input ),
+	});
+
+	return new AppVersion( result, this );
+    },
+    async get_app_versions_for_app ( input ) {
+	const result			= await this.call( input );
+	const version_map		= {};
+	const versions			= [];
+
+	for ( let app_version of result ) {
+	    const vtag			= app_version.version;
+	    version_map[ vtag ]		= new AppVersion( app_version, this );
+	}
+
+	semverReverseSort(
+	    Object.keys( version_map )
+	).forEach( vtag => {
+	    versions.push( version_map[ vtag ] );
+	});
+
+	return versions;
     },
 
     //
@@ -191,6 +253,33 @@ export const AppStoreCSRZomelet		= new Zomelet({
     //
     // Virtual functions
     //
+    async get_apphub_webapp_bundle_hashes ( input ) {
+	const apphub			= this.getCellInterface( "apphub", input.dna );
+
+	const webapp_version		= await this.functions.get_apphub_webapp_package_version(
+	    input
+	);
+	const bundle_bytes		= await apphub.apphub_csr.get_webhapp_bundle(
+	    webapp_version.webapp
+	);
+	const webapp_bundle		= new Bundle( bundle_bytes, "webhapp" );
+
+	const calc_hash			= await this.zomes.mere_memory_api.calculate_hash(
+	    bundle_bytes,
+	);
+	const calc_ui_hash		= await this.zomes.mere_memory_api.calculate_hash(
+	    webapp_bundle.ui()
+	);
+	const calc_happ_hash		= await this.zomes.mere_memory_api.calculate_hash(
+	    webapp_bundle.resources[ webapp_bundle.manifest.happ_manifest.bundled ]
+	);
+
+	return {
+	    "hash":		calc_hash,
+	    "ui_hash":		calc_ui_hash,
+	    "happ_hash":	calc_happ_hash,
+	};
+    },
     async get_apphub_memory ( input ) {
 	return await this.functions.get_apphub_entry({
 	    "dna":			input.dna,
@@ -261,24 +350,11 @@ export const AppStoreCSRZomelet		= new Zomelet({
 	    "expected_hash":		input.hash || input.target,
 	});
     },
-    async get_webapp_package_versions ( input ) {
-	const app			= await this.functions.get_app( input );
-	const apphub			= this.getCellInterface( "apphub", app.apphub_hrl.dna );
+    async call_apphub_zome_function ( input ) {
+	const apphub			= this.getCellInterface( "apphub", input.dna );
 
-	return await apphub.apphub_csr.get_webapp_package_versions_sorted(
-	    app.apphub_hrl.target
-	);
-    },
-    async get_webapp_package_latest_bundle ( input ) {
-	const app			= await this.functions.get_app( input );
-	const apphub			= this.getCellInterface( "apphub", app.apphub_hrl.dna );
-
-	const versions			= await apphub.apphub_csr.get_webapp_package_versions_sorted(
-	    app.apphub_hrl.target
-	);
-
-	return await apphub.apphub_csr.get_webhapp_bundle(
-	    versions[0].webapp
+	return await apphub[ input.zome ][ input.function ](
+	    input.args
 	);
     },
     async get_apphub_entry ( input ) {
@@ -294,12 +370,44 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return entry;
     },
-    async call_apphub_zome_function ( input ) {
-	const apphub			= this.getCellInterface( "apphub", input.dna );
+    async get_apphub_webapp_package_versions ( input ) {
+	const app			= await this.functions.get_app( input );
+	const apphub			= this.getCellInterface( "apphub", app.apphub_hrl.dna );
 
-	return await apphub[ input.zome ][ input.function ](
-	    input.args
+	return await apphub.apphub_csr.get_webapp_package_versions_sorted(
+	    app.apphub_hrl.target
 	);
+    },
+    async get_apphub_webapp_package_version_bundle ( input ) {
+	const app_version		= await this.functions.get_app_version( input );
+	const apphub			= this.getCellInterface( "apphub", app_version.apphub_hrl.dna );
+
+	const webapp_version		= await this.functions.get_apphub_webapp_package_version({
+	    "dna":	app_version.apphub_hrl.dna,
+	    "target":	app_version.apphub_hrl.target,
+	    "hash":	app_version.apphub_hrl_hash,
+	});
+
+	const bundle_bytes		= await apphub.apphub_csr.get_webhapp_bundle(
+	    webapp_version.webapp
+	);
+
+	const webapp_bundle		= new Bundle( bundle_bytes, "webhapp" );
+
+	const calc_hash			= await this.zomes.mere_memory_api.calculate_hash(
+	    bundle_bytes,
+	);
+	const calc_ui_hash		= await this.zomes.mere_memory_api.calculate_hash(
+	    webapp_bundle.ui()
+	);
+	const calc_happ_hash		= await this.zomes.mere_memory_api.calculate_hash(
+	    webapp_bundle.resources[ webapp_bundle.manifest.happ_manifest.bundled ]
+	);
+
+	if ( calc_hash !== app_version.bundle_hashes.hash )
+	    throw new Error(`Recevied bundle hash does not match expected bundle hash: ${calc_hash} !== ${app_version.bundle_hashes.hash}`);
+
+	return webapp_bundle;
     },
 }, {
     "zomes": {
