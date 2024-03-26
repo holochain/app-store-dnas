@@ -1,16 +1,19 @@
 use crate::{
     hdk,
-    path, path_base,
 };
 
 use std::collections::BTreeMap;
 use hdk::prelude::*;
+use hdk_extensions::{
+    agent_id,
+};
 use appstore::{
     LinkTypes,
     RmpvValue,
-
     HRL,
     DeprecationNotice,
+
+    ALL_APPS_ANCHOR,
     AppEntry,
 
     hc_crud::{
@@ -19,11 +22,6 @@ use appstore::{
         EntityId,
         GetEntityInput, UpdateEntityInput,
     },
-};
-use crate::{
-    ANCHOR_AGENTS,
-    ANCHOR_PUBLISHERS,
-    ANCHOR_APPS,
 };
 
 
@@ -49,7 +47,7 @@ pub struct CreateInput {
 #[hdk_extern]
 pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Creating App: {}", input.title );
-    let pubkey = agent_info()?.agent_initial_pubkey;
+    let pubkey = agent_id()?;
     let default_now = now()?;
     let default_editors = vec![ pubkey.clone() ];
 
@@ -86,23 +84,26 @@ pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 
     { // Path via Agent's Apps
 	for agent in entity.content.editors.iter() {
-	    let (_, pathhash ) = path( ANCHOR_AGENTS, vec![
-		agent.to_string(),
-		ANCHOR_APPS.to_string(),
-	    ]);
-	    entity.link_from( &pathhash, LinkTypes::App, None )?;
+	    entity.link_from(
+                agent,
+                LinkTypes::AgentToApp,
+                None
+            )?;
 	}
     }
     { // Path via Publisher's Apps
-	let (_, pathhash) = path( ANCHOR_PUBLISHERS, vec![
-	    input.publisher.to_string(),
-	    ANCHOR_APPS.to_string(),
-	]);
-	entity.link_from( &pathhash, LinkTypes::App, None )?;
+	entity.link_from(
+            &input.publisher,
+            LinkTypes::PublisherToApp,
+            None
+        )?;
     }
     { // Path via All Apps
-	let (_, pathhash) = path_base( ANCHOR_APPS );
-	entity.link_from( &pathhash, LinkTypes::App, None )?;
+	entity.link_from(
+            &ALL_APPS_ANCHOR.path_entry_hash()?,
+            LinkTypes::AllAppsToApp,
+            None
+        )?;
     }
 
     Ok( entity )
@@ -137,13 +138,10 @@ pub type UpdateInput = UpdateEntityInput<UpdateProperties>;
 pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Updating App: {}", input.base );
     let props = input.properties.clone();
-    let mut previous : Option<AppEntry> = None;
 
     let entity = update_entity(
 	&input.base,
 	|mut current : AppEntry, _| {
-	    previous = Some(current.clone());
-
 	    current.title = props.title
 		.unwrap_or( current.title );
 	    current.subtitle = props.subtitle
@@ -156,6 +154,7 @@ pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
 		.unwrap_or( current.apphub_hrl_hash );
 	    current.icon = props.icon
 		.unwrap_or( current.icon );
+	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );
 	    current.last_updated = props.last_updated
@@ -165,8 +164,6 @@ pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
 
 	    Ok( current )
 	})?;
-
-    // let previous = previous.unwrap();
 
     Ok( entity )
 }

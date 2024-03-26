@@ -247,3 +247,25 @@ clean-files-all:	clean-remove-chaff
 	git clean -ndx
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
+
+
+#
+# Documentation
+#
+APPSTORE_CSR_DOCS	= target/doc/appstore_csr/index.html
+
+target/doc/%/index.html:	zomes/%/src/**
+	cd zomes; cargo test --doc -p $*
+	cd zomes; cargo doc -p $*
+	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$@\x1b[0m";
+
+
+docs:			$(APPSTORE_CSR_DOCS)
+docs-watch:
+	@inotifywait -r -m -e modify		\
+		--includei '.*\.rs'		\
+		zomes/				\
+	| while read -r dir event file; do	\
+		echo -e "\x1b[37m$$event $$dir$$file\x1b[0m";\
+		make docs;			\
+	done

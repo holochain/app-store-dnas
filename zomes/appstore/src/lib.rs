@@ -3,9 +3,11 @@ mod validation;
 pub use hdi_extensions;
 pub use hdi_extensions::hdi;
 pub use hc_crud;
+pub use appstore_types;
 pub use appstore_types::*;
 
 use serde::de::{ Deserializer, Error };
+use lazy_static::lazy_static;
 use hdi::prelude::*;
 use hdi_extensions::{
     guest_error,
@@ -19,6 +21,15 @@ use mere_memory_types::{
     MemoryEntry,
 };
 
+
+lazy_static! {
+    pub static ref ALL_PUBLISHERS_ANCHOR : Path = Path::from(vec![
+        Component::from( "publishers".as_bytes().to_vec() ),
+    ]);
+    pub static ref ALL_APPS_ANCHOR : Path = Path::from(vec![
+        Component::from( "apps".as_bytes().to_vec() ),
+    ]);
+}
 
 
 #[hdk_entry_types]
@@ -67,15 +78,16 @@ entry_model!( EntryTypes::GroupAnchor( GroupAnchorEntry ) );
 
 #[hdk_link_types]
 pub enum LinkTypes {
-    Agent,
+    AgentToPublisher,
+    AllPublishersToPublisher,
 
-    Publisher,
-    App,
-    AppVersion,
-    ModeratorAction,
-    GroupAnchor,
+    AgentToApp,
+    PublisherToApp,
+    AllAppsToApp,
 
-    Anchor,
+    AppToAppVersion,
+
+    GroupAnchorToModeratorAction,
 }
 
 impl<'de> Deserialize<'de> for LinkTypes {
@@ -85,15 +97,13 @@ impl<'de> Deserialize<'de> for LinkTypes {
     {
 	let name : &str = Deserialize::deserialize(deserializer)?;
 	match name {
-	    "Agent" => Ok(LinkTypes::Agent),
+	    "AgentToApp" => Ok(LinkTypes::AgentToApp),
+	    "PublisherToApp" => Ok(LinkTypes::PublisherToApp),
+	    "AllAppsToApp" => Ok(LinkTypes::AllAppsToApp),
 
-	    "Publisher" => Ok(LinkTypes::Publisher),
-	    "App" => Ok(LinkTypes::App),
-	    "AppVersion" => Ok(LinkTypes::AppVersion),
-	    "ModeratorAction" => Ok(LinkTypes::ModeratorAction),
-	    "GroupAnchor" => Ok(LinkTypes::GroupAnchor),
+	    "AppToAppVersion" => Ok(LinkTypes::AppToAppVersion),
 
-	    "Anchor" => Ok(LinkTypes::Anchor),
+	    "GroupAnchorToModeratorAction" => Ok(LinkTypes::GroupAnchorToModeratorAction),
 
 	    value => Err(D::Error::custom(format!("No LinkTypes value matching '{}'", value ))),
 	}
@@ -124,61 +134,18 @@ where
 }
 
 
-pub fn validate_common_fields_update<'a,T,C>(
-    action: &C, entry: &'a T, prev_entry: &'a T
-) -> ExternResult<()>
-where
-    T: CommonFields<'a>,
-    C: Into<EntryCreationAction> + Clone,
-{
-    let creation : EntryCreationAction = action.to_owned().into();
-
-    if prev_entry.author() != creation.author() {
-	return Err(guest_error!(format!(
-            "Previous entry author does not match Action author: {} != {}",
-            prev_entry.author(), creation.author()
-        )));
-    }
-    else if entry.author() != prev_entry.author() {
-	return Err(guest_error!(format!(
-            "Cannot change app author: {} => {}",
-            prev_entry.author(), entry.author()
-        )));
-    }
-
-    Ok(())
-}
-
-
-pub fn validate_common_publisher_fields(
-    entry: &PublisherEntry
+pub fn validate_icon_field(
+    mere_memory_addr: &EntryHash,
+    entry_type_name: &str,
 ) -> ExternResult<()> {
-    let memory : MemoryEntry = must_get_entry( entry.icon.to_owned() )?.try_into()?;
+    let memory : MemoryEntry = must_get_entry( mere_memory_addr.to_owned() )?.try_into()?;
     let icon_size = memory.uncompressed_size
         .unwrap_or( memory.memory_size );
 
     if icon_size > ICON_SIZE_LIMIT {
 	return Err(guest_error!(format!(
-            "PublisherEntry icon cannot be larger than {}KB ({} bytes)",
-            ICON_SIZE_LIMIT/1024, ICON_SIZE_LIMIT
-        )));
-    }
-
-    Ok(())
-}
-
-
-pub fn validate_common_app_fields(
-    entry: &AppEntry
-) -> ExternResult<()> {
-    let memory : MemoryEntry = must_get_entry( entry.icon.to_owned() )?.try_into()?;
-    let icon_size = memory.uncompressed_size
-        .unwrap_or( memory.memory_size );
-
-    if icon_size > ICON_SIZE_LIMIT {
-	return Err(guest_error!(format!(
-            "AppEntry icon cannot be larger than {}KB ({} bytes)",
-            ICON_SIZE_LIMIT/1024, ICON_SIZE_LIMIT
+            "{} icon cannot be larger than {}KB ({} bytes)",
+            entry_type_name, ICON_SIZE_LIMIT/1024, ICON_SIZE_LIMIT
         )));
     }
 

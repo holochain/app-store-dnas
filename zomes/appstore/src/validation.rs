@@ -1,8 +1,8 @@
 mod create_entry;
 mod update_entry;
-// mod delete_entry;
-// mod create_link;
-// mod delete_link;
+mod delete_entry;
+mod create_link;
+mod delete_link;
 
 use crate::{
     hdi,
@@ -24,12 +24,12 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 create_entry::validation( app_entry, action ),
             OpRecord::UpdateEntry { app_entry, action, original_action_hash, original_entry_hash } =>
                 update_entry::validation( app_entry, action, original_action_hash, original_entry_hash ),
-            // OpRecord::DeleteEntry { original_action_hash, original_entry_hash, action } =>
-            //     delete_entry::validation( original_action_hash, original_entry_hash, action ),
-            // OpRecord::CreateLink { base_address, target_address, tag, link_type, action } =>
-            //     create_link::validation( base_address, target_address, link_type, tag, action ),
-            // OpRecord::DeleteLink { original_action_hash, base_address, action } =>
-            //     delete_link::validation( original_action_hash, base_address, action ),
+            OpRecord::DeleteEntry { original_action_hash, original_entry_hash, action } =>
+                delete_entry::validation( original_action_hash, original_entry_hash, action ),
+            OpRecord::CreateLink { base_address, target_address, tag, link_type, action } =>
+                create_link::validation( base_address, target_address, link_type, tag, action ),
+            OpRecord::DeleteLink { original_action_hash, base_address, action } =>
+                delete_link::validation( original_action_hash, base_address, action ),
             // OpRecord::CreateAgent { agent, action: create },
             // OpRecord::UpdateAgent { original_key, new_key, original_action_hash, action: update },
             // OpRecord::CreateCapClaim { action: create },

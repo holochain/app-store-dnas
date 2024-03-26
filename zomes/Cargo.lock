@@ -67,6 +67,7 @@ version = "0.0.0"
 dependencies = [
  "appstore_types",
  "hc_crud_caps",
+ "lazy_static",
  "mere_memory_types",
  "serde",
  "whi_hdi_extensions",
@@ -78,7 +79,6 @@ version = "0.0.0"
 dependencies = [
  "appstore",
  "hc_apphub_sdk",
- "hc_coop_content_sdk",
  "serde",
  "whi_hdk_extensions",
 ]

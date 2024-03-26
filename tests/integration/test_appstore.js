@@ -311,7 +311,7 @@ function errors_tests () {
 		    "name": "Malicious",
 		},
 	    });
-	}, "InvalidCommit error: Previous entry author does not match Action author" );
+	}, "must be in the editors list" );
     });
 
     it("should fail to update app because bad author", async function () {
@@ -324,7 +324,7 @@ function errors_tests () {
 		    "name": "Malicious",
 		},
 	    });
-	}, "InvalidCommit error: Previous entry author does not match Action author" );
+	}, "must be in the editors list" );
     });
 
     it("should fail to create publisher because icon is too big", async function () {
@@ -368,5 +368,22 @@ function errors_tests () {
 		"icon": new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0),
 	    });
 	}, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+    });
+
+    it("should fail to create app version because invalid author", async function () {
+	this.timeout( 10_000 );
+
+	await expect_reject( async () => {
+	    const input			= createAppVersionInput({
+		"version": "0.1.0",
+		"for_app": app1.$id,
+		"bundle_hashes": {
+		    "hash": "",
+		    "ui_hash": "",
+		    "happ_hash": "",
+		},
+	    });
+	    await bobby_appstore_csr.create_app_version( input );
+	}, "not in the editor list" );
     });
 }

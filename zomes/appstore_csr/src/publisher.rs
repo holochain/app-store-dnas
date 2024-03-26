@@ -1,10 +1,12 @@
 use crate::{
     hdk,
-    path, path_base,
 };
 
 use std::collections::BTreeMap;
 use hdk::prelude::*;
+use hdk_extensions::{
+    agent_id,
+};
 use appstore::{
     LinkTypes,
     RmpvValue,
@@ -12,6 +14,7 @@ use appstore::{
     WebAddress,
     DeprecationNotice,
 
+    ALL_PUBLISHERS_ANCHOR,
     PublisherEntry,
 
     hc_crud::{
@@ -19,10 +22,6 @@ use appstore::{
         Entity,
         GetEntityInput, UpdateEntityInput,
     },
-};
-use crate::{
-    ANCHOR_AGENTS,
-    ANCHOR_PUBLISHERS,
 };
 
 
@@ -48,7 +47,7 @@ pub struct CreateInput {
 #[hdk_extern]
 pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Creating Publisher: {}", input.name );
-    let pubkey = agent_info()?.agent_initial_pubkey;
+    let pubkey = agent_id()?;
     let default_now = now()?;
     let default_editors = vec![ pubkey.clone() ];
 
@@ -84,16 +83,19 @@ pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<Publisher
 
     { // Path via Agent's Publishers
 	for agent in entity.content.editors.iter() {
-	    let (_, pathhash ) = path( ANCHOR_AGENTS, vec![
-		agent.to_string(),
-		ANCHOR_PUBLISHERS.to_string(),
-	    ]);
-	    entity.link_from( &pathhash, LinkTypes::Publisher, None )?;
+	    entity.link_from(
+                agent,
+                LinkTypes::AgentToPublisher,
+                None
+            )?;
 	}
     }
     { // Path via All Publishers
-	let (_, pathhash) = path_base( ANCHOR_PUBLISHERS );
-	entity.link_from( &pathhash, LinkTypes::Publisher, None )?;
+	entity.link_from(
+            &ALL_PUBLISHERS_ANCHOR.path_entry_hash()?,
+            LinkTypes::AllPublishersToPublisher,
+            None
+        )?;
     }
 
     Ok( entity )
@@ -128,13 +130,10 @@ pub type UpdateInput = UpdateEntityInput<UpdateProperties>;
 pub fn update_publisher(input: UpdateInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Updating Publisher: {}", input.base );
     let props = input.properties.clone();
-    let mut previous : Option<PublisherEntry> = None;
 
     let entity = update_entity(
 	&input.base,
 	|mut current : PublisherEntry, _| {
-	    previous = Some(current.clone());
-
 	    current.name = props.name
 		.unwrap_or( current.name );
 	    current.description = props.description
@@ -147,6 +146,7 @@ pub fn update_publisher(input: UpdateInput) -> ExternResult<Entity<PublisherEntr
 		.unwrap_or( current.icon );
 	    current.email = props.email
 		.or( current.email );
+	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );
 	    current.last_updated = props.last_updated
@@ -156,8 +156,6 @@ pub fn update_publisher(input: UpdateInput) -> ExternResult<Entity<PublisherEntr
 
 	    Ok( current )
 	})?;
-
-    // let previous = previous.unwrap();
 
     Ok( entity )
 }

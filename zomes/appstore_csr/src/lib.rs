@@ -1,12 +1,16 @@
-mod constants;
-mod publisher;
-mod app;
-mod app_version;
+pub mod publisher;
+pub mod app;
+pub mod app_version;
 
 pub use hdk_extensions::hdk;
-pub use constants::*;
-pub use appstore::*;
-
+pub use appstore::{
+    LinkTypes,
+    ALL_PUBLISHERS_ANCHOR,
+    ALL_APPS_ANCHOR,
+    appstore_types,
+    hc_crud,
+    hdi_extensions,
+};
 use std::collections::BTreeMap;
 use hdk::prelude::*;
 use hdi_extensions::{
@@ -24,6 +28,7 @@ use hc_crud::{
     EntryModel,
     Entity,
 };
+use appstore_types::*;
 use apphub_sdk::{
     AppEntryInput as AppHubAppEntryInput,
     WebAppEntryInput,
@@ -69,70 +74,49 @@ pub struct GetForAppInput {
 }
 
 
-pub fn path_base( base: &str ) -> (Path, EntryHash) {
-    path( base, Vec::<String>::new() )
-}
-
-
-pub fn path<T>( base: &str, segments: T ) -> (Path, EntryHash)
-where
-    T: IntoIterator,
-    T::Item: std::fmt::Display,
-{
-    let mut components : Vec<Component> = vec![];
-
-    for seg in base.split(".") {
-	let component = Component::from( format!("{}", seg ).as_bytes().to_vec() );
-	components.push( component );
-    }
-
-    for seg in segments {
-	let component = Component::from( format!("{}", seg ).as_bytes().to_vec() );
-	components.push( component );
-    }
-
-    let path = Path::from( components );
-    let hash = path.path_entry_hash().unwrap();
-
-    ( path, hash )
-}
-
-
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
     Ok(InitCallbackResult::Pass)
 }
 
 
+/// Get [`AgentInfo`] for this cell
 #[hdk_extern]
-fn whoami(_: ()) -> ExternResult<AgentInfo> {
+pub fn whoami(_: ()) -> ExternResult<AgentInfo> {
     agent_info()
 }
 
 
 // Publisher
 
+/// Get all Publishers for a given [`AgentPubKey`]
 #[hdk_extern]
-fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<PublisherEntry>>> {
-    let (_, pathhash ) = path( ANCHOR_AGENTS, vec![
-	input.for_agent.to_string(), ANCHOR_PUBLISHERS.to_string(),
-    ]);
-    let collection = hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )?;
+pub fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<PublisherEntry>>> {
+    let collection = hc_crud::get_entities(
+        &input.for_agent,
+        LinkTypes::AgentToPublisher,
+        None
+    )?;
 
     Ok( collection )
 }
 
+/// Get Publishers that the current cell agent is a member of
 #[hdk_extern]
-fn get_my_publishers(_:()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
+pub fn get_my_publishers(_:()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
     get_publishers_for_agent( GetForAgentInput {
 	for_agent: agent_id()?,
     })
 }
 
+/// Get all Publishers
 #[hdk_extern]
-fn get_all_publishers(_: ()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
-    let (_, pathhash ) = path_base( ANCHOR_PUBLISHERS );
-    let collection = hc_crud::get_entities( &pathhash, LinkTypes::Publisher, None )?;
+pub fn get_all_publishers(_: ()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
+    let collection = hc_crud::get_entities(
+        &ALL_PUBLISHERS_ANCHOR.path_entry_hash()?,
+        LinkTypes::AllPublishersToPublisher,
+        None
+    )?;
     let collection = collection.into_iter()
 	.filter(|entity : &Entity<PublisherEntry>| {
 	    entity.content.deprecation.is_none()
@@ -145,38 +129,46 @@ fn get_all_publishers(_: ()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
 
 // App
 
+/// Get all Apps for a given [`AgentPubKey`]
 #[hdk_extern]
-fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<AppEntry>>> {
-    let (_, pathhash ) = path( ANCHOR_AGENTS, vec![
-	input.for_agent.to_string(), ANCHOR_APPS.to_string(),
-    ]);
-    let collection = hc_crud::get_entities( &pathhash, LinkTypes::App, None )?;
+pub fn get_apps_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<AppEntry>>> {
+    let collection = hc_crud::get_entities(
+        &input.for_agent,
+        LinkTypes::AgentToApp,
+        None
+    )?;
 
     Ok( collection )
 }
 
+/// Get Apps that belong to the given Publisher ID
 #[hdk_extern]
-fn get_apps_for_publisher(input: GetForPublisherInput) -> ExternResult<Vec<Entity<AppEntry>>> {
-    let (_, pathhash) = path( ANCHOR_PUBLISHERS, vec![
-	input.for_publisher.to_string(),
-	ANCHOR_APPS.to_string(),
-    ]);
-    let collection = hc_crud::get_entities( &pathhash, LinkTypes::App, None )?;
+pub fn get_apps_for_publisher(input: GetForPublisherInput) -> ExternResult<Vec<Entity<AppEntry>>> {
+    let collection = hc_crud::get_entities(
+        &input.for_publisher,
+        LinkTypes::PublisherToApp,
+        None
+    )?;
 
     Ok( collection )
 }
 
+/// Get Apps that the current cell agent maintains
 #[hdk_extern]
-fn get_my_apps(_:()) -> ExternResult<Vec<Entity<AppEntry>>> {
+pub fn get_my_apps(_:()) -> ExternResult<Vec<Entity<AppEntry>>> {
     get_apps_for_agent( GetForAgentInput {
 	for_agent: agent_id()?,
     })
 }
 
+/// Get all Apps
 #[hdk_extern]
-fn get_all_apps(_: ()) -> ExternResult<Vec<Entity<AppEntry>>> {
-    let (_, pathhash ) = path_base( ANCHOR_APPS );
-    let collection = hc_crud::get_entities( &pathhash, LinkTypes::App, None )?;
+pub fn get_all_apps(_: ()) -> ExternResult<Vec<Entity<AppEntry>>> {
+    let collection = hc_crud::get_entities(
+        &ALL_APPS_ANCHOR.path_entry_hash()?,
+        LinkTypes::AllAppsToApp,
+        None
+    )?;
     let collection = collection.into_iter()
 	.filter(|entity : &Entity<AppEntry>| {
 	    entity.content.deprecation.is_none()
@@ -189,13 +181,17 @@ fn get_all_apps(_: ()) -> ExternResult<Vec<Entity<AppEntry>>> {
 
 // App Version
 
+/// Get App Versions that belong to the given App ID
 #[hdk_extern]
-fn get_app_versions_for_app(input: GetForAppInput) -> ExternResult<Vec<Entity<AppVersionEntry>>> {
-    let collection = hc_crud::get_entities( &input.for_app, LinkTypes::AppVersion, None )?;
+pub fn get_app_versions_for_app(input: GetForAppInput) -> ExternResult<Vec<Entity<AppVersionEntry>>> {
+    let collection = hc_crud::get_entities(
+        &input.for_app,
+        LinkTypes::AppToAppVersion,
+        None
+    )?;
 
     Ok( collection )
 }
-
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -217,7 +213,7 @@ fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> ExternResul
     let moderator_action_links = get_links(
         GetLinksInputBuilder::try_new(
             group_anchor_hash.clone(),
-            LinkTypes::ModeratorAction,
+            LinkTypes::GroupAnchorToModeratorAction,
         )?
             .tag_prefix( LinkTag::new(tag) )
             .build()
@@ -262,15 +258,18 @@ fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> ExternResul
 }
 
 
+/// Get moderator actions for the given App ID that were created by the members of the given Group
+/// ID
 #[hdk_extern]
-fn get_moderator_actions(input: GetModeratorActionsInput) -> ExternResult<Vec<Entity<ModeratorActionEntry>>> {
+pub fn get_moderator_actions(input: GetModeratorActionsInput) -> ExternResult<Vec<Entity<ModeratorActionEntry>>> {
     let collection = get_moderator_actions_handler(input)?;
 
     Ok( collection )
 }
 
+/// Get the latest moderated state for a given Group ID and App ID
 #[hdk_extern]
-fn get_moderated_state(input: GetModeratorActionsInput) -> ExternResult<Option<Entity<ModeratorActionEntry>>> {
+pub fn get_moderated_state(input: GetModeratorActionsInput) -> ExternResult<Option<Entity<ModeratorActionEntry>>> {
     let history = get_moderator_actions_handler(input)?;
     let state = history.last()
         .map( |state| state.to_owned() );
@@ -287,8 +286,9 @@ pub struct UpdateModeratorActionInput {
     pub metadata: BTreeMap<String, RmpvValue>,
 }
 
+/// Update the moderated state for the given App ID from the viewpoint of the given Groupd ID
 #[hdk_extern]
-fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Entity<ModeratorActionEntry>> {
+pub fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Entity<ModeratorActionEntry>> {
     let actions = get_moderator_actions_handler( GetModeratorActionsInput {
         group_id: input.group_id.clone(),
         app_id: input.app_id.clone(),
@@ -346,7 +346,12 @@ fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Ent
         })?;
 
         let tag = format!("app::{}", input.app_id );
-        create_link( group_anchor_hash, entity.id.clone(), LinkTypes::ModeratorAction, tag.into_bytes() )?;
+        create_link(
+            group_anchor_hash,
+            entity.id.clone(),
+            LinkTypes::GroupAnchorToModeratorAction,
+            tag.into_bytes()
+        )?;
 
         Ok( entity )
     }
@@ -357,6 +362,7 @@ fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult<Ent
 //
 // Group CRUD
 //
+/// Create a group viewpoint
 #[hdk_extern]
 pub fn create_group(group: GroupEntry) -> ExternResult<Entity<GroupEntry>> {
     debug!("Creating new group entry: {:#?}", group );
@@ -376,6 +382,7 @@ pub fn create_group(group: GroupEntry) -> ExternResult<Entity<GroupEntry>> {
 }
 
 
+/// Get the current group state
 #[hdk_extern]
 pub fn get_group(id: ActionHash) -> ExternResult<Entity<GroupEntry>> {
     debug!("Creating new group entry: {:#?}", id );
@@ -395,6 +402,7 @@ pub fn get_group(id: ActionHash) -> ExternResult<Entity<GroupEntry>> {
 }
 
 
+/// Update the group state
 #[hdk_extern]
 pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<Entity<GroupEntry>> {
     debug!("Update group: {:#?}", input );
@@ -419,8 +427,9 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<Entity<
 }
 
 
+/// Get all apps from the perspective of the given Group ID
 #[hdk_extern]
-fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<AppEntry>>> {
+pub fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<AppEntry>>> {
     // - Derive group anchor
     // - Get moderator action links
     // - Get all group content
@@ -454,8 +463,9 @@ fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<AppEn
 }
 
 
+/// Get all removed apps from the perspective of the given Group ID
 #[hdk_extern]
-fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<AppEntry>>> {
+pub fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<AppEntry>>> {
     // - Derive group anchor
     // - Get moderator action links
     // - Get all group content
@@ -490,6 +500,7 @@ fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Vec<Enti
 
 
 
+/// Calculate the [`EntryHash`] for the AppHub entry type [`WebAppPackageEntry`]
 #[hdk_extern]
 pub fn hash_webapp_package_entry(input: WebAppPackageEntryInput) -> ExternResult<EntryHash> {
     // debug!("WebAppPackageEntry: {:#?}", input );
@@ -497,6 +508,7 @@ pub fn hash_webapp_package_entry(input: WebAppPackageEntryInput) -> ExternResult
 }
 
 
+/// Calculate the [`EntryHash`] for the AppHub entry type [`WebAppPackageVersionEntry`]
 #[hdk_extern]
 pub fn hash_webapp_package_version_entry(input: WebAppPackageVersionEntryInput) -> ExternResult<EntryHash> {
     // debug!("WebAppPackageVersionEntry: {:#?}", input );
@@ -504,6 +516,7 @@ pub fn hash_webapp_package_version_entry(input: WebAppPackageVersionEntryInput) 
 }
 
 
+/// Calculate the [`EntryHash`] for the AppHub entry type [`WebAppEntry`]
 #[hdk_extern]
 pub fn hash_webapp_entry(input: WebAppEntryInput) -> ExternResult<EntryHash> {
     // debug!("WebAppEntry: {:#?}", input );
@@ -511,6 +524,7 @@ pub fn hash_webapp_entry(input: WebAppEntryInput) -> ExternResult<EntryHash> {
 }
 
 
+/// Calculate the [`EntryHash`] for the AppHub entry type [`UiEntry`]
 #[hdk_extern]
 pub fn hash_ui_entry(input: UiEntry) -> ExternResult<EntryHash> {
     // debug!("UiEntry: {:#?}", input );
@@ -518,6 +532,7 @@ pub fn hash_ui_entry(input: UiEntry) -> ExternResult<EntryHash> {
 }
 
 
+/// Calculate the [`EntryHash`] for the AppHub entry type [`apphub_sdk::apphub_types::AppEntry`]
 #[hdk_extern]
 pub fn hash_app_entry(input: AppHubAppEntryInput) -> ExternResult<EntryHash> {
     // debug!("AppHubAppEntry: {:#?}", input );
@@ -525,6 +540,7 @@ pub fn hash_app_entry(input: AppHubAppEntryInput) -> ExternResult<EntryHash> {
 }
 
 
+/// Calculate the [`EntryHash`] for the AppHub entry type [`MemoryEntry`]
 #[hdk_extern]
 pub fn hash_mere_memory_entry(input: MemoryEntry) -> ExternResult<EntryHash> {
     // debug!("MemoryEntry: {:#?}", input );
@@ -532,6 +548,7 @@ pub fn hash_mere_memory_entry(input: MemoryEntry) -> ExternResult<EntryHash> {
 }
 
 
+/// Calculate the [`EntryHash`] for the AppHub entry type [`MemoryBlockEntry`]
 #[hdk_extern]
 pub fn hash_mere_memory_block_entry(input: MemoryBlockEntry) -> ExternResult<EntryHash> {
     // debug!("MemoryBlockEntry: {:#?}", input );
