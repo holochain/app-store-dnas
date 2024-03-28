@@ -1,6 +1,6 @@
 target
 /.cargo
-/tests/node_modules
+/node_modules
 /dnas/*/zomelets/node_modules
 /tests/*.dna
 /tests/*.happ

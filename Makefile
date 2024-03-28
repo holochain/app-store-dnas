@@ -47,7 +47,7 @@ CSR_SOURCE_FILES	= $(COMMON_SOURCE_FILES) $(INT_SOURCE_FILES) \
 #
 clean:
 	rm -rf \
-	    tests/node_modules \
+	    node_modules \
 	    .cargo \
 	    target \
 	    zomes/target \
@@ -157,9 +157,9 @@ update-coop-content-version:
 	git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
 
 npm-reinstall-local:
-	cd tests; npm uninstall $(NPM_PACKAGE); npm i --save $(LOCAL_PATH)
+	npm uninstall $(NPM_PACKAGE); npm i --save $(LOCAL_PATH)
 npm-reinstall-public:
-	cd tests; npm uninstall $(NPM_PACKAGE); npm i --save $(NPM_PACKAGE)
+	npm uninstall $(NPM_PACKAGE); npm i --save $(NPM_PACKAGE)
 
 npm-use-app-interface-client-public:
 npm-use-app-interface-client-local:
@@ -181,12 +181,12 @@ npm-use-portal-zomelets-%:
 #
 # Testing
 #
-%/package-lock.json:	%/package.json
+package-lock.json:	package.json
 	touch $@
-%/node_modules:		%/package-lock.json
-	cd $*; npm install
+node_modules:		package-lock.json
+	npm install
 	touch $@
-test-setup:		tests/node_modules \
+test-setup:		node_modules \
 			dnas/appstore/zomelets/node_modules
 
 test:
@@ -221,16 +221,16 @@ TEST_ENV_VARS		= LOG_LEVEL=$(DEBUG_LEVEL)
 MOCHA_OPTS		= -n enable-source-maps
 
 test-appstore:			test-setup $(APPSTORE_DNA)
-	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./integration/test_appstore.js
+	$(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./tests/integration/test_appstore.js
 test-viewpoint:			test-setup $(APPSTORE_DNA)
-	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./integration/test_controlled_viewpoint.js
+	$(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./tests/integration/test_controlled_viewpoint.js
 
 # End-2-end tests
 test-e2e:
 	make -s test-multi
 
 test-multi:			test-setup $(APPSTORE_HAPP) $(DEVHUB_HAPP)
-	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./e2e/test_multiple.js
+	$(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./tests/e2e/test_multiple.js
 
 
 
