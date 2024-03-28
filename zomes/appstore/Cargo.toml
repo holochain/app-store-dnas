@@ -9,13 +9,9 @@ name = "appstore"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-appstore_types = {path = "../../appstore_types"}
-essence_payloads = "0.1"
-hc_crud_caps = "0.9.0"
-hc_utils = {path = "../../hc_utils"}
-hdi = "=0.3.1"
-hdk = "=0.2.1"
-mere_memory_types = "0.88.0"
+appstore_types = { path = "../../dnas/appstore/types" }
+hc_crud_caps = "0.12"
+lazy_static = "1.4"
+mere_memory_types = "0.93"
 serde = "1"
-serde_yaml = "0.8.17"
-thiserror = "1"
+whi_hdi_extensions = "0.6"

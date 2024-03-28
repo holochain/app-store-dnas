@@ -1,24 +1,26 @@
+use crate::{
+    hdk,
+};
+
 use std::collections::BTreeMap;
 use hdk::prelude::*;
-use hc_crud::{
-    now, create_entity, get_entity, update_entity,
-    Entity,
+use hdk_extensions::{
+    agent_id,
 };
 use appstore::{
     LinkTypes,
-
-    PublisherEntry,
-
-    GetEntityInput, UpdateEntityInput,
-    LocationTriplet,
+    RmpvValue,
     WebAddress,
     DeprecationNotice,
-};
-use crate::{
-    AppResult,
 
-    ANCHOR_AGENTS,
-    ANCHOR_PUBLISHERS,
+    ALL_PUBLISHERS_ANCHOR,
+    PublisherEntry,
+
+    hc_crud::{
+        now, create_entity, get_entity, update_entity,
+        Entity,
+        GetEntityInput, UpdateEntityInput,
+    },
 };
 
 
@@ -26,24 +28,25 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct CreateInput {
     pub name: String,
-    pub location: LocationTriplet,
+    pub location: String,
     pub website: WebAddress,
-    pub icon: SerializedBytes,
 
     // optional
     pub description: Option<String>,
     pub email: Option<String>,
+    pub icon: Option<EntryHash>,
     pub editors: Option<Vec<AgentPubKey>>,
 
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: Option<BTreeMap<String, RmpvValue>>,
 }
 
 
-pub fn create(mut input: CreateInput) -> AppResult<Entity<PublisherEntry>> {
+#[hdk_extern]
+pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Creating Publisher: {}", input.name );
-    let pubkey = agent_info()?.agent_initial_pubkey;
+    let pubkey = agent_id()?;
     let default_now = now()?;
     let default_editors = vec![ pubkey.clone() ];
 
@@ -53,14 +56,11 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<PublisherEntry>> {
 	}
     }
 
-    let icon_addr = crate::save_bytes( input.icon.bytes() )?;
-
     let publisher = PublisherEntry {
 	name: input.name,
 	description: input.description,
 	location: input.location,
 	website: input.website,
-	icon: icon_addr,
 
 	editors: input.editors
 	    .unwrap_or( default_editors ),
@@ -75,30 +75,34 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<PublisherEntry>> {
 	    .unwrap_or( BTreeMap::new() ),
 
 	email: input.email,
+	icon: input.icon,
 	deprecation: None,
     };
     let entity = create_entity( &publisher )?;
 
     { // Path via Agent's Publishers
 	for agent in entity.content.editors.iter() {
-	    let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
-		// hc_utils::agentid()?,
-		agent.to_string(),
-		ANCHOR_PUBLISHERS.to_string(),
-	    ]);
-	    entity.link_from( &pathhash, LinkTypes::Publisher, None )?;
+	    entity.link_from(
+                agent,
+                LinkTypes::AgentToPublisher,
+                None
+            )?;
 	}
     }
     { // Path via All Publishers
-	let (_, pathhash) = hc_utils::path_base( ANCHOR_PUBLISHERS );
-	entity.link_from( &pathhash, LinkTypes::Publisher, None )?;
+	entity.link_from(
+            &ALL_PUBLISHERS_ANCHOR.path_entry_hash()?,
+            LinkTypes::AllPublishersToPublisher,
+            None
+        )?;
     }
 
     Ok( entity )
 }
 
 
-pub fn get(input: GetEntityInput) -> AppResult<Entity<PublisherEntry>> {
+#[hdk_extern]
+pub fn get_publisher(input: GetEntityInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Get publisher: {}", input.id );
     let entity : Entity<PublisherEntry> = get_entity( &input.id )?;
 
@@ -110,27 +114,25 @@ pub fn get(input: GetEntityInput) -> AppResult<Entity<PublisherEntry>> {
 pub struct UpdateProperties {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub location: Option<LocationTriplet>,
+    pub location: Option<String>,
     pub website: Option<WebAddress>,
     pub icon: Option<EntryHash>,
     pub email: Option<String>,
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: Option<BTreeMap<String, RmpvValue>>,
 }
 pub type UpdateInput = UpdateEntityInput<UpdateProperties>;
 
-pub fn update(input: UpdateInput) -> AppResult<Entity<PublisherEntry>> {
+#[hdk_extern]
+pub fn update_publisher(input: UpdateInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Updating Publisher: {}", input.base );
     let props = input.properties.clone();
-    let mut previous : Option<PublisherEntry> = None;
 
     let entity = update_entity(
 	&input.base,
 	|mut current : PublisherEntry, _| {
-	    previous = Some(current.clone());
-
 	    current.name = props.name
 		.unwrap_or( current.name );
 	    current.description = props.description
@@ -140,9 +142,10 @@ pub fn update(input: UpdateInput) -> AppResult<Entity<PublisherEntry>> {
 	    current.website = props.website
 		.unwrap_or( current.website );
 	    current.icon = props.icon
-		.unwrap_or( current.icon );
+		.or( current.icon );
 	    current.email = props.email
 		.or( current.email );
+	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );
 	    current.last_updated = props.last_updated
@@ -152,8 +155,6 @@ pub fn update(input: UpdateInput) -> AppResult<Entity<PublisherEntry>> {
 
 	    Ok( current )
 	})?;
-
-    // let previous = previous.unwrap();
 
     Ok( entity )
 }
@@ -165,8 +166,9 @@ pub struct DeprecateInput {
     pub message: String,
 }
 
-pub fn deprecate(input: DeprecateInput) -> AppResult<Entity<PublisherEntry>> {
-    debug!("Deprecating hApp: {}", input.base );
+#[hdk_extern]
+pub fn deprecate_publisher(input: DeprecateInput) -> ExternResult<Entity<PublisherEntry>> {
+    debug!("Deprecating publisher: {}", input.base );
     let entity = update_entity(
 	&input.base,
 	|mut current : PublisherEntry, _| {
@@ -174,6 +176,26 @@ pub fn deprecate(input: DeprecateInput) -> AppResult<Entity<PublisherEntry>> {
 		message: input.message.to_owned(),
 		recommended_alternatives: None,
 	    });
+
+	    Ok( current )
+	})?;
+
+    Ok( entity )
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct UndeprecateInput {
+    pub base: ActionHash,
+}
+
+#[hdk_extern]
+pub fn undeprecate_publisher(input: UndeprecateInput) -> ExternResult<Entity<PublisherEntry>> {
+    debug!("Undeprecating publisher: {}", input.base );
+    let entity = update_entity(
+	&input.base,
+	|mut current : PublisherEntry, _| {
+	    current.deprecation = None;
 
 	    Ok( current )
 	})?;

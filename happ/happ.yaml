@@ -1,5 +1,5 @@
 manifest_version: "1"
-name: Appstore
+name: App Store
 description: The official Holochain App Store used by Launcher
 roles:
   - name: appstore
@@ -7,10 +7,10 @@ roles:
       strategy: create
       deferred: false
     dna:
-      bundled: ./appstore.dna
+      bundled: ../dnas/appstore.dna
   - name: portal
     provisioning:
       strategy: create
       deferred: false
     dna:
-      bundled: ./portal.dna
+      bundled: ../dnas/portal.dna

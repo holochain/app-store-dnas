@@ -1,0 +1,26 @@
+{
+  "name": "testing",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@faker-js/faker": "^7.3.0",
+    "@holochain/apphub-zomelets": "file:../devhub-dnas/dnas/apphub/zomelets",
+    "@holochain/appstore-zomelets": "file:dnas/appstore/zomelets",
+    "@holochain/portal-zomelets": "^0.1.4",
+    "@mermaid-js/mermaid-cli": "^10.8.0",
+    "@spartan-hc/app-interface-client": "^0.4.1",
+    "@spartan-hc/bundles": "^0.2.2",
+    "@spartan-hc/holo-hash": "^0.6.1",
+    "@spartan-hc/holochain-backdrop": "^3.0.0",
+    "@whi/json": "^0.1.7",
+    "@whi/weblogger": "^0.2.1",
+    "chai": "^4.3.4",
+    "mocha": "^10.1.0",
+    "why-is-node-running": "^2.2.0"
+  }
+}
