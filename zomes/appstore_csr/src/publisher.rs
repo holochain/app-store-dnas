@@ -10,7 +10,6 @@ use hdk_extensions::{
 use appstore::{
     LinkTypes,
     RmpvValue,
-    LocationTriplet,
     WebAddress,
     DeprecationNotice,
 
@@ -29,13 +28,13 @@ use appstore::{
 #[derive(Debug, Deserialize)]
 pub struct CreateInput {
     pub name: String,
-    pub location: LocationTriplet,
+    pub location: String,
     pub website: WebAddress,
-    pub icon: EntryHash,
 
     // optional
     pub description: Option<String>,
     pub email: Option<String>,
+    pub icon: Option<EntryHash>,
     pub editors: Option<Vec<AgentPubKey>>,
 
     pub published_at: Option<u64>,
@@ -62,7 +61,6 @@ pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<Publisher
 	description: input.description,
 	location: input.location,
 	website: input.website,
-	icon: input.icon,
 
 	editors: input.editors
 	    .unwrap_or( default_editors ),
@@ -77,6 +75,7 @@ pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<Publisher
 	    .unwrap_or( BTreeMap::new() ),
 
 	email: input.email,
+	icon: input.icon,
 	deprecation: None,
     };
     let entity = create_entity( &publisher )?;
@@ -115,7 +114,7 @@ pub fn get_publisher(input: GetEntityInput) -> ExternResult<Entity<PublisherEntr
 pub struct UpdateProperties {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub location: Option<LocationTriplet>,
+    pub location: Option<String>,
     pub website: Option<WebAddress>,
     pub icon: Option<EntryHash>,
     pub email: Option<String>,
@@ -143,7 +142,7 @@ pub fn update_publisher(input: UpdateInput) -> ExternResult<Entity<PublisherEntr
 	    current.website = props.website
 		.unwrap_or( current.website );
 	    current.icon = props.icon
-		.unwrap_or( current.icon );
+		.or( current.icon );
 	    current.email = props.email
 		.or( current.email );
 	    current.author = agent_id()?;

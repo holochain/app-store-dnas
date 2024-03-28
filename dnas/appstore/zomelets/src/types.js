@@ -13,12 +13,6 @@ import {
 
 
 
-export const LocationTripletStruct = {
-    "country":			String,
-    "region":			String,
-    "city":			String,
-};
-
 export const WebAddressStruct = {
     "url":			String,
     "context":			OptionType( String ),
@@ -38,9 +32,8 @@ export const HRLStruct = {
 
 export const PublisherStruct = {
     "name":			String,
-    "location":			LocationTripletStruct,
+    "location":			String,
     "website":			WebAddressStruct,
-    "icon":			EntryHash,
     "editors":			VecType( AgentPubKey ),
 
     // common fields
@@ -52,6 +45,7 @@ export const PublisherStruct = {
     // optional
     "description":		OptionType( String ),
     "email":			OptionType( String ),
+    "icon":			OptionType( EntryHash ),
     "deprecation":		OptionType( DeprecationNoticeStruct ),
 };
 
@@ -102,7 +96,6 @@ export const AppStruct = {
     "title":			String,
     "subtitle":			String,
     "description":		String,
-    "icon":			EntryHash,
     "publisher":		ActionHash,
     "apphub_hrl":		HRLStruct,
     "apphub_hrl_hash":		EntryHash,
@@ -115,6 +108,7 @@ export const AppStruct = {
     "metadata":			MapType( String, AnyType ),
 
     // optional
+    "icon":			OptionType( EntryHash ),
     "deprecation":		OptionType( DeprecationNoticeStruct ),
 };
 

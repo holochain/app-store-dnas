@@ -8,13 +8,6 @@ use hdi::prelude::*;
 
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LocationTriplet {
-    pub country: String,
-    pub region: String,
-    pub city: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebAddress {
     pub url: String,
 
@@ -30,9 +23,8 @@ pub struct WebAddress {
 #[derive(Clone)]
 pub struct PublisherEntry {
     pub name: String,
-    pub location: LocationTriplet,
+    pub location: String,
     pub website: WebAddress,
-    pub icon: EntryHash,
     pub editors: Vec<AgentPubKey>,
 
     // common fields
@@ -45,6 +37,7 @@ pub struct PublisherEntry {
     // optional
     pub description: Option<String>,
     pub email: Option<String>,
+    pub icon: Option<EntryHash>,
     pub deprecation: Option<DeprecationNotice>,
 }
 

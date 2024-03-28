@@ -37,11 +37,7 @@ export function linearSuite ( name, setup_fn, args_fn ) {
 export function createPublisherInput ( overrides ) {
     return Object.assign({
 	"name": "Holo",
-	"location": {
-	    "country": "Gibraltar",
-	    "region": "Gibraltar",
-	    "city": "Gibraltar",
-	},
+	"location": "Gibraltar",
 	"website": {
 	    "url": "https://github.com/holo-host",
 	    "context": "github",

@@ -60,7 +60,9 @@ pub fn validation(
             }
 
             // Check icon size
-            validate_icon_field( &entry.icon, "PublisherEntry" )?;
+            if let Some(icon) = entry.icon {
+                validate_icon_field( &icon, "PublisherEntry" )?;
+            }
 
             valid!()
         },
@@ -95,7 +97,9 @@ pub fn validation(
             }
 
             // Check icon size
-            validate_icon_field( &entry.icon, "AppEntry" )?;
+            if let Some(icon) = entry.icon {
+                validate_icon_field( &icon, "AppEntry" )?;
+            }
 
             valid!()
         },
