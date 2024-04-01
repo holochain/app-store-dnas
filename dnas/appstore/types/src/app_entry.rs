@@ -18,6 +18,7 @@ pub struct AppEntry {
     pub title: String,
     pub subtitle: String,
     pub description: String,
+    pub icon: EntryHash,
     pub publisher: EntityId,
     pub apphub_hrl: HRL,
     pub apphub_hrl_hash: EntryHash,
@@ -30,7 +31,6 @@ pub struct AppEntry {
     pub metadata: BTreeMap<String, RmpvValue>,
 
     // optional
-    pub icon: Option<EntryHash>,
     pub deprecation: Option<DeprecationNotice>,
 }
 

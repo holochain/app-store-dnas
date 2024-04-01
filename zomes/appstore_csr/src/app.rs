@@ -31,12 +31,12 @@ pub struct CreateInput {
     pub title: String,
     pub subtitle: String,
     pub description: String,
+    pub icon: EntryHash,
     pub publisher: EntityId,
     pub apphub_hrl: HRL,
     pub apphub_hrl_hash: EntryHash,
 
     // optional
-    pub icon: Option<EntryHash>,
     pub editors: Option<Vec<AgentPubKey>>,
 
     pub published_at: Option<u64>,
@@ -61,6 +61,7 @@ pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 	title: input.title,
 	subtitle: input.subtitle,
 	description: input.description,
+	icon: input.icon,
 	publisher: input.publisher.clone(),
 	apphub_hrl: input.apphub_hrl,
 	apphub_hrl_hash: input.apphub_hrl_hash,
@@ -77,7 +78,6 @@ pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 	metadata: input.metadata
 	    .unwrap_or( BTreeMap::new() ),
 
-	icon: input.icon,
 	deprecation: None,
     };
     let entity = create_entity( &app )?;
@@ -153,7 +153,7 @@ pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
 	    current.apphub_hrl_hash = props.apphub_hrl_hash
 		.unwrap_or( current.apphub_hrl_hash );
 	    current.icon = props.icon
-		.or( current.icon );
+		.unwrap_or( current.icon );
 	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );
