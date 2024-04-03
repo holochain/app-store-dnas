@@ -5,7 +5,6 @@ pub mod app_version;
 pub use hdk_extensions::hdk;
 pub use appstore::{
     LinkTypes,
-    ALL_PUBLISHERS_ANCHOR,
     ALL_APPS_ANCHOR,
     appstore_types,
     hc_crud,
@@ -16,6 +15,7 @@ use hdk::prelude::*;
 use hdi_extensions::{
     guest_error,
     trace_origin_root,
+    AnyLinkableHashTransformer,
 };
 use hdk_extensions::{
     UpdateEntryInput,
@@ -63,6 +63,12 @@ pub struct GetForAgentInput {
 
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct GetForGroupInput {
+    pub for_group: ActionHash,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetForPublisherInput {
     pub for_publisher: EntityId,
 }
@@ -84,46 +90,6 @@ fn init(_: ()) -> ExternResult<InitCallbackResult> {
 #[hdk_extern]
 pub fn whoami(_: ()) -> ExternResult<AgentInfo> {
     agent_info()
-}
-
-
-// Publisher
-
-/// Get all Publishers for a given [`AgentPubKey`]
-#[hdk_extern]
-pub fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<PublisherEntry>>> {
-    let collection = hc_crud::get_entities(
-        &input.for_agent,
-        LinkTypes::AgentToPublisher,
-        None
-    )?;
-
-    Ok( collection )
-}
-
-/// Get Publishers that the current cell agent is a member of
-#[hdk_extern]
-pub fn get_my_publishers(_:()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
-    get_publishers_for_agent( GetForAgentInput {
-	for_agent: agent_id()?,
-    })
-}
-
-/// Get all Publishers
-#[hdk_extern]
-pub fn get_all_publishers(_: ()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
-    let collection = hc_crud::get_entities(
-        &ALL_PUBLISHERS_ANCHOR.path_entry_hash()?,
-        LinkTypes::AllPublishersToPublisher,
-        None
-    )?;
-    let collection = collection.into_iter()
-	.filter(|entity : &Entity<PublisherEntry>| {
-	    entity.content.deprecation.is_none()
-	})
-	.collect();
-
-    Ok( collection )
 }
 
 
@@ -297,7 +263,6 @@ pub fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult
     let group_rev = follow_evolutions( &input.group_id )?.last().unwrap().to_owned();
     let ma_entry = ModeratorActionEntry {
         group_id: (input.group_id.clone(), group_rev),
-        author: agent_id()?,
         published_at: hc_crud::now()?,
         message: input.message,
         subject_id: input.app_id.clone(),
@@ -360,6 +325,57 @@ pub fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult
 
 
 //
+// Editor Group CRUD
+//
+/// Create a group viewpoint
+#[hdk_extern]
+pub fn create_editors_group(group: GroupEntry) -> ExternResult<Entity<GroupEntry>> {
+    debug!("Creating new (editors) group entry: {:#?}", group );
+    let action_hash = create_group!( group )?;
+    let record = must_get( &action_hash )?;
+    let group = GroupEntry::try_from( record )?;
+
+    let entity = Entity {
+        id: action_hash.clone(),
+        address: hash_entry( group.clone() )?,
+        action: action_hash,
+        ctype: "group".to_string(),
+        content: group,
+    };
+
+    for pubkey in entity.content.contributors() {
+        entity.link_from( &pubkey, LinkTypes::AgentToGroup, Some("editors".as_bytes().to_vec()) )?;
+    }
+
+    Ok( entity )
+}
+
+
+/// Create a group viewpoint
+#[hdk_extern]
+pub fn get_editors_groups_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<GroupEntry>>> {
+    let editors_groups_links = get_links(
+        GetLinksInputBuilder::try_new(
+            input.for_agent,
+            LinkTypes::AgentToGroup,
+        )?
+            .tag_prefix( LinkTag::new("editors".as_bytes().to_vec()) )
+            .build()
+    )?;
+
+    Ok(
+        editors_groups_links.into_iter()
+            .filter_map( |link| {
+                let group_id = link.target.must_be_action_hash().ok()?;
+                Some( get_group( group_id ).ok()? )
+            })
+            .collect()
+    )
+}
+
+
+
+//
 // Group CRUD
 //
 /// Create a group viewpoint
@@ -385,7 +401,9 @@ pub fn create_group(group: GroupEntry) -> ExternResult<Entity<GroupEntry>> {
 /// Get the current group state
 #[hdk_extern]
 pub fn get_group(id: ActionHash) -> ExternResult<Entity<GroupEntry>> {
-    debug!("Creating new group entry: {:#?}", id );
+    // We cannot use the macro `coop_content_sdk::get_group!( id )?` because we need the 'latest
+    // addr' for entity's action field.
+    debug!("Get group latest: {:#?}", id );
     let latest_addr = follow_evolutions( &id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
     let group = GroupEntry::try_from( &record )?;

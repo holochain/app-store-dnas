@@ -1,11 +1,19 @@
 use crate::{
+    hdi_extensions,
     hdk,
+    coop_content_sdk,
+    GetForAgentInput,
+    GetForGroupInput,
 };
 
 use std::collections::BTreeMap;
+use hdi_extensions::{
+    AnyLinkableHashTransformer,
+};
 use hdk::prelude::*;
 use hdk_extensions::{
     agent_id,
+    must_get,
 };
 use appstore::{
     LinkTypes,
@@ -13,14 +21,20 @@ use appstore::{
     WebAddress,
     DeprecationNotice,
 
-    ALL_PUBLISHERS_ANCHOR,
     PublisherEntry,
 
     hc_crud::{
-        now, create_entity, get_entity, update_entity,
-        Entity,
+        now, create_entity, update_entity,
+        Entity, EntryModel,
         GetEntityInput, UpdateEntityInput,
     },
+};
+use coop_content_sdk::{
+    register_content_to_group,
+    register_content_update_to_group,
+    get_group_content_latest,
+    get_all_group_content_latest,
+    GroupRef,
 };
 
 
@@ -30,12 +44,12 @@ pub struct CreateInput {
     pub name: String,
     pub location: String,
     pub website: WebAddress,
+    pub editors_group_id: (ActionHash, ActionHash),
 
     // optional
     pub description: Option<String>,
     pub email: Option<String>,
     pub icon: Option<EntryHash>,
-    pub editors: Option<Vec<AgentPubKey>>,
 
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
@@ -44,17 +58,9 @@ pub struct CreateInput {
 
 
 #[hdk_extern]
-pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<PublisherEntry>> {
+pub fn create_publisher(input: CreateInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Creating Publisher: {}", input.name );
-    let pubkey = agent_id()?;
     let default_now = now()?;
-    let default_editors = vec![ pubkey.clone() ];
-
-    if let Some(ref mut editors) = input.editors {
-	if !editors.contains( &pubkey ) {
-	    editors.splice( 0..0, default_editors.clone() );
-	}
-    }
 
     let publisher = PublisherEntry {
 	name: input.name,
@@ -62,10 +68,8 @@ pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<Publisher
 	location: input.location,
 	website: input.website,
 
-	editors: input.editors
-	    .unwrap_or( default_editors ),
+	editors_group_id: input.editors_group_id,
 
-	author: pubkey,
 	published_at: input.published_at
 	    .unwrap_or( default_now ),
 	last_updated: input.last_updated
@@ -80,22 +84,11 @@ pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<Publisher
     };
     let entity = create_entity( &publisher )?;
 
-    { // Path via Agent's Publishers
-	for agent in entity.content.editors.iter() {
-	    entity.link_from(
-                agent,
-                LinkTypes::AgentToPublisher,
-                None
-            )?;
-	}
-    }
-    { // Path via All Publishers
-	entity.link_from(
-            &ALL_PUBLISHERS_ANCHOR.path_entry_hash()?,
-            LinkTypes::AllPublishersToPublisher,
-            None
-        )?;
-    }
+    // Link from group
+    register_content_to_group!({
+        entry: publisher,
+        target: entity.id.clone(),
+    })?;
 
     Ok( entity )
 }
@@ -104,9 +97,24 @@ pub fn create_publisher(mut input: CreateInput) -> ExternResult<Entity<Publisher
 #[hdk_extern]
 pub fn get_publisher(input: GetEntityInput) -> ExternResult<Entity<PublisherEntry>> {
     debug!("Get publisher: {}", input.id );
-    let entity : Entity<PublisherEntry> = get_entity( &input.id )?;
+    let publisher_origin : PublisherEntry = must_get( &input.id )?.try_into()?;
 
-    Ok(	entity )
+    let latest_addr = get_group_content_latest!({
+        group_id: publisher_origin.group_ref().0,
+        content_id: input.id.clone().into(),
+    })?;
+
+    let publisher : PublisherEntry = must_get( &latest_addr )?.try_into()?;
+
+    Ok(
+	Entity {
+            id: input.id,
+            address: hash_entry( publisher.clone() )?,
+            action: latest_addr,
+            ctype: publisher.get_type(),
+            content: publisher,
+        }
+    )
 }
 
 
@@ -118,7 +126,6 @@ pub struct UpdateProperties {
     pub website: Option<WebAddress>,
     pub icon: Option<EntryHash>,
     pub email: Option<String>,
-    pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
     pub metadata: Option<BTreeMap<String, RmpvValue>>,
@@ -141,11 +148,14 @@ pub fn update_publisher(input: UpdateInput) -> ExternResult<Entity<PublisherEntr
 		.unwrap_or( current.location );
 	    current.website = props.website
 		.unwrap_or( current.website );
+
+            // Automatically update the group ref to latest
+            update_publisher_editors_group_ref( &mut current )?;
+
 	    current.icon = props.icon
 		.or( current.icon );
 	    current.email = props.email
 		.or( current.email );
-	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );
 	    current.last_updated = props.last_updated
@@ -155,6 +165,11 @@ pub fn update_publisher(input: UpdateInput) -> ExternResult<Entity<PublisherEntr
 
 	    Ok( current )
 	})?;
+
+    register_content_update_to_group!({
+        entry: entity.content.clone(),
+        target: entity.action.clone(),
+    })?;
 
     Ok( entity )
 }
@@ -172,6 +187,9 @@ pub fn deprecate_publisher(input: DeprecateInput) -> ExternResult<Entity<Publish
     let entity = update_entity(
 	&input.base,
 	|mut current : PublisherEntry, _| {
+            // Automatically update the group ref to latest
+            update_publisher_editors_group_ref( &mut current )?;
+
 	    current.deprecation = Some(DeprecationNotice {
 		message: input.message.to_owned(),
 		recommended_alternatives: None,
@@ -195,10 +213,88 @@ pub fn undeprecate_publisher(input: UndeprecateInput) -> ExternResult<Entity<Pub
     let entity = update_entity(
 	&input.base,
 	|mut current : PublisherEntry, _| {
+            // Automatically update the group ref to latest
+            update_publisher_editors_group_ref( &mut current )?;
+
 	    current.deprecation = None;
 
 	    Ok( current )
 	})?;
 
     Ok( entity )
+}
+
+
+// Publisher
+#[hdk_extern]
+pub fn get_publishers_for_group(input: GetForGroupInput) -> ExternResult<Vec<Entity<PublisherEntry>>> {
+    Ok(
+        get_all_group_content_latest!({
+            group_id: input.for_group,
+        })?.into_iter()
+            .filter_map(|(origin, latest)| {
+                let addr = latest.into_action_hash()?;
+                let record = must_get( &addr ).ok()?;
+                let publisher = PublisherEntry::try_from( record ).ok()?;
+                Some(
+                    Entity {
+                        id: origin.into_action_hash()?,
+                        address: hash_entry( publisher.clone() ).ok()?,
+                        action: addr,
+                        ctype: publisher.get_type(),
+                        content: publisher,
+                    }
+                )
+            })
+            .collect()
+    )
+}
+
+
+/// Get all Publishers for a given [`AgentPubKey`]
+#[hdk_extern]
+pub fn get_publishers_for_agent(input: GetForAgentInput) -> ExternResult<Vec<Entity<PublisherEntry>>> {
+    // Get groups that the agent belongs to
+    let group_links = get_links(
+        GetLinksInputBuilder::try_new(
+            input.for_agent,
+            LinkTypes::AgentToGroup,
+        )?.build()
+    )?;
+
+    // For each group, get the publishers that belong to that group
+    let collection = group_links.iter()
+        .filter_map( |link| {
+            let group_id = link.target.must_be_action_hash().ok()?;
+
+            debug!("Get all publisher content for group: {}", group_id );
+            Some( get_publishers_for_group( GetForGroupInput {
+                for_group: group_id,
+            }).ok()? )
+        })
+        .flatten()
+        .collect();
+
+    Ok( collection )
+}
+
+
+/// Get Publishers that the current cell agent is a member of
+#[hdk_extern]
+pub fn get_my_publishers(_:()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
+    get_publishers_for_agent( GetForAgentInput {
+	for_agent: agent_id()?,
+    })
+}
+
+
+/// Update the group ref to latest
+fn update_publisher_editors_group_ref(publisher: &mut PublisherEntry) -> ExternResult<()> {
+    let group_entity = crate::get_group( publisher.editors_group_id.0.to_owned() )?;
+
+    publisher.editors_group_id = (
+        publisher.editors_group_id.0.to_owned(), group_entity.action
+    );
+
+    Ok(())
 }

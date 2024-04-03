@@ -63,6 +63,24 @@ export const AppStoreCSRZomelet		= new Zomelet({
 	if ( input.icon && input.icon.length > 39 )
 	    input.icon			= await this.zomes.mere_memory_api.save( input.icon );
 
+	// Create group if editors is provided
+	if ( input.editors ) {
+	    if ( input.editors_group_id )
+		throw new Error(`Cannot specify 'editors' and 'editors_group_id' in create_publisher input`);
+
+	    const editors_group = await this.functions.create_editors_group({
+		"admins": input.editors,
+		"members": [],
+		"published_at": Date.now(),
+		"last_updated": Date.now(),
+		"metadata": {},
+	    });
+
+	    delete input.editors;
+
+	    input.editors_group_id = [ editors_group.$id, editors_group.$action ];
+	}
+
 	const result			= await this.call( input );
 
 	return new Publisher( result, this );
@@ -79,9 +97,21 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return new Publisher( result, this );
     },
-    "get_publishers_for_agent":		true,
-    "get_my_publishers":		true,
-    "get_all_publishers":		true,
+    async get_publishers_for_group ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( entry => new Publisher( entry, this ) );
+    },
+    async get_publishers_for_agent ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( entry => new Publisher( entry, this ) );
+    },
+    async get_my_publishers ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( entry => new Publisher( entry, this ) );
+    },
     async update_publisher ( input ) {
 	if ( input.properties.icon && input.properties.icon.length > 39 )
 	    input.properties.icon	= await this.zomes.mere_memory_api.save( input.properties.icon );
@@ -211,6 +241,26 @@ export const AppStoreCSRZomelet		= new Zomelet({
     },
 
     //
+    // Editors Group
+    //
+    async create_editors_group ( input ) {
+	let whoami			= await this.functions.whoami();
+	let agent_id			= whoami.pubkey.initial;
+
+	if ( !input.admins.some( pubkey => String(new AgentPubKey(pubkey)) === String(agent_id) ) )
+	    input.admins.unshift( whoami.pubkey.initial );
+
+	const result			= await this.call( input );
+
+	return new Group( result, this );
+    },
+    async get_editors_groups_for_agent ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( entry => new Group( entry, this ) );
+    },
+
+    //
     // Group
     //
     async create_group_entry ( input ) {
@@ -219,6 +269,12 @@ export const AppStoreCSRZomelet		= new Zomelet({
 	return new Group( result, this );
     },
     async create_group ( input ) {
+	let whoami			= await this.functions.whoami();
+	let agent_id			= whoami.pubkey.initial;
+
+	if ( !input.admins.some( pubkey => String(new AgentPubKey(pubkey)) === String(agent_id) ) )
+	    input.admins.unshift( whoami.pubkey.initial );
+
 	const result			= await this.call( input );
 
 	return new Group( result, this );

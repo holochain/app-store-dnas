@@ -6,8 +6,13 @@ use crate::{
     PublisherEntry,
     AppEntry,
     AppVersionEntry,
+
+    coop_content_sdk,
 };
 
+use coop_content_sdk::{
+    GroupEntry, GroupRef,
+};
 use hdi::prelude::*;
 use hdi_extensions::{
     summon_create_action,
@@ -36,10 +41,14 @@ pub fn validation(
             )?.try_into()?;
 
             // Allow any publisher editor
-            if !publisher_entry.editors.contains( &delete.author ) {
+            let group : GroupEntry = must_get_valid_record(
+                publisher_entry.group_ref().1
+            )?.try_into()?;
+
+            if !group.is_contributor( &delete.author ) {
                 invalid!(format!(
                     "Delete author ({}) is not in editor list: {:?}",
-                    delete.author, publisher_entry.editors,
+                    delete.author, group.contributors(),
                 ))
             }
 

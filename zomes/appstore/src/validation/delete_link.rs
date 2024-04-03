@@ -7,11 +7,12 @@ use crate::{
     AppEntry,
     ModeratorActionEntry,
 
-    coop_content_sdk::{
-        GroupEntry,
-    },
+    coop_content_sdk,
 };
 
+use coop_content_sdk::{
+    GroupEntry, GroupRef,
+};
 use hdi::prelude::*;
 use hdi_extensions::{
     AnyLinkableHashTransformer,
@@ -42,6 +43,9 @@ pub fn validation(
     }
 
     match link_type {
+        LinkTypes::AgentToGroup => {
+            valid!()
+        },
         LinkTypes::AgentToPublisher => {
             let agent_base = create_link.base_address.clone().into_agent_pub_key()
                 .ok_or(guest_error!(
@@ -56,12 +60,6 @@ pub fn validation(
             invalid!(format!(
                 "Not authorized to delete link on agent anchor: {}",
                 agent_base,
-            ))
-        },
-        LinkTypes::AllPublishersToPublisher => {
-            invalid!(format!(
-                "Only the link creator ({}) can delete from the ALL_PUBLISHERS_ANCHOR",
-                create_link.author,
             ))
         },
         LinkTypes::AgentToApp => {
@@ -87,10 +85,14 @@ pub fn validation(
             )?.try_into()?;
 
             // Allow any publisher editor
-            if !publisher_entry.editors.contains( &delete.author ) {
+            let group : GroupEntry = must_get_valid_record(
+                publisher_entry.group_ref().1
+            )?.try_into()?;
+
+            if !group.is_contributor( &delete.author ) {
                 invalid!(format!(
                     "Delete author ({}) is not in editor list: {:?}",
-                    delete.author, publisher_entry.editors,
+                    delete.author, group.contributors(),
                 ))
             }
 

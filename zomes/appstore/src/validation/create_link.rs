@@ -3,7 +3,6 @@ use crate::{
     hdi_extensions,
     LinkTypes,
 
-    ALL_PUBLISHERS_ANCHOR,
     ALL_APPS_ANCHOR,
 
     PublisherEntry,
@@ -11,8 +10,13 @@ use crate::{
     AppVersionEntry,
     ModeratorActionEntry,
     GroupAnchorEntry,
+
+    coop_content_sdk,
 };
 
+use coop_content_sdk::{
+    GroupEntry, GroupRef,
+};
 use hdi::prelude::*;
 use hdi_extensions::{
     AnyLinkableHashTransformer,
@@ -31,6 +35,9 @@ pub fn validation(
     create: CreateLink,
 ) -> ExternResult<ValidateCallbackResult> {
     match link_type {
+        LinkTypes::AgentToGroup => {
+            valid!()
+        },
         LinkTypes::AgentToPublisher => {
             let publisher_entry : PublisherEntry = must_get_valid_record(
                 target_address.must_be_action_hash()?
@@ -42,26 +49,18 @@ pub fn validation(
                 ))?;
 
             // Agent base address must be in publisher editors
-            if !publisher_entry.editors.contains( &agent_base ) {
+            let group : GroupEntry = must_get_valid_record(
+                publisher_entry.group_ref().1
+            )?.try_into()?;
+
+            if !group.is_contributor( &agent_base ) {
                 invalid!(format!(
                     "Agent base address ({}) is not in editor list: {:?}",
-                    agent_base, publisher_entry.editors,
+                    agent_base, group.contributors(),
                 ))
             }
 
             // TODO: somehow verify that the agent wants these links on their anchor
-
-            valid!()
-        },
-        LinkTypes::AllPublishersToPublisher => {
-            if base_address != ALL_PUBLISHERS_ANCHOR.path_entry_hash()?.into() {
-                invalid!(format!(
-                    "Base address must be the ALL_PUBLISHER_ANCHOR ({})",
-                    ALL_PUBLISHERS_ANCHOR.path_entry_hash()?,
-                ))
-            }
-
-            verify_app_entry_struct::<PublisherEntry>( &target_address )?;
 
             valid!()
         },
@@ -95,10 +94,14 @@ pub fn validation(
             )?.try_into()?;
 
             // Author must be in publisher editors
-            if !publisher_entry.editors.contains( &create.author ) {
+            let group : GroupEntry = must_get_valid_record(
+                publisher_entry.group_ref().1
+            )?.try_into()?;
+
+            if !group.is_contributor( &create.author ) {
                 invalid!(format!(
                     "Link author ({}) is not in editor list: {:?}",
-                    create.author, publisher_entry.editors,
+                    create.author, group.contributors(),
                 ))
             }
 

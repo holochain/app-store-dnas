@@ -69,7 +69,6 @@ pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
 	editors: input.editors
 	    .unwrap_or( default_editors ),
 
-	author: pubkey,
 	published_at: input.published_at
 	    .unwrap_or( default_now ),
 	last_updated: input.last_updated
@@ -154,7 +153,6 @@ pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
 		.unwrap_or( current.apphub_hrl_hash );
 	    current.icon = props.icon
 		.unwrap_or( current.icon );
-	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );
 	    current.last_updated = props.last_updated

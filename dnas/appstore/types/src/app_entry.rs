@@ -25,7 +25,6 @@ pub struct AppEntry {
     pub editors: Vec<AgentPubKey>,
 
     // common fields
-    pub author: AgentPubKey,
     pub published_at: u64,
     pub last_updated: u64,
     pub metadata: BTreeMap<String, RmpvValue>,
@@ -35,9 +34,6 @@ pub struct AppEntry {
 }
 
 impl<'a> CommonFields<'a> for AppEntry {
-    fn author(&'a self) -> &'a AgentPubKey {
-	&self.author
-    }
     fn published_at(&'a self) -> &'a u64 {
 	&self.published_at
     }

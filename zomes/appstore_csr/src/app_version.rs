@@ -4,9 +4,6 @@ use crate::{
 
 use std::collections::BTreeMap;
 use hdk::prelude::*;
-use hdk_extensions::{
-    agent_id,
-};
 use appstore::{
     EntryTypes,
     LinkTypes,
@@ -43,7 +40,6 @@ pub struct CreateInput {
 #[hdk_extern]
 pub fn create_app_version(input: CreateInput) -> ExternResult<Entity<AppVersionEntry>> {
     debug!("Creating AppVersion: {}", input.version );
-    let pubkey = agent_id()?;
     let default_now = now()?;
 
     let app_version = AppVersionEntry {
@@ -53,7 +49,6 @@ pub fn create_app_version(input: CreateInput) -> ExternResult<Entity<AppVersionE
 	apphub_hrl_hash: input.apphub_hrl_hash,
 	bundle_hashes: input.bundle_hashes,
 
-	author: pubkey,
 	published_at: input.published_at
 	    .unwrap_or( default_now ),
 	last_updated: input.last_updated
@@ -112,7 +107,6 @@ pub fn update_app_version(input: UpdateInput) -> ExternResult<Entity<AppVersionE
 		.unwrap_or( current.apphub_hrl_hash );
 	    current.bundle_hashes = props.bundle_hashes
 		.unwrap_or( current.bundle_hashes );
-	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );
 	    current.last_updated = props.last_updated

@@ -113,8 +113,6 @@ function publisher_tests () {
 	);
 
 	// log.debug( json.debug( publisher ) );
-
-	expect( publisher.editors	).to.have.length( 2 );
     });
 
 }

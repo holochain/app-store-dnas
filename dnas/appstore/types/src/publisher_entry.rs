@@ -3,6 +3,10 @@ use crate::{
     CommonFields,
     DeprecationNotice,
 };
+
+use coop_content_sdk::{
+    group_ref,
+};
 use std::collections::BTreeMap;
 use hdi::prelude::*;
 
@@ -25,10 +29,9 @@ pub struct PublisherEntry {
     pub name: String,
     pub location: String,
     pub website: WebAddress,
-    pub editors: Vec<AgentPubKey>,
+    pub editors_group_id: (ActionHash, ActionHash),
 
     // common fields
-    pub author: AgentPubKey,
     pub published_at: u64,
     pub last_updated: u64,
     #[serde(default)]
@@ -42,9 +45,6 @@ pub struct PublisherEntry {
 }
 
 impl<'a> CommonFields<'a> for PublisherEntry {
-    fn author(&'a self) -> &'a AgentPubKey {
-	&self.author
-    }
     fn published_at(&'a self) -> &'a u64 {
 	&self.published_at
     }
@@ -55,3 +55,5 @@ impl<'a> CommonFields<'a> for PublisherEntry {
 	&self.metadata
     }
 }
+
+group_ref!( PublisherEntry, editors_group_id );

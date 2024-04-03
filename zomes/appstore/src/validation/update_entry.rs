@@ -2,7 +2,6 @@ use crate::{
     hdi,
     hdi_extensions,
 
-    validate_common_fields_create,
     validate_icon_field,
 
     EntryTypes,
@@ -10,11 +9,14 @@ use crate::{
     AppEntry,
     AppVersionEntry,
 
-    coop_content_sdk::{
-        validate_group_auth,
-    },
+    coop_content_sdk,
 };
 
+use coop_content_sdk::{
+    validate_group_auth,
+    validate_group_ref,
+    validate_group_member,
+};
 use hdi::prelude::*;
 use hdi_extensions::{
     guest_error,
@@ -34,12 +36,18 @@ pub fn validation(
                 .try_into()?;
 
             // Check that the editors list did not change
-            if previous_entry.editors != entry.editors {
-                invalid!(format!(
-                    "Cannot update the editors list: {:?} => {:?}",
-                    previous_entry.editors, entry.editors,
-                ))
-            }
+            validate_group_ref( &entry, update.clone() )
+                .map_err(|err| guest_error!(format!(
+                    "Invalid group reference; {}",
+                    err
+                )) )?;
+
+            // Check that the author field is in the editors list
+            validate_group_member( &entry, update.clone() )
+                .map_err(|err| guest_error!(format!(
+                    "Invalid editor; {}",
+                    err
+                )) )?;
 
             // Check that the entry is not deprecated
             if entry.deprecation.is_some() && previous_entry.deprecation.is_some() {
@@ -48,19 +56,8 @@ pub fn validation(
                 ))
             }
 
-            // Check author field matches action author
-            validate_common_fields_create( &update, &entry )?;
-
-            // Check that the author field is in the editors list
-            if !entry.editors.contains( &entry.author ) {
-                invalid!(format!(
-                    "Entry author ({}) must be in the editors list: {:?}",
-                    entry.author, entry.editors,
-                ))
-            }
-
             // Check icon size
-            if let Some(icon) = entry.icon {
+            if let Some(icon) = entry.icon.clone() {
                 validate_icon_field( &icon, "PublisherEntry" )?;
             }
 
@@ -85,9 +82,6 @@ pub fn validation(
                 ))
             }
 
-            // Check author field matches action author
-            validate_common_fields_create( &update, &entry )?;
-
             // Check that this action author is in the editor list of the previous publisher entry
             if !entry.editors.contains( &update.author ) {
                 invalid!(format!(
@@ -101,7 +95,7 @@ pub fn validation(
 
             valid!()
         },
-        EntryTypes::AppVersion(entry) => {
+        EntryTypes::AppVersion(_entry) => {
             let previous_entry : AppVersionEntry = must_get_entry( original_entry_hash )?
                 .try_into()?;
             let app_entry : AppEntry = must_get_valid_record(
@@ -116,20 +110,9 @@ pub fn validation(
                 ))
             }
 
-            // Check author field matches action author
-            validate_common_fields_create( &update, &entry )?;
-
             valid!()
         },
         EntryTypes::ModeratorAction(entry) => {
-            // Check author field matches action author
-            if entry.author != update.author {
-                invalid!(format!(
-                    "Entry author does not match Action author: {} != {}",
-                    entry.author, update.author
-                ));
-            }
-
             // Check that the author is a contributor to the claimed group
             validate_group_auth( &entry, update )
                 .map_err(|err| guest_error!(err) )?;

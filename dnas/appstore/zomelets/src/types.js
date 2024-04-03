@@ -28,16 +28,17 @@ export const HRLStruct = {
     "target":			AnyDhtHash,
 }
 
+export const GroupRefStruct = [ ActionHash, ActionHash ];
+
 
 
 export const PublisherStruct = {
     "name":			String,
     "location":			String,
     "website":			WebAddressStruct,
-    "editors":			VecType( AgentPubKey ),
+    "editors_group_id":		GroupRefStruct,
 
     // common fields
-    "author":			AgentPubKey,
     "published_at":		Number,
     "last_updated":		Number,
     "metadata":			MapType( String, AnyType ),
@@ -55,6 +56,12 @@ export function PublisherEntry ( entry ) {
 
 export class Publisher extends ScopedEntity {
     static STRUCT		= PublisherStruct;
+
+    async $refresh () {
+	const result		= await this.zome.get_publisher( this.$id );
+
+	super.$update( result );
+    }
 
     async $update ( changes ) {
 	const result		= await this.zome.update_publisher({
@@ -102,7 +109,6 @@ export const AppStruct = {
     "editors":			VecType( AgentPubKey ),
 
     // common fields
-    "author":			AgentPubKey,
     "published_at":		Number,
     "last_updated":		Number,
     "metadata":			MapType( String, AnyType ),
@@ -215,7 +221,6 @@ export const AppVersionStruct = {
     "bundle_hashes":		BundleHashesStruct,
 
     // common fields
-    "author":			AgentPubKey,
     "published_at":		Number,
     "last_updated":		Number,
     "metadata":			MapType( String, AnyType ),

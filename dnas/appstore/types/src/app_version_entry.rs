@@ -29,16 +29,12 @@ pub struct AppVersionEntry {
     pub bundle_hashes: BundleHashes,
 
     // common fields
-    pub author: AgentPubKey,
     pub published_at: u64,
     pub last_updated: u64,
     pub metadata: BTreeMap<String, RmpvValue>,
 }
 
 impl<'a> CommonFields<'a> for AppVersionEntry {
-    fn author(&'a self) -> &'a AgentPubKey {
-	&self.author
-    }
     fn published_at(&'a self) -> &'a u64 {
 	&self.published_at
     }
