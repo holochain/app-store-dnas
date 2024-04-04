@@ -5,6 +5,8 @@ use crate::{
     validate_icon_field,
 
     EntryTypes,
+    PublisherEntry,
+    AppEntry,
 
     coop_content_sdk,
 };
@@ -46,20 +48,42 @@ pub fn validation(
             valid!()
         },
         EntryTypes::App(entry) => {
-            // Check that the author field is in the editors list
-            if !entry.editors.contains( &create.author ) {
+            // Check that editors group ID matches the publisher's
+            let publisher_entry : PublisherEntry = must_get_valid_record(
+                entry.publisher.clone()
+            )?.try_into()?;
+            if publisher_entry.group_ref().0 != entry.group_ref().0 {
                 invalid!(format!(
-                    "Entry author ({}) must be in the editors list: {:?}",
-                    create.author, entry.editors,
+                    "App entry editors group must match the Publisher's editors group: {} != {}",
+                    publisher_entry.group_ref().0, entry.group_ref().0,
                 ))
             }
+
+            // Check that the author is a contributor to the claimed group
+            validate_group_auth( &entry, create )
+                .map_err(|err| guest_error!(err) )?;
 
             // Check icon size
             validate_icon_field( &entry.icon, "AppEntry" )?;
 
             valid!()
         },
-        EntryTypes::AppVersion(_entry) => {
+        EntryTypes::AppVersion(entry) => {
+            // Check that editors group ID matches the publisher's
+            let app_entry : AppEntry = must_get_valid_record(
+                entry.for_app.clone()
+            )?.try_into()?;
+            if app_entry.group_ref().0 != entry.group_ref().0 {
+                invalid!(format!(
+                    "App Version entry editors group must match the App's editors group: {} != {}",
+                    app_entry.group_ref().0, entry.group_ref().0,
+                ))
+            }
+
+            // Check that the author is a contributor to the claimed group
+            validate_group_auth( &entry, create )
+                .map_err(|err| guest_error!(err) )?;
+
             valid!()
         },
         EntryTypes::ModeratorAction(entry) => {

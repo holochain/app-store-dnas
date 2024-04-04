@@ -225,7 +225,6 @@ pub fn undeprecate_publisher(input: UndeprecateInput) -> ExternResult<Entity<Pub
 }
 
 
-// Publisher
 #[hdk_extern]
 pub fn get_publishers_for_group(input: GetForGroupInput) -> ExternResult<Vec<Entity<PublisherEntry>>> {
     Ok(
@@ -290,10 +289,10 @@ pub fn get_my_publishers(_:()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
 
 /// Update the group ref to latest
 fn update_publisher_editors_group_ref(publisher: &mut PublisherEntry) -> ExternResult<()> {
-    let group_entity = crate::get_group( publisher.editors_group_id.0.to_owned() )?;
+    let group_entity = crate::group::get_group( publisher.group_ref().0 )?;
 
     publisher.editors_group_id = (
-        publisher.editors_group_id.0.to_owned(), group_entity.action
+        publisher.group_ref().0, group_entity.action
     );
 
     Ok(())

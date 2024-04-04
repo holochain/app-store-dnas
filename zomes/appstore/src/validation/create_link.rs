@@ -7,7 +7,6 @@ use crate::{
 
     PublisherEntry,
     AppEntry,
-    AppVersionEntry,
     ModeratorActionEntry,
     GroupAnchorEntry,
 
@@ -32,10 +31,27 @@ pub fn validation(
     target_address: AnyLinkableHash,
     link_type: LinkTypes,
     _tag: LinkTag,
-    create: CreateLink,
+    _create: CreateLink,
 ) -> ExternResult<ValidateCallbackResult> {
     match link_type {
         LinkTypes::AgentToGroup => {
+            let agent_base = base_address.clone().into_agent_pub_key()
+                .ok_or(guest_error!(
+                    format!("Any-linkable hash must be an action hash; not '{}'", base_address )
+                ))?;
+
+            // Agent base address must be in group contributors
+            let group : GroupEntry = must_get_valid_record(
+                target_address.must_be_action_hash()?
+            )?.try_into()?;
+
+            if !group.is_contributor( &agent_base ) {
+                invalid!(format!(
+                    "Agent base address ({}) is not in editor list: {:?}",
+                    agent_base, group.contributors(),
+                ))
+            }
+
             valid!()
         },
         LinkTypes::AgentToPublisher => {
@@ -74,38 +90,19 @@ pub fn validation(
                     format!("Any-linkable hash must be an action hash; not '{}'", base_address )
                 ))?;
 
-            // Agent base address must be in app editors
-            if !app_entry.editors.contains( &agent_base ) {
+            // Agent base address must be in publisher editors
+            let group : GroupEntry = must_get_valid_record(
+                app_entry.group_ref().1
+            )?.try_into()?;
+
+            if !group.is_contributor( &agent_base ) {
                 invalid!(format!(
                     "Agent base address ({}) is not in editor list: {:?}",
-                    agent_base, app_entry.editors,
+                    agent_base, group.contributors(),
                 ))
             }
 
             // TODO: somehow verify that the agent wants these links on their anchor
-
-            valid!()
-        },
-        LinkTypes::PublisherToApp => {
-            let publisher_id = base_address.must_be_action_hash()?;
-
-            let publisher_entry : PublisherEntry = must_get_valid_record(
-                publisher_id
-            )?.try_into()?;
-
-            // Author must be in publisher editors
-            let group : GroupEntry = must_get_valid_record(
-                publisher_entry.group_ref().1
-            )?.try_into()?;
-
-            if !group.is_contributor( &create.author ) {
-                invalid!(format!(
-                    "Link author ({}) is not in editor list: {:?}",
-                    create.author, group.contributors(),
-                ))
-            }
-
-            verify_app_entry_struct::<AppEntry>( &target_address )?;
 
             valid!()
         },
@@ -118,35 +115,6 @@ pub fn validation(
             }
 
             verify_app_entry_struct::<AppEntry>( &target_address )?;
-
-            valid!()
-        },
-        LinkTypes::AppToAppVersion => {
-            let app_id = base_address.must_be_action_hash()?;
-
-            let app_entry : AppEntry = must_get_valid_record(
-                app_id.clone()
-            )?.try_into()?;
-
-            // Link author must be in app editors
-            if !app_entry.editors.contains( &create.author ) {
-                invalid!(format!(
-                    "Author ({}) cannot link app -> app version because they are not in the editor list ({})",
-                    create.author, base_address,
-                ))
-            }
-
-            let app_version_entry : AppVersionEntry = must_get_valid_record(
-                target_address.must_be_action_hash()?
-            )?.try_into()?;
-
-            // Version must belong to app base address
-            if app_version_entry.for_app != app_id {
-                invalid!(format!(
-                    "App base address does not match the app reference in version entry: {} != {}",
-                    app_id, app_version_entry.for_app,
-                ))
-            }
 
             valid!()
         },

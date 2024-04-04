@@ -245,8 +245,6 @@ function app_tests () {
 	app1				= await alice_appstore.create_app( input );
 
 	// log.debug( json.debug( app ) );
-
-	expect( app1.editors		).to.have.length( 2 );
     });
 
     it("should get app profile", async function () {
@@ -367,13 +365,13 @@ function errors_tests () {
 	this.timeout( 10_000 );
 
 	await expect_reject( async () => {
-	    await bobby_appstore.update_app({
+	    await carol_appstore.update_app({
 		"base": app1.$action,
 		"properties": {
 		    "name": "Malicious",
 		},
 	    });
-	}, "must be in the editors list" );
+	}, "Invalid editor" );
     });
 
     it("should fail to create publisher because icon is too big", async function () {
@@ -432,7 +430,7 @@ function errors_tests () {
 		    "happ_hash": "",
 		},
 	    });
-	    await bobby_appstore.create_app_version( input );
-	}, "not in the editor list" );
+	    await carol_appstore.create_app_version( input );
+	}, "not authorized" );
     });
 }

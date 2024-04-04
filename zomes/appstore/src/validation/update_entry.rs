@@ -68,25 +68,23 @@ pub fn validation(
                 .try_into()?;
 
             // Check that the editors list did not change
-            if previous_entry.editors != entry.editors {
-                invalid!(format!(
-                    "Cannot update the editors list: {:?} => {:?}",
-                    previous_entry.editors, entry.editors,
-                ))
-            }
+            validate_group_ref( &entry, update.clone() )
+                .map_err(|err| guest_error!(format!(
+                    "Invalid group reference; {}",
+                    err
+                )) )?;
+
+            // Check that the author field is in the editors list
+            validate_group_member( &entry, update.clone() )
+                .map_err(|err| guest_error!(format!(
+                    "Invalid editor; {}",
+                    err
+                )) )?;
 
             // Check that the entry is not deprecated
             if entry.deprecation.is_some() && previous_entry.deprecation.is_some() {
                 invalid!(format!(
                     "Cannot update deprecated entity unless the deprecation is being reversed",
-                ))
-            }
-
-            // Check that this action author is in the editor list of the previous publisher entry
-            if !entry.editors.contains( &update.author ) {
-                invalid!(format!(
-                    "Update author ({}) must be in the editors list: {:?}",
-                    update.author, entry.editors,
                 ))
             }
 
@@ -102,13 +100,19 @@ pub fn validation(
                 previous_entry.for_app
             )?.try_into()?;
 
-            // Check that this action author is in the editor list of the previous publisher entry
-            if !app_entry.editors.contains( &update.author ) {
-                invalid!(format!(
-                    "Update author ({}) must be in the App's editors list: {:?}",
-                    update.author, app_entry.editors,
-                ))
-            }
+            // Check that the editors list did not change
+            validate_group_ref( &app_entry, update.clone() )
+                .map_err(|err| guest_error!(format!(
+                    "Invalid group reference; {}",
+                    err
+                )) )?;
+
+            // Check that the author field is in the editors list
+            validate_group_member( &app_entry, update.clone() )
+                .map_err(|err| guest_error!(format!(
+                    "Invalid editor; {}",
+                    err
+                )) )?;
 
             valid!()
         },

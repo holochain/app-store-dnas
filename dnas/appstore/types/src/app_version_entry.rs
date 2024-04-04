@@ -4,6 +4,10 @@ use crate::{
     RmpvValue,
     CommonFields,
 };
+
+use coop_content_sdk::{
+    group_ref,
+};
 use std::collections::BTreeMap;
 use hdi::prelude::*;
 
@@ -27,6 +31,7 @@ pub struct AppVersionEntry {
     pub apphub_hrl: HRL,
     pub apphub_hrl_hash: EntryHash,
     pub bundle_hashes: BundleHashes,
+    pub editors_group_id: (ActionHash, ActionHash),
 
     // common fields
     pub published_at: u64,
@@ -45,3 +50,5 @@ impl<'a> CommonFields<'a> for AppVersionEntry {
 	&self.metadata
     }
 }
+
+group_ref!( AppVersionEntry, editors_group_id );

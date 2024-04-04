@@ -80,10 +80,7 @@ pub enum LinkTypes {
     AgentToPublisher,
 
     AgentToApp,
-    PublisherToApp,
     AllAppsToApp,
-
-    AppToAppVersion,
 
     GroupAnchorToModeratorAction,
 }
@@ -100,10 +97,7 @@ impl<'de> Deserialize<'de> for LinkTypes {
 	    "AgentToPublisher" => Ok(LinkTypes::AgentToPublisher),
 
 	    "AgentToApp" => Ok(LinkTypes::AgentToApp),
-	    "PublisherToApp" => Ok(LinkTypes::PublisherToApp),
 	    "AllAppsToApp" => Ok(LinkTypes::AllAppsToApp),
-
-	    "AppToAppVersion" => Ok(LinkTypes::AppToAppVersion),
 
 	    "GroupAnchorToModeratorAction" => Ok(LinkTypes::GroupAnchorToModeratorAction),
 

@@ -131,8 +131,6 @@ function app_tests () {
 	const app = app1		= await appstore_csr.create_app( input );
 
 	log.normal("App ID: %s", json.debug( app.$id ) );
-
-	expect( app.editors		).to.have.length( 2 );
     });
 
 }

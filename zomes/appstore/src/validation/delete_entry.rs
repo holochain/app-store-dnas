@@ -60,10 +60,14 @@ pub fn validation(
             )?.try_into()?;
 
             // Allow any app editor
-            if !app_entry.editors.contains( &delete.author ) {
+            let group : GroupEntry = must_get_valid_record(
+                app_entry.group_ref().1
+            )?.try_into()?;
+
+            if !group.is_contributor( &delete.author ) {
                 invalid!(format!(
                     "Delete author ({}) is not in editor list: {:?}",
-                    delete.author, app_entry.editors,
+                    delete.author, group.contributors(),
                 ))
             }
 
@@ -73,15 +77,16 @@ pub fn validation(
             let app_version_entry : AppVersionEntry = must_get_valid_record(
                 original_action_hash,
             )?.try_into()?;
-            let app_entry : AppEntry = must_get_valid_record(
-                app_version_entry.for_app,
+
+            // Author must be in app version editors
+            let group : GroupEntry = must_get_valid_record(
+                app_version_entry.group_ref().1,
             )?.try_into()?;
 
-            // Allow any app editor
-            if !app_entry.editors.contains( &delete.author ) {
+            if !group.is_contributor( &delete.author ) {
                 invalid!(format!(
-                    "Delete author ({}) is not in editor list: {:?}",
-                    delete.author, app_entry.editors,
+                    "Link author ({}) is not in editor list: {:?}",
+                    delete.author, group.contributors(),
                 ))
             }
 

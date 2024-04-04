@@ -106,7 +106,7 @@ export const AppStruct = {
     "publisher":		ActionHash,
     "apphub_hrl":		HRLStruct,
     "apphub_hrl_hash":		EntryHash,
-    "editors":			VecType( AgentPubKey ),
+    "editors_group_id":		GroupRefStruct,
 
     // common fields
     "published_at":		Number,
