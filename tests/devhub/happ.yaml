@@ -25,4 +25,4 @@ roles:
       strategy: create
       deferred: false
     dna:
-      bundled: ../../bundled/portal.dna
+      bundled: ../../dnas/portal.dna

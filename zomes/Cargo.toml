@@ -1,5 +1,5 @@
 [workspace]
 members = [
   "appstore",
-  "appstore_api",
+  "appstore_csr",
 ]

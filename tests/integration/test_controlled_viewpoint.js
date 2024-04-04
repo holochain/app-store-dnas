@@ -1,63 +1,116 @@
-const path				= require('path');
-const log				= require('@whi/stdlog')(path.basename( __filename ), {
-    level: process.env.LOG_LEVEL || 'fatal',
+import { Logger }			from '@whi/weblogger';
+const log				= new Logger("test-app-store", process.env.LOG_LEVEL );
+
+import path				from 'path';
+import crypto				from 'crypto';
+import { expect }			from 'chai';
+// import why				from 'why-is-node-running';
+
+import json				from '@whi/json';
+import {
+    HoloHash,
+    DnaHash, AgentPubKey,
+    ActionHash, EntryHash,
+}					from '@spartan-hc/holo-hash';
+
+import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
+const { Holochain }			= HolochainBackdrop;
+
+import {
+    AppStoreCell,
+}					from '@holochain/appstore-zomelets';
+import {
+    AppInterfaceClient,
+}					from '@spartan-hc/app-interface-client';
+
+import {
+    expect_reject,
+    linearSuite,
+    createAppInput,
+    createPublisherInput,
+    createGroupInput,
+}					from '../utils.js';
+
+
+const __dirname				= path.dirname( new URL(import.meta.url).pathname );
+const APPSTORE_DNA_PATH			= path.join( __dirname, "../../dnas/appstore.dna" );
+const APP_PORT				= 23_567;
+
+let client;
+let app_client
+let bobby_client;
+
+let appstore_csr;
+let bobby_appstore_csr;
+
+
+describe("Controlled Viewpoint", () => {
+    const holochain			= new Holochain({
+	"timeout": 60_000,
+	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
+    });
+
+    before(async function () {
+	this.timeout( 60_000 );
+
+	await holochain.backdrop({
+	    "test": {
+		"appstore":	APPSTORE_DNA_PATH,
+	    },
+	}, {
+	    "app_port": APP_PORT,
+	    "actors": [ "alice", "bobby" ],
+	});
+
+	client				= new AppInterfaceClient( APP_PORT, {
+	    "logging": process.env.LOG_LEVEL || "normal",
+	});
+	app_client			= await client.app( "test-alice" );
+	bobby_client			= await client.app( "test-bobby" );
+
+	{
+	    const {
+		appstore,
+	    }				= app_client.createInterface({
+		"appstore":	AppStoreCell,
+	    });
+
+	    appstore_csr		= appstore.zomes.appstore_csr.functions;
+	}
+
+	{
+	    const bobby_appstore	= bobby_client.createCellInterface( "appstore", AppStoreCell );
+
+	    bobby_appstore_csr		= bobby_appstore.zomes.appstore_csr.functions;
+	}
+
+	// Must call whoami on each cell to ensure that init has finished.
+	await appstore_csr.whoami();
+	await bobby_appstore_csr.whoami();
+    });
+
+    linearSuite("Publisher", publisher_tests.bind( this, holochain ) );
+    linearSuite("App", app_tests.bind( this, holochain ) );
+    linearSuite("Group Viewpoint", group_tests.bind( this, holochain ) );
+    linearSuite("Errors", errors_tests.bind( this, holochain ) );
+
+    after(async () => {
+	await holochain.destroy();
+    });
+
 });
 
 
-const fs				= require('fs');
-const crypto				= require('crypto');
-const expect				= require('chai').expect;
-// const why				= require('why-is-node-running');
-
-const msgpack				= require('@msgpack/msgpack');
-const json				= require('@whi/json');
-const { ActionHash, AgentPubKey,
-	HoloHash }			= require('@whi/holo-hash');
-const { CruxConfig }			= require('@whi/crux-payload-parser');
-const { Holochain,
-	HolochainClientLib }		= require('@whi/holochain-backdrop');
-const { ConductorError,
-	...hc_client }			= HolochainClientLib;
-
-const { expect_reject }			= require('../utils.js');
-
-const delay				= (n) => new Promise(f => setTimeout(f, n));
-
-const APPSTORE_DNA_PATH			= path.join( __dirname, "../../bundled/appstore.dna" );
-const TEST_DNA_HASH			= "uhC0kXracwD-PyrSU5m_unW3GA7vV1fY1eHH-0qV5HG7Y7s-DwLa5";
-
-const clients				= {};
-
-
-function createPublisherInput ( overrides ) {
-    return Object.assign({
-	"name": "Holo",
-	"location": {
-	    "country": "Gibraltar",
-	    "region": "Gibraltar",
-	    "city": "Gibraltar",
-	},
-	"website": {
-	    "url": "https://github.com/holo-host",
-	    "context": "github",
-	},
-	"icon": crypto.randomBytes(1_000),
-	"email": "techservices@holo.host",
-	"editors": [
-	    new AgentPubKey( crypto.randomBytes(32) )
-	],
-    }, overrides );
-};
-
-
-let publisher_1;
+let publisher1;
 
 function publisher_tests () {
 
     it("should create publisher profile", async function () {
 	this.timeout( 10_000 );
 
-	const publisher = publisher_1	= await clients.alice.call("appstore", "appstore_api", "create_publisher", createPublisherInput() );
+	const publisher = publisher1	= await appstore_csr.create_publisher(
+	    createPublisherInput()
+	);
 
 	// log.debug( json.debug( publisher ) );
 
@@ -67,33 +120,17 @@ function publisher_tests () {
 }
 
 
-function createAppInput ( overrides ) {
-    return Object.assign({
-	"title": "Chess",
-	"subtitle": "The classic boardgame",
-	"description": "The boardgame known as Chess",
-	"icon": crypto.randomBytes(1_000),
-	"publisher": publisher_1.$id,
-	"devhub_address": {
-	    "dna": TEST_DNA_HASH,
-	    "happ": publisher_1.$id,
-	    "gui": publisher_1.$id,
-	},
-	"editors": [
-	    new AgentPubKey( crypto.randomBytes(32) )
-	],
-    }, overrides );
-};
-
-
-let app_1;
+let app1;
 
 function app_tests () {
 
     it("should create app profile", async function () {
 	this.timeout( 10_000 );
 
-	const app = app_1		= await clients.alice.call("appstore", "appstore_api", "create_app", createAppInput() );
+	const input			= createAppInput({
+	    "publisher": publisher1.$id,
+	});
+	const app = app1		= await appstore_csr.create_app( input );
 
 	log.normal("App ID: %s", json.debug( app.$id ) );
 
@@ -103,18 +140,7 @@ function app_tests () {
 }
 
 
-let group_1;
-
-function createGroupInput ( admins, ...members ) {
-    return {
-	"admins": admins,
-	"members": [ ...members ],
-
-	"published_at":		Date.now(),
-	"last_updated":		Date.now(),
-	"metadata":		{},
-    };
-};
+let group1;
 
 function group_tests () {
 
@@ -123,99 +149,78 @@ function group_tests () {
 
 	const group_input		= createGroupInput(
 	    [
-		clients.alice.cellAgent(),
+		app_client.agent_id,
 	    ],
 	);
-	group_1				= await clients.alice.call("appstore", "appstore_api", "create_group", group_input );
+	group1				= await appstore_csr.create_group( group_input );
 
-	console.log( group_1 );
-	log.debug("Group: %s", json.debug( group_1 ) );
+	log.debug("Group: %s", json.debug( group1 ) );
 
-	// expect( publisher.editors	).to.have.length( 2 );
+	expect( group1.admins		).to.have.length( 1 );
     });
 
     it("should create group viewpoint", async function () {
 	{
-	    const apps			= await clients.alice.call("appstore", "appstore_api", "get_all_apps" );
+	    const apps			= await appstore_csr.get_all_apps();
 
 	    expect( apps		).to.have.length( 1 );
 	}
-	const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1.$id );
+	const apps			= await group1.$getAllApps();
 
 	log.debug( json.debug( apps ) );
 
 	expect( apps			).to.have.length( 1 );
 
-	const ma_state			= await clients.alice.call("appstore", "appstore_api", "get_moderated_state", {
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	});
+	const ma_state			= await group1.$getAppModeratedState( app1.$id );
 
 	expect( ma_state		).to.be.null;
     });
 
     it("should remove app from group view", async function () {
-	const moderator_action		= await clients.alice.call("appstore", "appstore_api", "update_moderated_state", {
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	    "message": "App fails to install and developer cannot be contacted",
-	    "metadata": {
-		"remove": true,
-	    },
-	});
+	const moderator_action		= await group1.$removeApp(
+	    app1.$id,
+	    "App fails to install and developer cannot be contacted"
+	);
 
 	log.debug("Removed app: %s", json.debug(moderator_action) );
 
 	{
-	    const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1.$id );
+	    const apps			= await group1.$getAllApps();
 	    log.debug( json.debug( apps ) );
 	    expect( apps		).to.have.length( 0 );
 	}
 	{
-	    const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_removed_apps", group_1.$id );
+	    const apps			= await group1.$getAllRemovedApps();
 	    log.debug( json.debug( apps ) );
 	    expect( apps		).to.have.length( 1 );
 	}
 
-	const ma_state			= await clients.alice.call("appstore", "appstore_api", "get_moderated_state", {
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	});
+	const ma_state			= await group1.$getAppModeratedState( app1.$id );
 
 	expect( ma_state.message	).to.equal( moderator_action.message );
     });
 
     it("should unremove app from group view", async function () {
-	const updated_ma_entry			= await clients.alice.call("appstore", "appstore_api", "update_moderated_state", {
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	    "message": "Developer fixed the app",
-	    "metadata": {
-		"remove": false,
-	    },
-	});
+	const updated_ma_entry			= await group1.$unremoveApp(
+	    app1.$id,
+	    "Developer fixed the app"
+	);
 
 	log.debug("Unremoved app: %s", json.debug(updated_ma_entry) );
 
-	const apps			= await clients.alice.call("appstore", "appstore_api", "viewpoint_get_all_apps", group_1.$id );
+	const apps			= await group1.$getAllApps();
 
 	log.debug( json.debug( apps ) );
 
 	expect( apps			).to.have.length( 1 );
 
-	const ma_state			= await clients.alice.call("appstore", "appstore_api", "get_moderated_state", {
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	});
+	const ma_state			= await group1.$getAppModeratedState( app1.$id );
 
 	expect( ma_state.message	).to.equal( updated_ma_entry.message );
     });
 
     it("should get moderator actions", async function () {
-	const moderator_actions		= await clients.alice.call("appstore", "appstore_api", "get_moderator_actions", {
-	    "group_id": group_1.$id,
-	    "app_id": app_1.$id,
-	});
+	const moderator_actions		= await group1.$getAppModeratedActions( app1.$id );
 
 	log.debug( json.debug( moderator_actions ) );
     });
@@ -229,9 +234,9 @@ function errors_tests () {
 
     it("should fail to remove app because agent is not a group member", async function () {
 	await expect_reject( async () => {
-	    const moderator_action		= await clients.bobby.call("appstore", "appstore_api", "update_moderated_state", {
-		"group_id": group_1.$id,
-		"app_id": app_1.$id,
+	    const moderator_action		= await bobby_appstore_csr.update_moderated_state({
+		"group_id": group1.$id,
+		"app_id": app1.$id,
 		"message": "malicious",
 		"metadata": {
 		    "remove": true,
@@ -241,52 +246,3 @@ function errors_tests () {
     });
 
 }
-
-describe("Controlled Viewpoint", () => {
-    const crux				= new CruxConfig();
-    const holochain			= new Holochain({
-	"timeout": 60_000,
-	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
-    });
-
-    before(async function () {
-	this.timeout( 60_000 );
-
-	const actors			= await holochain.backdrop({
-	    "test_happ": {
-		"appstore":	APPSTORE_DNA_PATH,
-	    },
-	}, {
-	    "actors": [ "alice", "bobby" ],
-	});
-
-	for ( let name in actors ) {
-	    for ( let app_prefix in actors[ name ] ) {
-		log.info("Upgrade client for %s => %s", name, app_prefix );
-		const client		= clients[ name ]	= actors[ name ][ app_prefix ].client;
-
-		crux.upgrade( client );
-	    }
-	}
-
-	// Must call whoami on each cell to ensure that init has finished.
-	{
-	    let whoami			= await clients.alice.call( "appstore", "appstore_api", "whoami", null, 30_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-	{
-	    let whoami			= await clients.bobby.call( "appstore", "appstore_api", "whoami", null, 30_000 );
-	    log.normal("Bobby whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-    });
-
-    describe("Publisher", publisher_tests.bind( this, holochain ) );
-    describe("App", app_tests.bind( this, holochain ) );
-    describe("Group Viewpoint", group_tests.bind( this, holochain ) );
-    describe("Errors", errors_tests.bind( this, holochain ) );
-
-    after(async () => {
-	await holochain.destroy();
-    });
-
-});

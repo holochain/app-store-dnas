@@ -1,25 +1,27 @@
+use crate::{
+    hdk,
+};
+
 use std::collections::BTreeMap;
 use hdk::prelude::*;
-use hc_crud::{
-    now, create_entity, get_entity, update_entity,
-    Entity,
+use hdk_extensions::{
+    agent_id,
 };
 use appstore::{
     LinkTypes,
+    RmpvValue,
+    HRL,
+    DeprecationNotice,
 
+    ALL_APPS_ANCHOR,
     AppEntry,
 
-    EntityId,
-    GetEntityInput, UpdateEntityInput,
-    WebHappConfig,
-    DeprecationNotice,
-};
-use crate::{
-    AppResult,
-
-    ANCHOR_AGENTS,
-    ANCHOR_PUBLISHERS,
-    ANCHOR_APPS,
+    hc_crud::{
+        now, create_entity, get_entity, update_entity,
+        Entity,
+        EntityId,
+        GetEntityInput, UpdateEntityInput,
+    },
 };
 
 
@@ -29,22 +31,23 @@ pub struct CreateInput {
     pub title: String,
     pub subtitle: String,
     pub description: String,
-    pub icon: SerializedBytes,
+    pub icon: EntryHash,
     pub publisher: EntityId,
-    pub devhub_address: WebHappConfig,
+    pub apphub_hrl: HRL,
+    pub apphub_hrl_hash: EntryHash,
 
     // optional
     pub editors: Option<Vec<AgentPubKey>>,
 
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: Option<BTreeMap<String, RmpvValue>>,
 }
 
-
-pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
+#[hdk_extern]
+pub fn create_app(mut input: CreateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Creating App: {}", input.title );
-    let pubkey = agent_info()?.agent_initial_pubkey;
+    let pubkey = agent_id()?;
     let default_now = now()?;
     let default_editors = vec![ pubkey.clone() ];
 
@@ -54,15 +57,14 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
 	}
     }
 
-    let icon_addr = crate::save_bytes( input.icon.bytes() )?;
-
     let app = AppEntry {
 	title: input.title,
 	subtitle: input.subtitle,
 	description: input.description,
-	icon: icon_addr,
+	icon: input.icon,
 	publisher: input.publisher.clone(),
-	devhub_address: input.devhub_address,
+	apphub_hrl: input.apphub_hrl,
+	apphub_hrl_hash: input.apphub_hrl_hash,
 
 	editors: input.editors
 	    .unwrap_or( default_editors ),
@@ -82,31 +84,34 @@ pub fn create(mut input: CreateInput) -> AppResult<Entity<AppEntry>> {
 
     { // Path via Agent's Apps
 	for agent in entity.content.editors.iter() {
-	    let (_, pathhash ) = hc_utils::path( ANCHOR_AGENTS, vec![
-		// hc_utils::agentid()?,
-		agent.to_string(),
-		ANCHOR_APPS.to_string(),
-	    ]);
-	    entity.link_from( &pathhash, LinkTypes::App, None )?;
+	    entity.link_from(
+                agent,
+                LinkTypes::AgentToApp,
+                None
+            )?;
 	}
     }
     { // Path via Publisher's Apps
-	let (_, pathhash) = hc_utils::path( ANCHOR_PUBLISHERS, vec![
-	    input.publisher.to_string(),
-	    ANCHOR_APPS.to_string(),
-	]);
-	entity.link_from( &pathhash, LinkTypes::App, None )?;
+	entity.link_from(
+            &input.publisher,
+            LinkTypes::PublisherToApp,
+            None
+        )?;
     }
     { // Path via All Apps
-	let (_, pathhash) = hc_utils::path_base( ANCHOR_APPS );
-	entity.link_from( &pathhash, LinkTypes::App, None )?;
+	entity.link_from(
+            &ALL_APPS_ANCHOR.path_entry_hash()?,
+            LinkTypes::AllAppsToApp,
+            None
+        )?;
     }
 
     Ok( entity )
 }
 
 
-pub fn get(input: GetEntityInput) -> AppResult<Entity<AppEntry>> {
+#[hdk_extern]
+pub fn get_app(input: GetEntityInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Get app: {}", input.id );
     let entity : Entity<AppEntry> = get_entity( &input.id )?;
 
@@ -120,34 +125,36 @@ pub struct UpdateProperties {
     pub subtitle: Option<String>,
     pub description: Option<String>,
     pub icon: Option<EntryHash>,
-    pub devhub_address: Option<WebHappConfig>,
+    pub apphub_hrl: Option<HRL>,
+    pub apphub_hrl_hash: Option<EntryHash>,
     pub editors: Option<Vec<AgentPubKey>>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
-    pub metadata: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub metadata: Option<BTreeMap<String, RmpvValue>>,
 }
 pub type UpdateInput = UpdateEntityInput<UpdateProperties>;
 
-pub fn update(input: UpdateInput) -> AppResult<Entity<AppEntry>> {
+#[hdk_extern]
+pub fn update_app(input: UpdateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Updating App: {}", input.base );
     let props = input.properties.clone();
-    let mut previous : Option<AppEntry> = None;
 
     let entity = update_entity(
 	&input.base,
 	|mut current : AppEntry, _| {
-	    previous = Some(current.clone());
-
 	    current.title = props.title
 		.unwrap_or( current.title );
 	    current.subtitle = props.subtitle
 		.unwrap_or( current.subtitle );
 	    current.description = props.description
 		.unwrap_or( current.description );
-	    current.devhub_address = props.devhub_address
-		.unwrap_or( current.devhub_address );
+	    current.apphub_hrl = props.apphub_hrl
+		.unwrap_or( current.apphub_hrl );
+	    current.apphub_hrl_hash = props.apphub_hrl_hash
+		.unwrap_or( current.apphub_hrl_hash );
 	    current.icon = props.icon
 		.unwrap_or( current.icon );
+	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );
 	    current.last_updated = props.last_updated
@@ -157,8 +164,6 @@ pub fn update(input: UpdateInput) -> AppResult<Entity<AppEntry>> {
 
 	    Ok( current )
 	})?;
-
-    // let previous = previous.unwrap();
 
     Ok( entity )
 }
@@ -170,7 +175,8 @@ pub struct DeprecateInput {
     pub message: String,
 }
 
-pub fn deprecate(input: DeprecateInput) -> AppResult<Entity<AppEntry>> {
+#[hdk_extern]
+pub fn deprecate_app(input: DeprecateInput) -> ExternResult<Entity<AppEntry>> {
     debug!("Deprecating hApp: {}", input.base );
     let entity = update_entity(
 	&input.base,
@@ -179,6 +185,26 @@ pub fn deprecate(input: DeprecateInput) -> AppResult<Entity<AppEntry>> {
 		message: input.message.to_owned(),
 		recommended_alternatives: None,
 	    });
+
+	    Ok( current )
+	})?;
+
+    Ok( entity )
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct UndeprecateInput {
+    pub base: ActionHash,
+}
+
+#[hdk_extern]
+pub fn undeprecate_app(input: UndeprecateInput) -> ExternResult<Entity<AppEntry>> {
+    debug!("Undeprecating App: {}", input.base );
+    let entity = update_entity(
+	&input.base,
+	|mut current : AppEntry, _| {
+	    current.deprecation = None;
 
 	    Ok( current )
 	})?;

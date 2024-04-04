@@ -13,8 +13,8 @@ integrity:
       bundled: ../../zomes/coop_content.wasm
 coordinator:
   zomes:
-    - name: appstore_api
-      bundled: ../../zomes/appstore_api.wasm
+    - name: appstore_csr
+      bundled: ../../zomes/appstore_csr.wasm
       dependencies:
         - name: appstore
     - name: mere_memory_api
