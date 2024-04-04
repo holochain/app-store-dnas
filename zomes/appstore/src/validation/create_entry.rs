@@ -2,16 +2,19 @@ use crate::{
     hdi,
     hdi_extensions,
 
-    validate_common_fields_create,
     validate_icon_field,
 
     EntryTypes,
+    PublisherEntry,
+    AppEntry,
 
-    coop_content_sdk::{
-        validate_group_auth,
-    },
+    coop_content_sdk,
 };
 
+use coop_content_sdk::{
+    validate_group_auth,
+    GroupEntry, GroupRef,
+};
 use hdi::prelude::*;
 use hdi_extensions::{
     guest_error,
@@ -25,14 +28,15 @@ pub fn validation(
 ) -> ExternResult<ValidateCallbackResult> {
     match app_entry {
         EntryTypes::Publisher(entry) => {
-            // Check author field matches action author
-            validate_common_fields_create( &create, &entry )?;
-
             // Check that the author field is in the editors list
-            if !entry.editors.contains( &entry.author ) {
+            let group : GroupEntry = must_get_valid_record(
+                entry.group_ref().1
+            )?.try_into()?;
+
+            if !group.is_contributor( &create.author ) {
                 invalid!(format!(
                     "Entry author ({}) must be in the editors list: {:?}",
-                    entry.author, entry.editors,
+                    create.author, group.contributors(),
                 ))
             }
 
@@ -44,16 +48,20 @@ pub fn validation(
             valid!()
         },
         EntryTypes::App(entry) => {
-            // Check author field matches action author
-            validate_common_fields_create( &create, &entry )?;
-
-            // Check that the author field is in the editors list
-            if !entry.editors.contains( &entry.author ) {
+            // Check that editors group ID matches the publisher's
+            let publisher_entry : PublisherEntry = must_get_valid_record(
+                entry.publisher.clone()
+            )?.try_into()?;
+            if publisher_entry.group_ref().0 != entry.group_ref().0 {
                 invalid!(format!(
-                    "Entry author ({}) must be in the editors list: {:?}",
-                    entry.author, entry.editors,
+                    "App entry editors group must match the Publisher's editors group: {} != {}",
+                    publisher_entry.group_ref().0, entry.group_ref().0,
                 ))
             }
+
+            // Check that the author is a contributor to the claimed group
+            validate_group_auth( &entry, create )
+                .map_err(|err| guest_error!(err) )?;
 
             // Check icon size
             validate_icon_field( &entry.icon, "AppEntry" )?;
@@ -61,20 +69,24 @@ pub fn validation(
             valid!()
         },
         EntryTypes::AppVersion(entry) => {
-            // Check author field matches action author
-            validate_common_fields_create( &create, &entry )?;
+            // Check that editors group ID matches the publisher's
+            let app_entry : AppEntry = must_get_valid_record(
+                entry.for_app.clone()
+            )?.try_into()?;
+            if app_entry.group_ref().0 != entry.group_ref().0 {
+                invalid!(format!(
+                    "App Version entry editors group must match the App's editors group: {} != {}",
+                    app_entry.group_ref().0, entry.group_ref().0,
+                ))
+            }
+
+            // Check that the author is a contributor to the claimed group
+            validate_group_auth( &entry, create )
+                .map_err(|err| guest_error!(err) )?;
 
             valid!()
         },
         EntryTypes::ModeratorAction(entry) => {
-            // Check author field matches action author
-            if entry.author != create.author {
-                invalid!(format!(
-                    "Entry author does not match Action author: {} != {}",
-                    entry.author, create.author
-                ))
-            }
-
             // Check that the author is a contributor to the claimed group
             validate_group_auth( &entry, create )
                 .map_err(|err| guest_error!(err) )?;

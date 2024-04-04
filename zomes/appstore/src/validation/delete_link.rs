@@ -3,15 +3,14 @@ use crate::{
     hdi_extensions,
     LinkTypes,
 
-    PublisherEntry,
-    AppEntry,
     ModeratorActionEntry,
 
-    coop_content_sdk::{
-        GroupEntry,
-    },
+    coop_content_sdk,
 };
 
+use coop_content_sdk::{
+    GroupEntry,
+};
 use hdi::prelude::*;
 use hdi_extensions::{
     AnyLinkableHashTransformer,
@@ -42,7 +41,7 @@ pub fn validation(
     }
 
     match link_type {
-        LinkTypes::AgentToPublisher => {
+        LinkTypes::AgentToGroup => {
             let agent_base = create_link.base_address.clone().into_agent_pub_key()
                 .ok_or(guest_error!(
                     format!("Any-linkable hash must be an action hash; not '{}'", create_link.base_address )
@@ -58,10 +57,20 @@ pub fn validation(
                 agent_base,
             ))
         },
-        LinkTypes::AllPublishersToPublisher => {
+        LinkTypes::AgentToPublisher => {
+            let agent_base = create_link.base_address.clone().into_agent_pub_key()
+                .ok_or(guest_error!(
+                    format!("Any-linkable hash must be an action hash; not '{}'", create_link.base_address )
+                ))?;
+
+            // Allow agent to delete any links on their own anchor
+            if agent_base == delete.author {
+                valid!()
+            }
+
             invalid!(format!(
-                "Only the link creator ({}) can delete from the ALL_PUBLISHERS_ANCHOR",
-                create_link.author,
+                "Not authorized to delete link on agent anchor: {}",
+                agent_base,
             ))
         },
         LinkTypes::AgentToApp => {
@@ -80,43 +89,11 @@ pub fn validation(
                 agent_base,
             ))
         },
-        LinkTypes::PublisherToApp => {
-            let publisher_id = create_link.target_address.must_be_action_hash()?;
-            let publisher_entry : PublisherEntry = must_get_valid_record(
-                publisher_id
-            )?.try_into()?;
-
-            // Allow any publisher editor
-            if !publisher_entry.editors.contains( &delete.author ) {
-                invalid!(format!(
-                    "Delete author ({}) is not in editor list: {:?}",
-                    delete.author, publisher_entry.editors,
-                ))
-            }
-
-            valid!()
-        },
         LinkTypes::AllAppsToApp => {
             invalid!(format!(
                 "Only the link creator ({}) can delete from the ALL_APPS_ANCHOR",
                 create_link.author,
             ))
-        },
-        LinkTypes::AppToAppVersion => {
-            let app_id = create_link.target_address.must_be_action_hash()?;
-            let app_entry : AppEntry = must_get_valid_record(
-                app_id
-            )?.try_into()?;
-
-            // Allow any app editor
-            if !app_entry.editors.contains( &delete.author ) {
-                invalid!(format!(
-                    "Delete author ({}) is not in editor list: {:?}",
-                    delete.author, app_entry.editors,
-                ))
-            }
-
-            valid!()
         },
         LinkTypes::GroupAnchorToModeratorAction => {
             let moderator_action_id = create_link.target_address.must_be_action_hash()?;

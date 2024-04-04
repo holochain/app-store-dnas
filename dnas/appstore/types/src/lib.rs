@@ -40,7 +40,6 @@ pub struct DeprecationNotice {
 
 // Trait for common fields
 pub trait CommonFields<'a> {
-    fn author(&'a self) -> &'a AgentPubKey;
     fn published_at(&'a self) -> &'a u64;
     fn last_updated(&'a self) -> &'a u64;
     fn metadata(&'a self) -> &'a BTreeMap<String, RmpvValue>;

@@ -16,7 +16,6 @@ use hdi::prelude::*;
 #[derive(Clone)]
 pub struct ModeratorActionEntry {
     pub group_id: (ActionHash, ActionHash),
-    pub author: AgentPubKey,
     pub published_at: u64,
     pub message: String,
     pub subject_id: ActionHash,

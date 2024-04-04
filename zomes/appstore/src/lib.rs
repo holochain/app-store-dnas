@@ -23,9 +23,6 @@ use mere_memory_types::{
 
 
 lazy_static! {
-    pub static ref ALL_PUBLISHERS_ANCHOR : Path = Path::from(vec![
-        Component::from( "publishers".as_bytes().to_vec() ),
-    ]);
     pub static ref ALL_APPS_ANCHOR : Path = Path::from(vec![
         Component::from( "apps".as_bytes().to_vec() ),
     ]);
@@ -78,14 +75,12 @@ entry_model!( EntryTypes::GroupAnchor( GroupAnchorEntry ) );
 
 #[hdk_link_types]
 pub enum LinkTypes {
+    AgentToGroup,
+
     AgentToPublisher,
-    AllPublishersToPublisher,
 
     AgentToApp,
-    PublisherToApp,
     AllAppsToApp,
-
-    AppToAppVersion,
 
     GroupAnchorToModeratorAction,
 }
@@ -97,11 +92,12 @@ impl<'de> Deserialize<'de> for LinkTypes {
     {
 	let name : &str = Deserialize::deserialize(deserializer)?;
 	match name {
-	    "AgentToApp" => Ok(LinkTypes::AgentToApp),
-	    "PublisherToApp" => Ok(LinkTypes::PublisherToApp),
-	    "AllAppsToApp" => Ok(LinkTypes::AllAppsToApp),
+	    "AgentToGroup" => Ok(LinkTypes::AgentToGroup),
 
-	    "AppToAppVersion" => Ok(LinkTypes::AppToAppVersion),
+	    "AgentToPublisher" => Ok(LinkTypes::AgentToPublisher),
+
+	    "AgentToApp" => Ok(LinkTypes::AgentToApp),
+	    "AllAppsToApp" => Ok(LinkTypes::AllAppsToApp),
 
 	    "GroupAnchorToModeratorAction" => Ok(LinkTypes::GroupAnchorToModeratorAction),
 
@@ -112,26 +108,6 @@ impl<'de> Deserialize<'de> for LinkTypes {
 
 
 const ICON_SIZE_LIMIT : u64 = 204_800;
-
-
-pub fn validate_common_fields_create<'a,T,C>(
-    action: &C, entry: &'a T
-) -> ExternResult<()>
-where
-    T: CommonFields<'a>,
-    C: Into<EntryCreationAction> + Clone,
-{
-    let creation : EntryCreationAction = action.to_owned().into();
-
-    if entry.author() != creation.author() {
-        return Err(guest_error!(format!(
-            "Entry author does not match Action author: {} != {}",
-            entry.author(), creation.author()
-        )));
-    }
-
-    Ok(())
-}
 
 
 pub fn validate_icon_field(
