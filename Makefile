@@ -3,15 +3,15 @@ SHELL			= bash
 NAME			= appstore
 
 # External WASM dependencies
-MERE_MEMORY_VERSION	= 0.93.0
+MERE_MEMORY_VERSION	= 0.96.0
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
 MERE_MEMORY_API_WASM	= zomes/mere_memory_api.wasm
-COOP_CONTENT_VERSION	= 0.3.0
+COOP_CONTENT_VERSION	= 0.4.0
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
 COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
 # External DNA dependencies
-PORTAL_VERSION		= 0.11.0
+PORTAL_VERSION		= 0.12.0
 PORTAL_DNA		= dnas/portal.dna
 
 # External hApp dependencies
@@ -116,23 +116,23 @@ $(COOP_CONTENT_CSR_WASM):
 PRE_MM_VERSION = mere_memory_types = "0.91.0"
 NEW_MM_VERSION = mere_memory_types = "0.93"
 
-PRE_CRUD_VERSION = hc_crud_caps = "0.10.3"
-NEW_CRUD_VERSION = hc_crud_caps = "0.12"
+PRE_CRUD_VERSION = hc_crud_caps = "0.12"
+NEW_CRUD_VERSION = hc_crud_caps = "0.13"
 
-PRE_HDI_VERSION = hdi = "0.3.2"
-NEW_HDI_VERSION = hdi = "0.4.0-beta-dev.30"
+PRE_HDI_VERSION = hdi = "0.4.0-beta-dev.30"
+NEW_HDI_VERSION = hdi = "0.4.0-beta-dev.34"
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "0.4.2"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.6"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.6"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.7"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.4"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.6"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.6"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.7"
 
 # PRE_PSDK_VERSION = hc_portal_sdk = "0.1.3"
 # NEW_PSDK_VERSION = hc_portal_sdk = "0.3"
 
-PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.2.1"
-NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.3.0"
+PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.3.0"
+NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.4"
 
 # DEVHUB_VERSION = v0.12.0
 
@@ -164,17 +164,22 @@ npm-reinstall-public:
 npm-use-app-interface-client-public:
 npm-use-app-interface-client-local:
 npm-use-app-interface-client-%:
-	NPM_PACKAGE=@spartan-hc/app-interface-client LOCAL_PATH=../../app-interface-client-js make npm-reinstall-$*
+	NPM_PACKAGE=@spartan-hc/app-interface-client LOCAL_PATH=../app-interface-client-js make npm-reinstall-$*
+
+npm-use-backdrop-public:
+npm-use-backdrop-local:
+npm-use-backdrop-%:
+	NPM_PACKAGE=@spartan-hc/holochain-backdrop LOCAL_PATH=../node-holochain-backdrop make npm-reinstall-$*
 
 npm-use-apphub-zomelets-public:
 npm-use-apphub-zomelets-local:
 npm-use-apphub-zomelets-%:
-	NPM_PACKAGE=@holochain/apphub-zomelets LOCAL_PATH=../../devhub-dnas/dnas/apphub/zomelets make npm-reinstall-$*
+	NPM_PACKAGE=@holochain/apphub-zomelets LOCAL_PATH=../devhub-dnas/dnas/apphub/zomelets make npm-reinstall-$*
 
 npm-use-portal-zomelets-public:
 npm-use-portal-zomelets-local:
 npm-use-portal-zomelets-%:
-	NPM_PACKAGE=@holochain/portal-zomelets LOCAL_PATH=../../portal-dna/zomelets make npm-reinstall-$*
+	NPM_PACKAGE=@holochain/portal-zomelets LOCAL_PATH=../portal-dna/zomelets make npm-reinstall-$*
 
 
 
@@ -252,15 +257,20 @@ clean-files-all-force:	clean-remove-chaff
 #
 # Documentation
 #
+docs/WEBHAPP_ASSEMBLY.md:
+%.md:		node_modules %.template.md
+	cd $$(dirname $@); npx mmdc -i $$(basename $*).template.md -o $$(basename $@)
+
 APPSTORE_CSR_DOCS	= target/doc/appstore_csr/index.html
 
+$(APPSTORE_CSR_DOCS):
 target/doc/%/index.html:	zomes/%/src/**
 	cd zomes; cargo test --doc -p $*
 	cd zomes; cargo doc -p $*
 	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$@\x1b[0m";
 
 
-docs:			$(APPSTORE_CSR_DOCS)
+docs:				$(APPSTORE_CSR_DOCS)
 docs-watch:
 	@inotifywait -r -m -e modify		\
 		--includei '.*\.rs'		\

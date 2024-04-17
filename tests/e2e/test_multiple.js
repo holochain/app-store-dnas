@@ -18,11 +18,7 @@ import {
     ActionHash, EntryHash,
 }					from '@spartan-hc/holo-hash';
 
-import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
-const {
-    Holochain,
-    HolochainClientLib,
-}					= HolochainBackdrop;
+import { Holochain }			from '@spartan-hc/holochain-backdrop';
 
 import {
     AppHubCell,
@@ -85,17 +81,19 @@ describe("App Store + DevHub", () => {
     before(async function () {
 	this.timeout( 120_000 );
 
-	await holochain.backdrop({
-	    "devhub":		DEVHUB_PATH,
-	}, {
-	    "actors": [
-		"bobby",
-		"carol",
-	    ],
+	await holochain.install([
+	    "bobby",
+	    "carol",
+	], [
+	    {
+		"app_name":	"devhub",
+		"bundle":	DEVHUB_PATH,
+	    },
+	], {
 	    network_seed,
 	});
 
-	app_port			= await holochain.appPorts()[0];
+	app_port			= await holochain.ensureAppPort();
 
 	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "normal",
@@ -142,16 +140,16 @@ describe("App Store + DevHub", () => {
 	    carol_portal_csr		= portal.zomes.portal_csr.functions;
 	}
 
-	const install			= await holochain.setupApp(
-	    app_port,
-	    "appstore",
+	await holochain.install([
 	    "alice",
-	    await holochain.admin.generateAgent(),
-	    APPSTORE_PATH,
+	], [
 	    {
-		network_seed,
-	    }
-	);
+		"app_name": "appstore",
+		"bundle": APPSTORE_PATH,
+	    },
+	], {
+	    network_seed,
+	});
 
 	alice_client			= await client.app( "appstore-alice" );
 

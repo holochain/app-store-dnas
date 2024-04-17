@@ -13,8 +13,7 @@ import {
     ActionHash, EntryHash,
 }					from '@spartan-hc/holo-hash';
 
-import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
-const { Holochain }			= HolochainBackdrop;
+import { Holochain }			from '@spartan-hc/holochain-backdrop';
 
 import {
     AppStoreCell,
@@ -34,8 +33,8 @@ import {
 
 const __dirname				= path.dirname( new URL(import.meta.url).pathname );
 const APPSTORE_DNA_PATH			= path.join( __dirname, "../../dnas/appstore.dna" );
-const APP_PORT				= 23_567;
 
+let app_port;
 let client;
 let app_client
 let bobby_client;
@@ -47,22 +46,27 @@ let bobby_appstore_csr;
 describe("Controlled Viewpoint", () => {
     const holochain			= new Holochain({
 	"timeout": 60_000,
-	"default_stdout_loggers": process.env.LOG_LEVEL === "silly",
+	"default_stdout_loggers": log.level_rank > 3,
     });
 
     before(async function () {
 	this.timeout( 60_000 );
 
-	await holochain.backdrop({
-	    "test": {
-		"appstore":	APPSTORE_DNA_PATH,
+	await holochain.install([
+	    "alice",
+	    "bobby",
+	], [
+	    {
+		"app_name": "test",
+		"bundle": {
+		    "appstore":	APPSTORE_DNA_PATH,
+		},
 	    },
-	}, {
-	    "app_port": APP_PORT,
-	    "actors": [ "alice", "bobby" ],
-	});
+	]);
 
-	client				= new AppInterfaceClient( APP_PORT, {
+	app_port			= await holochain.ensureAppPort();
+
+	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "normal",
 	});
 	app_client			= await client.app( "test-alice" );

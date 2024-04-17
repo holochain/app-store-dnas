@@ -13,8 +13,7 @@ import {
     ActionHash, EntryHash,
 }					from '@spartan-hc/holo-hash';
 
-import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
-const { Holochain }			= HolochainBackdrop;
+import { Holochain }			from '@spartan-hc/holochain-backdrop';
 
 import {
     AppStoreCell,
@@ -53,15 +52,19 @@ describe("Appstore", () => {
     before(async function () {
 	this.timeout( 60_000 );
 
-	await holochain.backdrop({
-	    "test": {
-		"appstore":	APPSTORE_DNA_PATH,
+	await holochain.install([
+	    "alice",
+	    "bobby",
+	], [
+	    {
+		"app_name": "test",
+		"bundle": {
+		    "appstore":	APPSTORE_DNA_PATH,
+		},
 	    },
-	}, {
-	    "actors": [ "alice", "bobby" ],
-	});
+	]);
 
-	app_port			= await holochain.appPorts()[0];
+	app_port			= await holochain.ensureAppPort();
 
 	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "normal",

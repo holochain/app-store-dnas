@@ -3,14 +3,8 @@ name: App Store
 description: The official Holochain App Store used by Launcher
 roles:
   - name: appstore
-    provisioning:
-      strategy: create
-      deferred: false
     dna:
       bundled: ../dnas/appstore.dna
   - name: portal
-    provisioning:
-      strategy: create
-      deferred: false
     dna:
       bundled: ../dnas/portal.dna
