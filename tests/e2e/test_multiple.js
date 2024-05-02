@@ -392,6 +392,15 @@ function download_tests () {
 	log.normal("App's latest webhapp bundle: %s", json.debug(bundle) );
     });
 
+    it("should get DevHub webapp asset", async function () {
+	this.timeout( 30_000 );
+
+	const latest_version		= await app_v1.$getLatestVersion();
+	const asset			= await latest_version.$getAsset();
+
+	log.normal("App's latest webhapp asset: %s", json.debug(asset) );
+    });
+
 }
 
 let admin;

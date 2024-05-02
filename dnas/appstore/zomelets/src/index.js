@@ -409,6 +409,22 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return webapp_bundle;
     },
+    async get_apphub_webapp_asset_for_app_version ( input ) {
+	const app_version		= await this.functions.get_app_version( input );
+	const apphub			= this.getCellInterface( "apphub", app_version.apphub_hrl.dna );
+
+	const webapp_version		= await this.functions.get_apphub_webapp_package_version({
+	    "dna":	app_version.apphub_hrl.dna,
+	    "target":	app_version.apphub_hrl.target,
+	    "hash":	app_version.apphub_hrl_hash,
+	});
+
+	const webapp_asset		= await apphub.apphub_csr.get_webapp_asset(
+	    webapp_version.webapp
+	);
+
+	return webapp_asset;
+    },
 }, {
     "zomes": {
 	"mere_memory_api": MereMemoryZomelet,

@@ -9,7 +9,7 @@ import {
     intoStruct,
     AnyType, OptionType,
     VecType, MapType,
-}					from '@spartan-hc/caps-entities';
+}					from '@spartan-hc/entities';
 
 
 
@@ -241,6 +241,10 @@ export class AppVersion extends ScopedEntity {
 
     async $getBundle () {
 	return await this.zome.get_apphub_webapp_package_version_bundle( this.$id );
+    }
+
+    async $getAsset () {
+	return await this.zome.get_apphub_webapp_asset_for_app_version( this.$id );
     }
 }
 

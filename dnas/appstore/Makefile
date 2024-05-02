@@ -46,7 +46,7 @@ update-npm-all: \
 	update-npm-zomelets \
 	update-npm-portal-zomelets
 update-npm-entities:
-	PACKAGE=@spartan-hc/caps-entities make update-npm-package
+	PACKAGE=@spartan-hc/entities make update-npm-package
 update-npm-holo-hash:
 	PACKAGE=@spartan-hc/holo-hash make update-npm-package
 update-npm-mere-memory-zomelets:
