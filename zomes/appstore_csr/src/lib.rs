@@ -45,6 +45,15 @@ use apphub_sdk::{
             MemoryBlockEntry,
         },
     },
+    dnahub_sdk::{
+        DnaEntryInput,
+    },
+    dnahub_types::{
+        DnaEntry,
+    },
+    zomehub_types::{
+        ZomeEntry,
+    },
 };
 use coop_content_sdk::{
     GroupEntry,
@@ -499,6 +508,9 @@ pub fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Vec<
 }
 
 
+//
+// AppHub Entry Hashers
+//
 
 /// Calculate the [`EntryHash`] for the AppHub entry type [`WebAppPackageEntry`]
 #[hdk_extern]
@@ -552,5 +564,29 @@ pub fn hash_mere_memory_entry(input: MemoryEntry) -> ExternResult<EntryHash> {
 #[hdk_extern]
 pub fn hash_mere_memory_block_entry(input: MemoryBlockEntry) -> ExternResult<EntryHash> {
     // debug!("MemoryBlockEntry: {:#?}", input );
+    hash_entry( input )
+}
+
+
+//
+// DnaHub Entry Hashers
+//
+
+/// Calculate the [`EntryHash`] for the AppHub entry type [`DnaEntry`]
+#[hdk_extern]
+pub fn hash_dna_entry(input: DnaEntryInput) -> ExternResult<EntryHash> {
+    // debug!("DnaEntry: {:#?}", input );
+    hash_entry( DnaEntry::from( input ) )
+}
+
+
+//
+// ZomeHub Entry Hashers
+//
+
+/// Calculate the [`EntryHash`] for the AppHub entry type [`ZomeEntry`]
+#[hdk_extern]
+pub fn hash_zome_entry(input: ZomeEntry) -> ExternResult<EntryHash> {
+    // debug!("ZomeEntry: {:#?}", input );
     hash_entry( input )
 }

@@ -388,6 +388,8 @@ export const AppStoreCSRZomelet		= new Zomelet({
 	    "hash":	app_version.apphub_hrl_hash,
 	});
 
+	// TODO: must do this within the appstore zomelets so we can check the hashes of dnahub and
+	// zomehub types
 	const bundle_bytes		= await apphub.apphub_csr.get_webhapp_bundle(
 	    webapp_version.webapp
 	);
