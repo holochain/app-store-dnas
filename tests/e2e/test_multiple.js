@@ -81,7 +81,7 @@ describe("App Store + DevHub", () => {
     before(async function () {
 	this.timeout( 120_000 );
 
-	await holochain.install([
+	const appstore_installs		= await holochain.install([
 	    "bobby",
 	    "carol",
 	], [
@@ -99,8 +99,11 @@ describe("App Store + DevHub", () => {
 	    "logging": process.env.LOG_LEVEL || "normal",
 	});
 
-	bobby_client			= await client.app( "devhub-bobby" );
-	carol_client			= await client.app( "devhub-carol" );
+	const bobby_token		= appstore_installs.bobby.devhub.auth.token;
+	bobby_client			= await client.app( bobby_token );
+
+	const carol_token		= appstore_installs.carol.devhub.auth.token;
+	carol_client			= await client.app( carol_token );
 
 	{
 	    const {
@@ -140,7 +143,7 @@ describe("App Store + DevHub", () => {
 	    carol_portal_csr		= portal.zomes.portal_csr.functions;
 	}
 
-	await holochain.install([
+	const devhub_installs		= await holochain.install([
 	    "alice",
 	], [
 	    {
@@ -151,7 +154,8 @@ describe("App Store + DevHub", () => {
 	    network_seed,
 	});
 
-	alice_client			= await client.app( "appstore-alice" );
+	const alice_token		= devhub_installs.alice.appstore.auth.token;
+	alice_client			= await client.app( alice_token );
 
 	{
 	    const {
@@ -334,18 +338,20 @@ function download_tests () {
 
 	log.normal("WebApp entry: %s", json.debug(webapp_entry) );
 
+	const app_entry_addr		= webapp_entry.resources[ webapp_entry.manifest.happ_manifest.bundled ];
 	const app_entry			= await alice_appstore_csr.get_apphub_app({
 	    "dna":	bobby_client.roles.apphub,
-	    "target":	webapp_entry.manifest.happ_manifest.app_entry,
+	    "target":	app_entry_addr,
 	});
 
 	log.normal("App entry: %s", json.debug(app_entry) );
     });
 
     it("should get UI and memory entry from apphub", async function () {
+	const ui_entry_addr		= webapp_v1.resources[ webapp_v1.manifest.ui.bundled ];
 	const ui_entry			= await alice_appstore_csr.get_apphub_ui({
 	    "dna":	bobby_client.roles.apphub,
-	    "target":	webapp_v1.manifest.ui.ui_entry,
+	    "target":	ui_entry_addr,
 	});
 
 	log.normal("UI entry: %s", json.debug(ui_entry) );

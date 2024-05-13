@@ -12,4 +12,4 @@ crate-type = ["cdylib", "rlib"]
 appstore = { path = "../appstore" }
 hc_apphub_sdk = { path = "../../../devhub-dnas/dnas/apphub/sdk" }
 serde = "1"
-whi_hdk_extensions = "0.7"
+whi_hdk_extensions = "0.9"

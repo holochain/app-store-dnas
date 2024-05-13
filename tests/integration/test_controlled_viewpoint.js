@@ -36,7 +36,7 @@ const APPSTORE_DNA_PATH			= path.join( __dirname, "../../dnas/appstore.dna" );
 
 let app_port;
 let client;
-let app_client
+let alice_client
 let bobby_client;
 
 let appstore_csr;
@@ -52,7 +52,7 @@ describe("Controlled Viewpoint", () => {
     before(async function () {
 	this.timeout( 60_000 );
 
-	await holochain.install([
+	const installations		= await holochain.install([
 	    "alice",
 	    "bobby",
 	], [
@@ -69,13 +69,17 @@ describe("Controlled Viewpoint", () => {
 	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "normal",
 	});
-	app_client			= await client.app( "test-alice" );
-	bobby_client			= await client.app( "test-bobby" );
+
+	const alice_token		= installations.alice.test.auth.token;
+	alice_client			= await client.app( alice_token );
+
+	const bobby_token		= installations.bobby.test.auth.token;
+	bobby_client			= await client.app( bobby_token );
 
 	{
 	    const {
 		appstore,
-	    }				= app_client.createInterface({
+	    }				= alice_client.createInterface({
 		"appstore":	AppStoreCell,
 	    });
 
@@ -153,7 +157,7 @@ function group_tests () {
 
 	const group_input		= createGroupInput(
 	    [
-		app_client.agent_id,
+		alice_client.agent_id,
 	    ],
 	);
 	group1				= await appstore_csr.create_group( group_input );

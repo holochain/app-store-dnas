@@ -3,15 +3,15 @@ SHELL			= bash
 NAME			= appstore
 
 # External WASM dependencies
-MERE_MEMORY_VERSION	= 0.96.0
+MERE_MEMORY_VERSION	= 0.98.0
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
 MERE_MEMORY_API_WASM	= zomes/mere_memory_api.wasm
-COOP_CONTENT_VERSION	= 0.4.0
+COOP_CONTENT_VERSION	= 0.5.0
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
 COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
 # External DNA dependencies
-PORTAL_VERSION		= 0.12.0
+PORTAL_VERSION		= 0.14.0
 PORTAL_DNA		= dnas/portal.dna
 
 # External hApp dependencies
@@ -69,11 +69,6 @@ $(PORTAL_DNA):
 	wget -O $@ "https://github.com/holochain/portal-dna/releases/download/v$(PORTAL_VERSION)/portal.dna"
 
 
-# zomes/%/Cargo.lock:
-# 	touch $@
-
-# $(DEVHUB_HAPP):			$(DNAREPO_DNA) $(HAPPS_DNA) $(WEBASSETS_DNA) $(PORTAL_DNA) tests/devhub/happ.yaml
-# 	hc app pack -o $@ ./tests/devhub/
 $(DEVHUB_HAPP):			../devhub-dnas/happ/devhub.happ
 	cp $< $@
 
@@ -113,28 +108,23 @@ $(COOP_CONTENT_CSR_WASM):
 	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content_csr.wasm" --output $@
 
 
-PRE_MM_VERSION = mere_memory_types = "0.91.0"
-NEW_MM_VERSION = mere_memory_types = "0.93"
+PRE_MM_VERSION = mere_memory_types = "0.93"
+NEW_MM_VERSION = mere_memory_types = "0.95"
 
-PRE_CRUD_VERSION = hc_crud_caps = "0.12"
-NEW_CRUD_VERSION = hc_crud_caps = "0.13"
+PRE_CRUD_VERSION = hc_crud_caps = "0.13"
+NEW_CRUD_VERSION = hc_crud_caps = "0.15"
 
-PRE_HDI_VERSION = hdi = "0.4.0-beta-dev.30"
-NEW_HDI_VERSION = hdi = "0.4.0-beta-dev.34"
+PRE_HDI_VERSION = hdi = "0.4.0-beta-dev.34"
+NEW_HDI_VERSION = hdi = "0.5.0-dev.1"
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "0.6"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.7"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.7"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.9"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.6"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.7"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.7"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.9"
 
-# PRE_PSDK_VERSION = hc_portal_sdk = "0.1.3"
-# NEW_PSDK_VERSION = hc_portal_sdk = "0.3"
-
-PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.3.0"
-NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.4"
-
-# DEVHUB_VERSION = v0.12.0
+PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.4"
+NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.5"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' dnas/*/types zomes/*/
 
@@ -149,9 +139,6 @@ update-hdk-extensions-version:
 	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
 update-hdi-extensions-version:
 	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
-# update-portal-version:
-# 	git grep -l '$(PRE_PSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_PSDK_VERSION)|$(NEW_PSDK_VERSION)|g'
-# 	rm -f $(PORTAL_DNA)
 update-coop-content-version:
 	rm -f zomes/coop_content*.wasm
 	git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
@@ -169,7 +156,7 @@ npm-use-app-interface-client-%:
 npm-use-backdrop-public:
 npm-use-backdrop-local:
 npm-use-backdrop-%:
-	NPM_PACKAGE=@spartan-hc/holochain-backdrop LOCAL_PATH=../node-holochain-backdrop make npm-reinstall-$*
+	NPM_PACKAGE=@spartan-hc/holochain-backdrop LOCAL_PATH=../node-backdrop make npm-reinstall-$*
 
 npm-use-apphub-zomelets-public:
 npm-use-apphub-zomelets-local:
@@ -223,7 +210,7 @@ test-integration:
 
 DEBUG_LEVEL	       ?= warn
 TEST_ENV_VARS		= LOG_LEVEL=$(DEBUG_LEVEL)
-MOCHA_OPTS		= -n enable-source-maps
+MOCHA_OPTS		= -n enable-source-maps -t 5000
 
 test-appstore:			test-setup $(APPSTORE_DNA)
 	$(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./tests/integration/test_appstore.js

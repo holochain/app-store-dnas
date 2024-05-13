@@ -36,7 +36,7 @@ const APPSTORE_DNA_PATH			= path.join( __dirname, "../../dnas/appstore.dna" );
 
 let app_port;
 let client;
-let app_client
+let alice_client
 let bobby_client;
 
 let appstore_csr;
@@ -52,7 +52,7 @@ describe("Appstore", () => {
     before(async function () {
 	this.timeout( 60_000 );
 
-	await holochain.install([
+	const installations		= await holochain.install([
 	    "alice",
 	    "bobby",
 	], [
@@ -69,13 +69,17 @@ describe("Appstore", () => {
 	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "normal",
 	});
-	app_client			= await client.app( "test-alice" );
-	bobby_client			= await client.app( "test-bobby" );
+
+	const alice_token		= installations.alice.test.auth.token;
+	alice_client			= await client.app( alice_token );
+
+	const bobby_token		= installations.bobby.test.auth.token;
+	bobby_client			= await client.app( bobby_token );
 
 	{
 	    const {
 		appstore,
-	    }				= app_client.createInterface({
+	    }				= alice_client.createInterface({
 		"appstore":	AppStoreCell,
 	    });
 
@@ -129,7 +133,7 @@ function publisher_tests () {
 
     it("should get publishers for an agent", async function () {
 	const publishers		= await appstore_csr.get_publishers_for_agent({
-	    "for_agent": app_client.agent_id,
+	    "for_agent": alice_client.agent_id,
 	});
 
 	expect( publishers		).to.have.length( 1 );
@@ -211,7 +215,7 @@ function app_tests () {
 
     it("should get apps for an agent", async function () {
 	const apps			= await appstore_csr.get_apps_for_agent({
-	    "for_agent": app_client.agent_id,
+	    "for_agent": alice_client.agent_id,
 	});
 
 	expect( apps		).to.have.length( 1 );
