@@ -41,6 +41,7 @@ import {
     createAppInput,
     createAppVersionInput,
     createPublisherInput,
+    sha256,
 }					from '../utils.js';
 
 
@@ -220,6 +221,8 @@ describe("App Store + DevHub", () => {
 });
 
 
+let src_bundle;
+let src_happ_bundle;
 let webapp_v1;
 let pack_v1;
 let version_v1;
@@ -227,7 +230,7 @@ let app_v1;
 let app_version_v1;
 
 async function setup () {
-    const bundle			= Bundle.createWebhapp({
+    src_bundle				= Bundle.createWebhapp({
 	"name": "fake-webhapp-1",
 	"ui": {
 	    "bytes": new Uint8Array( Array( 1_000 ).fill( 1 ) ),
@@ -236,10 +239,30 @@ async function setup () {
 	    "bytes": await fs.readFile( APPSTORE_PATH ),
 	},
     });
-    const bundle_bytes			= bundle.toBytes();
+
+    const bundle_bytes			= src_bundle.toBytes();
 
     webapp_v1				= await bobby_apphub_csr.save_webapp( bundle_bytes );
     log.normal("WebApp entry: %s", json.debug(webapp_v1) );
+
+    // Setup source bundle for comparison later
+    {
+	src_happ_bundle			= src_bundle.happ();
+
+	src_happ_bundle.dnas().forEach( (dna_bundle, i) => {
+	    const role_manifest		= src_happ_bundle.manifest.roles[i];
+	    const rpath			= role_manifest.dna.bundled;
+
+	    // Replace DNA bytes with deterministic bytes
+	    src_happ_bundle.resources[ rpath ]	= dna_bundle.toBytes({ sortKeys: true });
+	});
+
+	{
+	    const rpath			= src_bundle.manifest.happ_manifest.bundled;
+	    src_bundle
+		.resources[ rpath ]	= src_happ_bundle.toBytes({ sortKeys: true });
+	}
+    }
 
     pack_v1				= await bobby_apphub_csr.create_webapp_package({
 	"title": faker.commerce.productName(),
@@ -392,10 +415,140 @@ function download_tests () {
 	this.timeout( 30_000 );
 
 	const latest_version		= await app_v1.$getLatestVersion();
-	const bundle_bytes		= await latest_version.$getBundle();
-	const bundle			= new Bundle( bundle_bytes, "webhapp" );
+	const new_bundle_bytes		= await latest_version.$getBundle();
+	const new_bundle		= new Bundle( new_bundle_bytes, "webhapp" );
+	log.normal("App's latest webhapp bundle: %s", json.debug(new_bundle) );
 
-	log.normal("App's latest webhapp bundle: %s", json.debug(bundle) );
+	const new_happ_bundle		= new_bundle.happ();
+	// const src_happ_bundle		= src_bundle.happ();
+	const src_happ_roles		= src_happ_bundle.roles();
+
+	new_happ_bundle.dnas().forEach( (new_dna_bundle, i) => {
+	    // Add integrity's 'dependencies' field back in for comparing against source bundle;
+	    // which has the field because `hc` bundler adds it.
+	    for ( let zome_manifest of new_dna_bundle.manifest.integrity.zomes ) {
+		zome_manifest.dependencies	= null;
+	    }
+
+	    const role_manifest		= new_happ_bundle.manifest.roles[i];
+
+	    // Compare source DNAs
+	    const src_dna_bundle	= src_happ_roles[i].bundle();
+
+	    const src_dna_manifest	= src_dna_bundle.manifest.toJSON();
+	    const new_dna_manifest	= new_dna_bundle.manifest.toJSON();
+
+	    log.normal("Comparing role '%s' DNA", role_manifest.name );
+	    expect( new_dna_manifest	).to.deep.equal( src_dna_manifest );
+
+	    const src_dna_bytes		= src_dna_bundle.toBytes({ sortKeys: true });
+	    const new_dna_bytes		= new_dna_bundle.toBytes({ sortKeys: true });
+
+	    expect(
+		sha256( new_dna_bytes )
+	    ).to.equal(
+		sha256( src_dna_bytes )
+	    );
+
+	    const rpath			= role_manifest.dna.bundled;
+	    new_happ_bundle
+		.resources[ rpath ]	= new_dna_bytes;
+	});
+
+	// Compare source happ
+	log.normal("Comparing happ");
+	expect(
+	    src_happ_bundle.toJSON()
+	).to.deep.equal(
+	    new_happ_bundle.toJSON()
+	);
+
+	const src_happ_manifest		= src_happ_bundle.manifest.toJSON();
+	const new_happ_manifest		= new_happ_bundle.manifest.toJSON();
+
+	expect( src_happ_manifest	).to.deep.equal( new_happ_manifest );
+
+	const src_happ_bytes		= src_bundle.resources[ src_bundle.manifest.happ_manifest.bundled ];
+
+	const src_happ_msgpack_bytes	= Bundle.gunzip( src_happ_bytes );
+	const src_happ_repack_mp_bytes	= src_happ_bundle.toEncoded({ sortKeys: true });
+	const new_happ_msgpack_bytes	= new_happ_bundle.toEncoded({ sortKeys: true });
+
+	const src_happ_content		= Bundle.msgpackDecode( src_happ_msgpack_bytes );
+	const src_happ_repack_content	= Bundle.msgpackDecode( src_happ_repack_mp_bytes );
+	const new_happ_content		= Bundle.msgpackDecode( new_happ_msgpack_bytes );
+
+	expect(
+	    src_happ_content
+	).to.deep.equal(
+	    new_happ_content
+	);
+
+	expect(
+	    src_happ_content
+	).to.deep.equal(
+	    src_happ_repack_content
+	);
+
+	expect(
+	    sha256( src_happ_msgpack_bytes )
+	).to.equal(
+	    sha256( src_happ_repack_mp_bytes )
+	);
+
+	expect(
+	    sha256( src_happ_msgpack_bytes )
+	).to.equal(
+	    sha256( new_happ_msgpack_bytes )
+	);
+
+	const new_happ_bytes		= new_happ_bundle.toBytes({ sortKeys: true });
+
+	expect(
+	    (new Bundle(src_happ_bytes))
+	).to.deep.equal(
+	    src_happ_bundle
+	);
+
+	// Repacked src happ bundle
+	expect(
+	    sha256( src_happ_bytes )
+	).to.equal(
+	    sha256( src_happ_bundle.toBytes({ sortKeys: true }) )
+	);
+
+	const src_happ_hash		= sha256( src_happ_bytes );
+	const new_happ_hash		= sha256( new_happ_bytes );
+
+	expect( src_happ_hash		).to.equal( new_happ_hash );
+
+	{
+	    const rpath			= new_bundle.manifest.happ_manifest.bundled;
+	    new_bundle
+		.resources[ rpath ]	= new_happ_bytes;
+	}
+
+	// Compare source UI
+	log.normal("Comparing UI");
+	const src_ui			= src_bundle.ui();
+	const src_ui_hash		= sha256( src_ui );
+
+	const new_ui			= new_bundle.ui();
+	const new_ui_hash		= sha256( new_ui );
+
+	expect( src_ui_hash		).to.equal( new_ui_hash );
+
+	// Compare source webhapp
+	log.normal("Comparing webhapp");
+	const src_manifest		= src_bundle.manifest.toJSON();
+	const new_manifest		= new_bundle.manifest.toJSON();
+
+	expect( src_manifest		).to.deep.equal( new_manifest );
+
+	const src_msgpack_hash		= sha256( src_bundle.toEncoded({ sortKeys: true }) );
+	const new_msgpack_hash		= sha256( new_bundle.toEncoded({ sortKeys: true }) );
+
+	expect( src_msgpack_hash	).to.equal( new_msgpack_hash );
     });
 
     it("should get DevHub webapp asset", async function () {

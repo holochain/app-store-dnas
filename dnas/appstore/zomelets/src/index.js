@@ -399,12 +399,6 @@ export const AppStoreCSRZomelet		= new Zomelet({
 	const calc_hash			= await this.zomes.mere_memory_api.calculate_hash(
 	    bundle_bytes,
 	);
-	const calc_ui_hash		= await this.zomes.mere_memory_api.calculate_hash(
-	    webapp_bundle.ui()
-	);
-	const calc_happ_hash		= await this.zomes.mere_memory_api.calculate_hash(
-	    webapp_bundle.resources[ webapp_bundle.manifest.happ_manifest.bundled ]
-	);
 
 	if ( calc_hash !== app_version.bundle_hashes.hash )
 	    throw new Error(`Recevied bundle hash does not match expected bundle hash: ${calc_hash} !== ${app_version.bundle_hashes.hash}`);

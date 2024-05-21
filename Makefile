@@ -168,6 +168,11 @@ npm-use-portal-zomelets-local:
 npm-use-portal-zomelets-%:
 	NPM_PACKAGE=@holochain/portal-zomelets LOCAL_PATH=../portal-dna/zomelets make npm-reinstall-$*
 
+npm-use-bundles-public:
+npm-use-bundles-local:
+npm-use-bundles-%:
+	NPM_PACKAGE=@spartan-hc/bundles LOCAL_PATH=../../bundles-js make npm-reinstall-$*
+
 
 
 #
@@ -205,23 +210,23 @@ test-zome-unit-%:
 
 # Integration tests
 test-integration:
-	make -s test-appstore
-	make -s test-viewpoint
+	make -s test-integration-appstore
+	make -s test-integration-viewpoint
 
 DEBUG_LEVEL	       ?= warn
 TEST_ENV_VARS		= LOG_LEVEL=$(DEBUG_LEVEL)
 MOCHA_OPTS		= -n enable-source-maps -t 5000
 
-test-appstore:			test-setup $(APPSTORE_DNA)
+test-integration-appstore:	test-setup $(APPSTORE_DNA)
 	$(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./tests/integration/test_appstore.js
-test-viewpoint:			test-setup $(APPSTORE_DNA)
+test-integration-viewpoint:	test-setup $(APPSTORE_DNA)
 	$(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./tests/integration/test_controlled_viewpoint.js
 
 # End-2-end tests
 test-e2e:
-	make -s test-multi
+	make -s test-e2e-multi
 
-test-multi:			test-setup $(APPSTORE_HAPP) $(DEVHUB_HAPP)
+test-e2e-multi:			test-setup $(APPSTORE_HAPP) $(DEVHUB_HAPP)
 	$(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) ./tests/e2e/test_multiple.js
 
 

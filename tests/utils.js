@@ -94,6 +94,14 @@ export function createGroupInput ( admins, ...members ) {
     };
 };
 
+export function sha256 ( bytes ) {
+    const hash				= crypto.createHash("sha256");
+
+    hash.update( bytes );
+
+    return hash.digest("hex");
+}
+
 
 export default {
     expect_reject,
@@ -102,4 +110,5 @@ export default {
     createAppVersionInput,
     createPublisherInput,
     createGroupInput,
+    sha256,
 };
