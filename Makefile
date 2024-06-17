@@ -3,15 +3,15 @@ SHELL			= bash
 NAME			= appstore
 
 # External WASM dependencies
-MERE_MEMORY_VERSION	= 0.98.0
+MERE_MEMORY_VERSION	= 0.97.1
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
 MERE_MEMORY_API_WASM	= zomes/mere_memory_api.wasm
-COOP_CONTENT_VERSION	= 0.5.0
+COOP_CONTENT_VERSION	= 0.4.1
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
 COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
 # External DNA dependencies
-PORTAL_VERSION		= 0.14.0
+PORTAL_VERSION		= 0.13.1
 PORTAL_DNA		= dnas/portal.dna
 
 # External hApp dependencies
@@ -108,23 +108,23 @@ $(COOP_CONTENT_CSR_WASM):
 	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content_csr.wasm" --output $@
 
 
-PRE_MM_VERSION = mere_memory_types = "0.93"
-NEW_MM_VERSION = mere_memory_types = "0.95"
+PRE_MM_VERSION = mere_memory_types = "0.95"
+NEW_MM_VERSION = mere_memory_types = "0.94.1"
 
-PRE_CRUD_VERSION = hc_crud_caps = "0.13"
-NEW_CRUD_VERSION = hc_crud_caps = "0.15"
+PRE_CRUD_VERSION = hc_crud_caps = "0.15"
+NEW_CRUD_VERSION = hc_crud_caps = "0.14.1"
 
-PRE_HDI_VERSION = hdi = "0.4.0-beta-dev.34"
-NEW_HDI_VERSION = hdi = "0.5.0-dev.1"
+PRE_HDI_VERSION = hdi = "0.5.0-dev.1"
+NEW_HDI_VERSION = hdi = "0.4.1"
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "0.7"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.9"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.9"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.8.1"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.7"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.9"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.9"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.8.1"
 
-PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.4"
-NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.5"
+PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.5"
+NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.4.1"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' dnas/*/types zomes/*/
 
@@ -142,6 +142,8 @@ update-hdi-extensions-version:
 update-coop-content-version:
 	rm -f zomes/coop_content*.wasm
 	git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
+update-portal-version:
+	rm -f $(PORTAL_DNA)
 
 npm-reinstall-local:
 	npm uninstall $(NPM_PACKAGE); npm i --save $(LOCAL_PATH)
@@ -178,10 +180,10 @@ npm-use-bundles-%:
 #
 # Testing
 #
-package-lock.json:	package.json
+%/package-lock.json:	%/package.json
 	touch $@
-node_modules:		package-lock.json
-	npm install
+%/node_modules:		%/package-lock.json
+	cd $*; npm install
 	touch $@
 test-setup:		node_modules \
 			dnas/appstore/zomelets/node_modules
