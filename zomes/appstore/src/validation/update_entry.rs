@@ -105,7 +105,7 @@ pub fn validation(
             let previous_entry : AppVersionEntry = must_get_entry( original_entry_hash )?
                 .try_into()?;
             let app_entry : AppEntry = must_get_valid_record(
-                previous_entry.for_app
+                previous_entry.for_app.clone()
             )?.try_into()?;
 
             // Check that this action author is in the editor list of the previous publisher entry
@@ -118,6 +118,35 @@ pub fn validation(
 
             // Check author field matches action author
             validate_common_fields_create( &update, &entry )?;
+
+            // Fields that cannot be changed
+            if previous_entry.for_app != entry.for_app {
+                invalid!(format!(
+                    "App version field 'for_app' cannot be updated: {} => {}",
+                    previous_entry.for_app, entry.for_app,
+                ))
+            }
+
+            if previous_entry.apphub_hrl != entry.apphub_hrl {
+                invalid!(format!(
+                    "App version field 'apphub_hrl' cannot be updated: {:?} => {:?}",
+                    previous_entry.apphub_hrl, entry.apphub_hrl,
+                ))
+            }
+
+            if previous_entry.apphub_hrl_hash != entry.apphub_hrl_hash {
+                invalid!(format!(
+                    "App version field 'apphub_hrl_hash' cannot be updated: {} => {}",
+                    previous_entry.apphub_hrl_hash, entry.apphub_hrl_hash,
+                ))
+            }
+
+            if previous_entry.bundle_hashes != entry.bundle_hashes {
+                invalid!(format!(
+                    "App version field 'bundle_hashes' cannot be updated: {:?} => {:?}",
+                    previous_entry.bundle_hashes, entry.bundle_hashes,
+                ))
+            }
 
             valid!()
         },

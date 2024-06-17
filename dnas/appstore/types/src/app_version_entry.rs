@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use hdi::prelude::*;
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct BundleHashes {
     pub hash: String,
     pub ui_hash: String,

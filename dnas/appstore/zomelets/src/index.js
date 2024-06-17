@@ -209,6 +209,11 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return versions;
     },
+    async update_app_version ( input ) {
+	const result			= await this.call( input );
+
+	return new AppVersion( result, this );
+    },
 
     //
     // Group

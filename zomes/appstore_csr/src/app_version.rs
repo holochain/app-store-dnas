@@ -84,10 +84,6 @@ pub fn get_app_version(input: GetEntityInput) -> ExternResult<Entity<AppVersionE
 #[derive(Debug, Deserialize, Clone)]
 pub struct UpdateProperties {
     pub version: Option<String>,
-    pub for_app: Option<EntityId>,
-    pub apphub_hrl: Option<HRL>,
-    pub apphub_hrl_hash: Option<EntryHash>,
-    pub bundle_hashes: Option<BundleHashes>,
     pub published_at: Option<u64>,
     pub last_updated: Option<u64>,
     pub metadata: Option<BTreeMap<String, RmpvValue>>,
@@ -104,14 +100,6 @@ pub fn update_app_version(input: UpdateInput) -> ExternResult<Entity<AppVersionE
 	|mut current : AppVersionEntry, _| {
 	    current.version = props.version
 		.unwrap_or( current.version );
-	    current.for_app = props.for_app
-		.unwrap_or( current.for_app );
-	    current.apphub_hrl = props.apphub_hrl
-		.unwrap_or( current.apphub_hrl );
-	    current.apphub_hrl_hash = props.apphub_hrl_hash
-		.unwrap_or( current.apphub_hrl_hash );
-	    current.bundle_hashes = props.bundle_hashes
-		.unwrap_or( current.bundle_hashes );
 	    current.author = agent_id()?;
 	    current.published_at = props.published_at
 		.unwrap_or( current.published_at );

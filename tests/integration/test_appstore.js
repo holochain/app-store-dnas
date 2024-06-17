@@ -302,6 +302,16 @@ function app_version_tests () {
 	expect( versions		).to.have.length( 1 );
     });
 
+    it("should update version", async function () {
+	this.timeout( 10_000 );
+
+	await app_version1.$update({
+	    "version": "0.1.1",
+	});
+
+	expect( app_version1.version	).to.equal( "0.1.1" );
+    });
+
 }
 
 

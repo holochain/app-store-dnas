@@ -228,6 +228,17 @@ export function AppVersionEntry ( entry ) {
 export class AppVersion extends ScopedEntity {
     static STRUCT		= AppVersionStruct;
 
+    async $update ( changes ) {
+	const result		= await this.zome.update_app_version({
+	    "base": this.$action,
+	    "properties": changes,
+	});
+
+	super.$update( result );
+
+	return this;
+    }
+
     //
     // "apphub" methods
     //

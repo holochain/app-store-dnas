@@ -23,7 +23,7 @@ pub type RmpvValue = rmpv::Value;
 //
 // General-use Structs
 //
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct HRL {
     pub dna: DnaHash,
     pub target: AnyDhtHash,
