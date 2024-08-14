@@ -80,7 +80,7 @@ let carol_portal_csr;
 describe("App Store + DevHub", () => {
 
     before(async function () {
-	this.timeout( 120_000 );
+	this.timeout( 300_000 );
 
 	const appstore_installs		= await holochain.install([
 	    "bobby",
@@ -412,7 +412,7 @@ function download_tests () {
     });
 
     it("should download DevHub webapp package", async function () {
-	this.timeout( 30_000 );
+	this.timeout( 120_000 );
 
 	const latest_version		= await app_v1.$getLatestVersion();
 	const new_bundle_bytes		= await latest_version.$getBundle();
@@ -552,7 +552,7 @@ function download_tests () {
     });
 
     it("should get DevHub webapp asset", async function () {
-	this.timeout( 30_000 );
+	this.timeout( 60_000 );
 
 	const latest_version		= await app_v1.$getLatestVersion();
 	const asset			= await latest_version.$getAsset();

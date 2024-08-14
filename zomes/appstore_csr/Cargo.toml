@@ -2,7 +2,7 @@
 name = "appstore_csr"
 version = "0.0.0"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "appstore_csr"
@@ -12,4 +12,4 @@ crate-type = ["cdylib", "rlib"]
 appstore = { path = "../appstore" }
 hc_apphub_sdk = { path = "../../../devhub-dnas/dnas/apphub/sdk" }
 serde = "1"
-whi_hdk_extensions = "0.9"
+whi_hdk_extensions = "0.10"

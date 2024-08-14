@@ -3,3 +3,4 @@ members = [
   "appstore",
   "appstore_csr",
 ]
+resolver = "2"

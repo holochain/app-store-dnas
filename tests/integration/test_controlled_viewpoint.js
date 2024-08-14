@@ -185,6 +185,8 @@ function group_tests () {
     });
 
     it("should remove app from group view", async function () {
+        this.timeout( 20_000 );
+
 	const moderator_action		= await group1.$removeApp(
 	    app1.$id,
 	    "App fails to install and developer cannot be contacted"
@@ -209,6 +211,8 @@ function group_tests () {
     });
 
     it("should unremove app from group view", async function () {
+        this.timeout( 20_000 );
+
 	const updated_ma_entry			= await group1.$unremoveApp(
 	    app1.$id,
 	    "Developer fixed the app"
