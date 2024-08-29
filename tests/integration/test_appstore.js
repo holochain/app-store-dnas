@@ -352,7 +352,7 @@ function errors_tests () {
 		"icon": new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0),
 	    });
 	    await appstore_csr.create_publisher( input );
-	}, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to update publisher because icon is too big", async function () {
@@ -362,7 +362,7 @@ function errors_tests () {
 	    await publisher1.$update({
 		"icon": new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0),
 	    });
-	}, `InvalidCommit error: PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `PublisherEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to create app because icon is too big", async function () {
@@ -374,7 +374,7 @@ function errors_tests () {
 		"publisher": publisher1.$id,
 	    });
 	    await appstore_csr.create_app( input );
-	}, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to update app because icon is too big", async function () {
@@ -384,7 +384,7 @@ function errors_tests () {
 	    await app1.$update({
 		"icon": new Uint8Array( ICON_SIZE_LIMIT + 1 ).fill(0),
 	    });
-	}, `InvalidCommit error: AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
+	}, `AppEntry icon cannot be larger than ${Math.floor(ICON_SIZE_LIMIT/1024)}KB (${ICON_SIZE_LIMIT} bytes)` );
     });
 
     it("should fail to create app version because invalid author", async function () {

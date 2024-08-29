@@ -10,8 +10,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 appstore_types = { path = "../../dnas/appstore/types" }
-hc_crud_caps = "0.16"
+hc_crud_caps = "0.17"
 lazy_static = "1.4"
-mere_memory_types = "0.96"
+mere_memory_types = "0.97"
 serde = "1"
-whi_hdi_extensions = "0.10"
+whi_hdi_extensions = "0.12"

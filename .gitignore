@@ -1,5 +1,6 @@
 target
 /.cargo
+/.rustup
 /node_modules
 /dnas/*/zomelets/node_modules
 /tests/*.dna

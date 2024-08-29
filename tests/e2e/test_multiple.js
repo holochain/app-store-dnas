@@ -155,6 +155,9 @@ describe("App Store + DevHub", () => {
 	    network_seed,
 	});
 
+        log.normal("App Store installations: %s", json.debug(appstore_installs) );
+        log.normal("DevHub    installations: %s", json.debug(devhub_installs) );
+
 	const alice_token		= devhub_installs.alice.appstore.auth.token;
 	alice_client			= await client.app( alice_token );
 

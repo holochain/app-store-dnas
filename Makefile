@@ -3,15 +3,15 @@ SHELL			= bash
 NAME			= appstore
 
 # External WASM dependencies
-MERE_MEMORY_VERSION	= 0.99.0
+MERE_MEMORY_VERSION	= 0.100.0
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
 MERE_MEMORY_API_WASM	= zomes/mere_memory_api.wasm
-COOP_CONTENT_VERSION	= 0.6.0
+COOP_CONTENT_VERSION	= 0.7.0
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
 COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
 # External DNA dependencies
-PORTAL_VERSION		= 0.15.0
+PORTAL_VERSION		= 0.16.0
 PORTAL_DNA		= dnas/portal.dna
 
 # External hApp dependencies
@@ -70,6 +70,7 @@ $(PORTAL_DNA):
 
 
 $(DEVHUB_HAPP):			../devhub-dnas/happ/devhub.happ
+	make reset-portal
 	cp $< $@
 
 dnas/%.dna:			dnas/%/dna.yaml
@@ -107,31 +108,41 @@ $(COOP_CONTENT_WASM):
 $(COOP_CONTENT_CSR_WASM):
 	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content_csr.wasm" --output $@
 
+reset-mere-memory:
+	rm -f zomes/mere_memory*.wasm
+	make $(MERE_MEMORY_WASM) $(MERE_MEMORY_API_WASM)
+reset-coop-content:
+	rm -f zomes/coop_content*.wasm
+	make $(COOP_CONTENT_WASM) $(COOP_CONTENT_CSR_WASM)
+reset-portal:
+	rm -f dnas/portal.dna
+	make $(PORTAL_DNA)
+
 
 PRE_EDITION = edition = "2018"
 NEW_EDITION = edition = "2021"
 
-PRE_MM_VERSION = mere_memory_types = "0.95"
-NEW_MM_VERSION = mere_memory_types = "0.96"
+PRE_MM_VERSION = mere_memory_types = "0.96"
+NEW_MM_VERSION = mere_memory_types = "0.97"
 
-PRE_CRUD_VERSION = hc_crud_caps = "0.15"
-NEW_CRUD_VERSION = hc_crud_caps = "0.16"
+PRE_CRUD_VERSION = hc_crud_caps = "0.16"
+NEW_CRUD_VERSION = hc_crud_caps = "0.17"
 
-PRE_HDI_VERSION = hdi = "0.5.0-dev.1"
-NEW_HDI_VERSION = hdi = "0.5.0-dev.10"
+PRE_HDI_VERSION = hdi = "0.5.0-dev.10"
+NEW_HDI_VERSION = hdi = "=0.5.0-dev.12"
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "0.9"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.10"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.10"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.12"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.9"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.10"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.10"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.12"
 
-PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.5"
-NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.6"
+PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.6"
+NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.7"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' dnas/*/types zomes/*/
 
-update-mere-memory-version:
+update-mere-memory-version:	reset-mere-memory
 	rm -f zomes/mere_memory*.wasm
 	git grep -l '$(PRE_MM_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_MM_VERSION)|$(NEW_MM_VERSION)|g'
 update-crud-version:
@@ -142,7 +153,7 @@ update-hdk-extensions-version:
 	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
 update-hdi-extensions-version:
 	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
-update-coop-content-version:
+update-coop-content-version:	reset-coop-content
 	rm -f zomes/coop_content*.wasm
 	git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
 update-edition:
