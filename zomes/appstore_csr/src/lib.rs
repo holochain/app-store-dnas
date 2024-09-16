@@ -120,17 +120,22 @@ pub fn get_my_publishers(_:()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
 
 /// Get all Publishers
 #[hdk_extern]
-pub fn get_all_publishers(_: ()) -> ExternResult<Vec<Entity<PublisherEntry>>> {
-    let collection = hc_crud::get_entities(
+pub fn get_all_publishers(filter_deprecated: Option<bool>) -> ExternResult<Vec<Entity<PublisherEntry>>> {
+    let mut collection = hc_crud::get_entities(
         &ALL_PUBLISHERS_ANCHOR.path_entry_hash()?,
         LinkTypes::AllPublishersToPublisher,
         None
     )?;
-    let collection = collection.into_iter()
-	.filter(|entity : &Entity<PublisherEntry>| {
-	    entity.content.deprecation.is_none()
-	})
-	.collect();
+
+    if let Some(filter_flag) = filter_deprecated {
+        if filter_flag == true {
+            collection = collection.into_iter()
+	        .filter(|entity : &Entity<PublisherEntry>| {
+	            entity.content.deprecation.is_none()
+	        })
+	        .collect();
+        }
+    }
 
     Ok( collection )
 }
@@ -172,17 +177,22 @@ pub fn get_my_apps(_:()) -> ExternResult<Vec<Entity<AppEntry>>> {
 
 /// Get all Apps
 #[hdk_extern]
-pub fn get_all_apps(_: ()) -> ExternResult<Vec<Entity<AppEntry>>> {
-    let collection = hc_crud::get_entities(
+pub fn get_all_apps(filter_deprecated: Option<bool>) -> ExternResult<Vec<Entity<AppEntry>>> {
+    let mut collection = hc_crud::get_entities(
         &ALL_APPS_ANCHOR.path_entry_hash()?,
         LinkTypes::AllAppsToApp,
         None
     )?;
-    let collection = collection.into_iter()
-	.filter(|entity : &Entity<AppEntry>| {
-	    entity.content.deprecation.is_none()
-	})
-	.collect();
+
+    if let Some(filter_flag) = filter_deprecated {
+        if filter_flag == true {
+            collection = collection.into_iter()
+	        .filter(|entity : &Entity<AppEntry>| {
+	            entity.content.deprecation.is_none()
+	        })
+	        .collect();
+        }
+    }
 
     Ok( collection )
 }
@@ -463,7 +473,7 @@ pub fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<A
         .collect();
 
     debug!("Removed app IDs from viewpoint {}: {:#?}", group_id, removed_app_ids );
-    let apps = get_all_apps(())?
+    let apps = get_all_apps(None)?
         .into_iter()
         .filter(|entity| !removed_app_ids.contains( &entity.id ) )
         .collect();
@@ -499,7 +509,7 @@ pub fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Vec<
         .collect();
 
     debug!("Removed app IDs from viewpoint {}: {:#?}", group_id, removed_app_ids );
-    let apps = get_all_apps(())?
+    let apps = get_all_apps(None)?
         .into_iter()
         .filter(|entity| removed_app_ids.contains( &entity.id ) )
         .collect();

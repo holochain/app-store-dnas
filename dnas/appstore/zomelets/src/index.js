@@ -79,9 +79,21 @@ export const AppStoreCSRZomelet		= new Zomelet({
 
 	return new Publisher( result, this );
     },
-    "get_publishers_for_agent":		true,
-    "get_my_publishers":		true,
-    "get_all_publishers":		true,
+    async get_publishers_for_agent ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( publisher => new Publisher( publisher, this ) );
+    },
+    async get_my_publishers ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( publisher => new Publisher( publisher, this ) );
+    },
+    async get_all_publishers ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( publisher => new Publisher( publisher, this ) );
+    },
     async update_publisher ( input ) {
 	if ( input.properties.icon && input.properties.icon.length > 39 )
 	    input.properties.icon	= await this.zomes.mere_memory_api.save( input.properties.icon );

@@ -154,7 +154,7 @@ function publisher_tests () {
     });
 
     it("should get all publishers", async function () {
-	const publishers		= await appstore_csr.get_all_publishers();
+	const publishers		= await appstore_csr.get_all_publishers( true );
 
 	expect( publishers		).to.have.length( 1 );
     });
@@ -169,7 +169,7 @@ function publisher_tests () {
 	    expect( publishers	).to.have.length( 2 );
 	}
 	{
-	    const publishers	= await appstore_csr.get_all_publishers();
+	    const publishers	= await appstore_csr.get_all_publishers( true );
 	    expect( publishers	).to.have.length( 2 );
 	}
 
@@ -180,7 +180,7 @@ function publisher_tests () {
 	    expect( publishers	).to.have.length( 2 );
 	}
 	{
-	    const publishers	= await appstore_csr.get_all_publishers();
+	    const publishers	= await appstore_csr.get_all_publishers( true );
 	    expect( publishers	).to.have.length( 1 );
 	}
 
@@ -236,7 +236,7 @@ function app_tests () {
     });
 
     it("should get all apps", async function () {
-	const apps		= await appstore_csr.get_all_apps();
+	const apps		= await appstore_csr.get_all_apps( true );
 
 	expect( apps		).to.have.length( 1 );
     });
@@ -252,7 +252,7 @@ function app_tests () {
 	    expect( apps	).to.have.length( 2 );
 	}
 	{
-	    const apps		= await appstore_csr.get_all_apps();
+	    const apps		= await appstore_csr.get_all_apps( true );
 	    expect( apps	).to.have.length( 2 );
 	}
 
@@ -263,7 +263,7 @@ function app_tests () {
 	    expect( apps	).to.have.length( 2 );
 	}
 	{
-	    const apps		= await appstore_csr.get_all_apps();
+	    const apps		= await appstore_csr.get_all_apps( true );
 	    expect( apps	).to.have.length( 1 );
 	}
 
