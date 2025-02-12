@@ -122,42 +122,57 @@ reset-portal:
 PRE_EDITION = edition = "2018"
 NEW_EDITION = edition = "2021"
 
-PRE_MM_VERSION = mere_memory_types = "0.96"
-NEW_MM_VERSION = mere_memory_types = "0.97"
+PRE_MM_VERSION = mere_memory_types = "0.97"
+NEW_MM_VERSION = mere_memory_types = "0.98"
 
-PRE_CRUD_VERSION = hc_crud_caps = "0.16"
-NEW_CRUD_VERSION = hc_crud_caps = "0.17"
+PRE_CRUD_VERSION = hc_crud_caps = "0.17"
+NEW_CRUD_VERSION = hc_crud_caps = "0.19"
 
-PRE_HDI_VERSION = hdi = "0.5.0-dev.10"
-NEW_HDI_VERSION = hdi = "=0.5.0-dev.12"
+PRE_HDI_VERSION = hdi = "=0.5.0-dev.12"
+NEW_HDI_VERSION = hdi = "=0.5.1"
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "0.10"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.12"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.12"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.14"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.10"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.12"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.12"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.14"
 
-PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.6"
-NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.7"
+PRE_CCSDK_VERSION = hc_coop_content_sdk = "0.7"
+NEW_CCSDK_VERSION = hc_coop_content_sdk = "0.8"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' dnas/*/types zomes/*/
 
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+   SED_INPLACE := sed -i ''
+else
+   SED_INPLACE := sed -i
+endif
+
+update-all-version:
+  make -s update-mere-memory-version
+	make -s update-crud-version
+	make -s update-hdi-version
+	make -s update-hdk-extensions-version
+	make -s update-hdi-extensions-version
+	make -s update-coop-content-version
+
 update-mere-memory-version:	reset-mere-memory
-	rm -f zomes/mere_memory*.wasm
-	git grep -l '$(PRE_MM_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_MM_VERSION)|$(NEW_MM_VERSION)|g'
+  rm -f zomes/mere_memory*.wasm
+  git grep -l '$(PRE_MM_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_MM_VERSION)|$(NEW_MM_VERSION)|g'
 update-crud-version:
-	git grep -l '$(PRE_CRUD_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CRUD_VERSION)|$(NEW_CRUD_VERSION)|g'
+  git grep -l '$(PRE_CRUD_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_CRUD_VERSION)|$(NEW_CRUD_VERSION)|g'
 update-hdi-version:
-	git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDI_VERSION)|$(NEW_HDI_VERSION)|g'
+  git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDI_VERSION)|$(NEW_HDI_VERSION)|g'
 update-hdk-extensions-version:
-	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
+  git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
 update-hdi-extensions-version:
-	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
+  git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
 update-coop-content-version:	reset-coop-content
-	rm -f zomes/coop_content*.wasm
-	git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
+  rm -f zomes/coop_content*.wasm
+  git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
 update-edition:
-	git grep -l '$(PRE_EDITION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_EDITION)/$(NEW_EDITION)/g'
+  git grep -l '$(PRE_EDITION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's/$(PRE_EDITION)/$(NEW_EDITION)/g'
 
 npm-reinstall-local:
 	npm uninstall $(NPM_PACKAGE); npm i --save $(LOCAL_PATH)
