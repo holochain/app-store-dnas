@@ -6,7 +6,7 @@ NAME			= appstore
 MERE_MEMORY_VERSION	= 0.100.0
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
 MERE_MEMORY_API_WASM	= zomes/mere_memory_api.wasm
-COOP_CONTENT_VERSION	= 0.7.0
+COOP_CONTENT_VERSION	= 0.8.0
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
 COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
@@ -99,14 +99,14 @@ $(TARGET_DIR)/%_csr.wasm:	$(CSR_SOURCE_FILES)
 	@touch $@ # Cargo must have a cache somewhere because it doesn't update the file time
 
 $(MERE_MEMORY_WASM):
-	curl --fail -L "https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory.wasm" --output $@
+	curl --fail -L "https://github.com/spartan-holochain-counsel/hc-zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory.wasm" --output $@
 $(MERE_MEMORY_API_WASM):
-	curl --fail -L "https://github.com/mjbrisebois/hc-zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory_api.wasm" --output $@
+	curl --fail -L "https://github.com/spartan-holochain-counsel/hc-zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory_api.wasm" --output $@
 
 $(COOP_CONTENT_WASM):
-	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content.wasm" --output $@
+	curl --fail -L "https://github.com/holochain/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content.wasm" --output $@
 $(COOP_CONTENT_CSR_WASM):
-	curl --fail -L "https://github.com/mjbrisebois/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content_csr.wasm" --output $@
+	curl --fail -L "https://github.com/holochain/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content_csr.wasm" --output $@
 
 reset-mere-memory:
 	rm -f zomes/mere_memory*.wasm
@@ -149,30 +149,24 @@ else
    SED_INPLACE := sed -i
 endif
 
-update-all-version:
-  make -s update-mere-memory-version
-	make -s update-crud-version
-	make -s update-hdi-version
-	make -s update-hdk-extensions-version
-	make -s update-hdi-extensions-version
-	make -s update-coop-content-version
+update-all-version: update-mere-memory-version update-crud-version update-hdi-version update-hdk-extensions-version update-hdi-extensions-version update-coop-content-version
 
 update-mere-memory-version:	reset-mere-memory
-  rm -f zomes/mere_memory*.wasm
-  git grep -l '$(PRE_MM_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_MM_VERSION)|$(NEW_MM_VERSION)|g'
+	rm -f zomes/mere_memory*.wasm
+	git grep -l '$(PRE_MM_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_MM_VERSION)|$(NEW_MM_VERSION)|g'
 update-crud-version:
-  git grep -l '$(PRE_CRUD_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_CRUD_VERSION)|$(NEW_CRUD_VERSION)|g'
+	git grep -l '$(PRE_CRUD_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_CRUD_VERSION)|$(NEW_CRUD_VERSION)|g'
 update-hdi-version:
-  git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDI_VERSION)|$(NEW_HDI_VERSION)|g'
+	git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDI_VERSION)|$(NEW_HDI_VERSION)|g'
 update-hdk-extensions-version:
-  git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
+	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
 update-hdi-extensions-version:
-  git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
+	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
 update-coop-content-version:	reset-coop-content
-  rm -f zomes/coop_content*.wasm
-  git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
+	rm -f zomes/coop_content*.wasm
+	git grep -l '$(PRE_CCSDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's|$(PRE_CCSDK_VERSION)|$(NEW_CCSDK_VERSION)|g'
 update-edition:
-  git grep -l '$(PRE_EDITION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's/$(PRE_EDITION)/$(NEW_EDITION)/g'
+	git grep -l '$(PRE_EDITION)' -- $(GG_REPLACE_LOCATIONS) | xargs $(SED_INPLACE) 's/$(PRE_EDITION)/$(NEW_EDITION)/g'
 
 npm-reinstall-local:
 	npm uninstall $(NPM_PACKAGE); npm i --save $(LOCAL_PATH)
