@@ -10,7 +10,7 @@ use crate::{
     AppEntry,
     AppVersionEntry,
 
-    coop_content_sdk::{
+    hc_coop_content_sdk::{
         validate_group_auth,
     },
 };

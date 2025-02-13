@@ -4,7 +4,7 @@ mod publisher_entry;
 mod group_anchor_entry;
 mod moderator_entry;
 
-pub use coop_content_sdk;
+pub use hc_coop_content_sdk;
 
 pub use app_entry::*;
 pub use app_version_entry::*;

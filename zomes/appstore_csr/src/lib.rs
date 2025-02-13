@@ -55,7 +55,7 @@ use apphub_sdk::{
         ZomeEntry,
     },
 };
-use coop_content_sdk::{
+use hc_coop_content_sdk::{
     GroupEntry,
     call_local_zome_decode,
     create_group, update_group,
@@ -249,7 +249,7 @@ fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> ExternResul
                 Response,
                 "coop_content_csr",
                 "get_group_content_evolutions",
-                coop_content_sdk::GetGroupContentInput {
+                hc_coop_content_sdk::GetGroupContentInput {
                     group_id: input.group_id.clone(),
                     content_id: link.target.clone(),
                     full_trace: None,
@@ -356,12 +356,16 @@ pub fn update_moderated_state(input: UpdateModeratorActionInput) -> ExternResult
             register_content_to_group!({
                 entry: group_anchor_entry,
                 target: group_anchor_addr,
+                content_type: "group".to_string(),
+                content_base: None,
             })?;
         }
 
         register_content_to_group!({
             entry: ma_entry,
             target: entity.id.clone(),
+            content_type: "group".to_string(),
+            content_base: None,
         })?;
 
         let tag = format!("app::{}", input.app_id );
@@ -454,6 +458,8 @@ pub fn viewpoint_get_all_apps(group_id: ActionHash) -> ExternResult<Vec<Entity<A
     // - Get all group content
     let removed_app_ids : Vec<ActionHash> = get_all_group_content_latest!({
         group_id: group_id.clone(),
+        content_type: None,
+        content_base: None,
     })?.into_iter()
         .filter_map(|(_origin, latest)| {
             debug!("Get latest group entry: {}", group_id );
@@ -490,6 +496,8 @@ pub fn viewpoint_get_all_removed_apps(group_id: ActionHash) -> ExternResult<Vec<
     // - Get all group content
     let removed_app_ids : Vec<ActionHash> = get_all_group_content_latest!({
         group_id: group_id.clone(),
+        content_type: None,
+        content_base: None,
     })?.into_iter()
         .filter_map(|(_origin, latest)| {
             debug!("Get latest group entry: {}", group_id );

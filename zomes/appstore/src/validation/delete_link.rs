@@ -7,7 +7,7 @@ use crate::{
     AppEntry,
     ModeratorActionEntry,
 
-    coop_content_sdk::{
+    hc_coop_content_sdk::{
         GroupEntry,
     },
 };
