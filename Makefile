@@ -11,7 +11,7 @@ COOP_CONTENT_WASM	= zomes/coop_content.wasm
 COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
 # External DNA dependencies
-PORTAL_VERSION		= 0.16.0
+PORTAL_VERSION		= 0.18.0
 PORTAL_DNA		= dnas/portal.dna
 
 # External hApp dependencies
