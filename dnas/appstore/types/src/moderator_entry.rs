@@ -2,7 +2,7 @@ use crate::{
     RmpvValue,
 };
 
-use hc_coop_content_sdk::{
+use coop_content_sdk::{
     group_ref,
 };
 use std::collections::BTreeMap;

@@ -55,7 +55,7 @@ use apphub_sdk::{
         ZomeEntry,
     },
 };
-use hc_coop_content_sdk::{
+use coop_content_sdk::{
     GroupEntry,
     call_local_zome_decode,
     create_group, update_group,
@@ -249,7 +249,7 @@ fn get_moderator_actions_handler(input: GetModeratorActionsInput) -> ExternResul
                 Response,
                 "coop_content_csr",
                 "get_group_content_evolutions",
-                hc_coop_content_sdk::GetGroupContentInput {
+                coop_content_sdk::GetGroupContentInput {
                     group_id: input.group_id.clone(),
                     content_id: link.target.clone(),
                     full_trace: None,
