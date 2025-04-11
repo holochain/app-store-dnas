@@ -6,7 +6,7 @@ NAME			= appstore
 MERE_MEMORY_VERSION	= 0.100.0
 MERE_MEMORY_WASM	= zomes/mere_memory.wasm
 MERE_MEMORY_API_WASM	= zomes/mere_memory_api.wasm
-COOP_CONTENT_VERSION	= 0.8.0
+COOP_CONTENT_VERSION	= 0.8.1
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
 COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
