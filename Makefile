@@ -99,9 +99,9 @@ $(TARGET_DIR)/%_csr.wasm:	$(CSR_SOURCE_FILES)
 	@touch $@ # Cargo must have a cache somewhere because it doesn't update the file time
 
 $(MERE_MEMORY_WASM):
-	curl --fail -L "https://github.com/holochain/hc-zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory.wasm" --output $@
+	curl --fail -L "https://github.com/holochain/zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory.wasm" --output $@
 $(MERE_MEMORY_API_WASM):
-	curl --fail -L "https://github.com/holochain/hc-zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory_api.wasm" --output $@
+	curl --fail -L "https://github.com/holochain/zome-mere-memory/releases/download/v$(MERE_MEMORY_VERSION)/mere_memory_api.wasm" --output $@
 
 $(COOP_CONTENT_WASM):
 	curl --fail -L "https://github.com/holochain/hc-cooperative-content/releases/download/v$(COOP_CONTENT_VERSION)/coop_content.wasm" --output $@
