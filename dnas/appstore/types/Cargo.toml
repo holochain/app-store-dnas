@@ -9,9 +9,9 @@ name = "appstore_types"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-hc_coop_content_sdk = "0.7"
-hc_crud_caps = "0.17"
-hdi = "=0.5.0-dev.12"
+hc_coop_content_sdk = "0.8.1"
+hc_crud_caps = "0.19"
+hdi = "=0.5.1"
 rmpv = { version = "1", features = ["with-serde"] }
 serde = "1"
 serde_yaml = "0.8.17"
